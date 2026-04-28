@@ -102,8 +102,17 @@ git switch dev    && git merge origin/main --no-ff
 git switch main   && git merge dev --no-ff
 git push yeelight --all
 ```
+### 首次打通（force push后历史分叉专用）
+> 当fork历史被force push重写后，`git merge`会报`refusing to merge unrelated histories`。
+> 首次打通时在dev合并步骤加`--allow-unrelated-histories`：
+```
+git switch dev && git merge origin/main --allow-unrelated-histories --no-ff
+```
+> 此后`original`与`dev`共享历史，后续同步恢复标准流程（不再需要`--allow-unrelated-histories`）。
+
 ### 特有坑点
 - `--ff-only`忽略`-m`参数(快进不动HEAD，正常)；merge模拟测试后必须abort并检查`.git\MERGE_HEAD`
+- **首次打通**：force push后历史分叉，merge必须加`--allow-unrelated-histories`。此后标准流程恢复正常
 - 冲突解决: THEIRS为底(`git checkout --theirs <file>`)→逐块file_patch回OUR修改。先读THEIRS全文确认结构再patch，禁凭推理脑补
 - 合并后验证(commit前): grep缺imports(上游可能删除/重命名模块)、grep缺函数/别名引用、确认新增符号可解析
 - file_patch精度: THEIRS的import路径可能与OUR不同(如`from chatapp_common` vs `from frontends.chatapp_common`)，必先file_read确认
