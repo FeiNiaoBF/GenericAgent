@@ -5,6 +5,7 @@ from agentmain import GeneraticAgent
 try:
     from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
     from telegram.constants import ChatType, MessageLimit, ParseMode
+    from telegram.error import RetryAfter
     from telegram.ext import ApplicationBuilder, CallbackQueryHandler, MessageHandler, filters, ContextTypes
     from telegram.helpers import escape_markdown
     from telegram.request import HTTPXRequest
@@ -23,7 +24,6 @@ from chatapp_common import (
     require_runtime,
     split_text,
 )
-from frontends.tg_formatter import safe_format
 from continue_cmd import handle_frontend_command, reset_conversation
 from llmcore import mykeys
 
@@ -32,26 +32,13 @@ agent.verbose = False
 agent.inc_out = True
 ALLOWED = set(mykeys.get('tg_allowed_users', []))
 
-_DRAFT_HINT = "⏳ 正在处理..."
+_DRAFT_HINT = "thinking..."
 _STREAM_SUFFIX = " ⏳"
 _STREAM_SEGMENT_LIMIT = max(1200, MessageLimit.MAX_TEXT_LENGTH - 256)
+_STREAM_UPDATE_INTERVAL_SECONDS = 2.0
+_STREAM_MIN_UPDATE_CHARS = 400
+_RETRY_AFTER_MARGIN_SECONDS = 1.0
 _QUEUE_WAIT_SECONDS = 1
-_TOOL_TRACE_LINE_RE = re.compile(
-    r"^\s*(?:🛠️|🔧|Tool:)\s*`?[A-Za-z_][A-Za-z0-9_]*`?\s*(?:\(|\{|:|…)",
-    re.MULTILINE
-)
-_TOOL_NAME_LINE_RE = re.compile(
-    r"^[A-Za-z_][A-Za-z0-9_]*\s*[:：]\s*\S+$",
-    re.MULTILINE
-)
-_JSON_CONTINUATION_RE = re.compile(
-    r'^\s*"?[a-z_]+"?:\s*"?[\[{]',
-    re.MULTILINE
-)
-_INTERNAL_STATUS_RE = re.compile(
-    r"^(?:STAGE|MERGE|STATUS|RESULT|EXIT|CODE|TYPE):",
-    re.MULTILINE
-)
 _ASK_USER_HOOK_KEY = "telegram_ask_user_menu"
 _ASK_CALLBACK_PREFIX = "ask:"
 _ASK_CANCEL_ACTION = "none"
@@ -86,7 +73,41 @@ def _make_draft_id():
 
 def _visible_segments(text):
     text = (text or "").strip()
-    return split_text(text, _STREAM_SEGMENT_LIMIT) if text else []
+    if not text:
+        return []
+    segments = []
+    for part in split_text(text, _STREAM_SEGMENT_LIMIT):
+        segments.extend(_markdown_safe_segments(part))
+    return segments
+
+def _markdown_safe_segments(text, limit=None):
+    limit = limit or MessageLimit.MAX_TEXT_LENGTH
+    text = (text or "").strip()
+    if not text:
+        return []
+    if len(_to_markdown_v2(text)) <= limit:
+        return [text]
+    parts = []
+    remaining = text
+    while remaining:
+        if len(_to_markdown_v2(remaining)) <= limit:
+            parts.append(remaining)
+            break
+        low, high, best = 1, len(remaining), 1
+        while low <= high:
+            mid = (low + high) // 2
+            if len(_to_markdown_v2(remaining[:mid].rstrip() or remaining[:mid])) <= limit:
+                best = mid
+                low = mid + 1
+            else:
+                high = mid - 1
+        cut = remaining.rfind("\n", 0, best)
+        if cut < max(1, best * 0.6):
+            cut = best
+        chunk = remaining[:cut].rstrip() or remaining[:best]
+        parts.append(chunk)
+        remaining = remaining[len(chunk):].lstrip()
+    return parts
 
 def _line_complete(line):
     return (line or "").endswith(("\n", "\r"))
@@ -214,59 +235,9 @@ def _to_markdown_v2(text):
         pos = match.end()
     parts.append(escape_markdown(text[pos:], version=2))
     return "".join(parts)
-async def _send_formatted(call, text, *, draft_id=None):
-    """Send or edit text with HTML first, MarkdownV2 second, plain text last."""
-    for prefer_html, mode in ((True, ParseMode.HTML), (False, ParseMode.MARKDOWN_V2)):
-        try:
-            formatted, _ = safe_format(text, prefer_html=prefer_html)
-            if draft_id is None:
-                return await call(formatted, parse_mode=mode)
-            return await call(draft_id, formatted, parse_mode=mode)
-        except Exception as exc:
-            if _is_not_modified_error(exc):
-                return None
-            last_error = exc
-    if draft_id is None:
-        return await call(text)
-    print(f"[TG draft fallback] {type(last_error).__name__}: {last_error}", flush=True)
-    raise last_error
-
-
-async def _reply(update, text):
-    return await _send_formatted(update.message.reply_text, text)
-
 
 def _is_not_modified_error(exc):
     return "not modified" in str(exc).lower()
-
-
-def _sanitize_tg_output(text):
-    """Remove agent/tool trace lines that should never be sent to Telegram users."""
-    if not text:
-        return ""
-    text = re.sub(r"<tool_(?:use|call|result)>[\s\S]*?</tool_(?:use|call|result)>", "", text)
-    kept = []
-    dropping_tool_block = False
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped:
-            if dropping_tool_block:
-                continue
-            kept.append(line)
-            continue
-        if re.match(r"^\s*\*{0,2}LLM\s+Running\s*\(Turn\s*\d+\)\s*\.\.\.\*{0,2}\s*$", line, re.IGNORECASE):
-            continue
-        if _TOOL_TRACE_LINE_RE.match(line) or _TOOL_NAME_LINE_RE.match(line):
-            dropping_tool_block = True
-            continue
-        if dropping_tool_block and _JSON_CONTINUATION_RE.match(line):
-            continue
-        if _INTERNAL_STATUS_RE.match(stripped):
-            continue
-        kept.append(line)
-        dropping_tool_block = False
-    return re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
-
 
 def _extract_ask_user_event(ctx):
     exit_reason = (ctx or {}).get("exit_reason") or {}
@@ -408,12 +379,77 @@ class _TelegramStreamSession:
         self.files = []
         self.sent_segments = 0
         self.active_display = ""
+        self.pending_display = ""
+        self.retry_until = 0.0
+        self.last_update_at = 0.0
+        self.last_update_raw_len = 0
+
+    def _now(self):
+        return time.monotonic()
+
+    def _retry_after_seconds(self, exc):
+        retry_after = getattr(exc, "_retry_after", None)
+        if retry_after is None:
+            retry_after = getattr(exc, "retry_after", 0) or 0
+        if hasattr(retry_after, "total_seconds"):
+            retry_after = retry_after.total_seconds()
+        try:
+            return max(0.0, float(retry_after))
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _set_retry_after(self, exc):
+        wait_seconds = self._retry_after_seconds(exc) + _RETRY_AFTER_MARGIN_SECONDS
+        self.retry_until = max(self.retry_until, self._now() + wait_seconds)
+
+    def _is_retrying(self):
+        return self._now() < self.retry_until
+
+    async def _wait_for_retry(self):
+        remaining = self.retry_until - self._now()
+        if remaining > 0:
+            await asyncio.sleep(remaining)
+
+    def _should_stream_update(self, display):
+        if display == self.active_display:
+            return False
+        if self.last_update_at <= 0:
+            return True
+        elapsed = self._now() - self.last_update_at
+        raw_delta = len(self.raw_text) - self.last_update_raw_len
+        return elapsed >= _STREAM_UPDATE_INTERVAL_SECONDS or raw_delta >= _STREAM_MIN_UPDATE_CHARS
+
+    def _mark_stream_update(self, display):
+        self.active_display = display
+        self.pending_display = ""
+        self.last_update_at = self._now()
+        self.last_update_raw_len = len(self.raw_text)
+
+    def _stream_display(self, text):
+        base = (text or _DRAFT_HINT).strip() or _DRAFT_HINT
+        safe_parts = _markdown_safe_segments(base)
+        base = safe_parts[-1] if safe_parts else _DRAFT_HINT
+        if base == _DRAFT_HINT:
+            return base
+        display = base + _STREAM_SUFFIX
+        if len(_to_markdown_v2(display)) <= MessageLimit.MAX_TEXT_LENGTH:
+            return display
+        return base
 
     async def prime(self):
-        if self.can_use_draft and await self._send_draft(_DRAFT_HINT):
+        if self.can_use_draft:
+            draft_result = await self._send_draft(_DRAFT_HINT)
+            if draft_result is True:
+                self.active_display = _DRAFT_HINT
+                return
+            if draft_result is None:
+                self.active_display = _DRAFT_HINT
+                return
+        try:
+            await self._upsert_live_message(_DRAFT_HINT, wait_retry=False)
+        except RetryAfter:
             self.active_display = _DRAFT_HINT
             return
-        await self._upsert_live_message(_DRAFT_HINT)
         self.active_display = _DRAFT_HINT
 
     async def add_chunk(self, chunk):
@@ -443,7 +479,6 @@ class _TelegramStreamSession:
     async def _refresh(self, done, send_files):
         summary = _extract_turn_summary(self.raw_text)
         cleaned = clean_reply(self.raw_text) if self.raw_text.strip() else ""
-        cleaned = _sanitize_tg_output(cleaned)
         self.files = _files_from_text(cleaned)
         body = _inject_turn_summary(_render_file_markers(cleaned), summary)
         if done and not body and self.files:
@@ -463,16 +498,24 @@ class _TelegramStreamSession:
         await self._stream_active(active_text)
 
     async def _stream_active(self, text):
-        display = (text or _DRAFT_HINT).strip() or _DRAFT_HINT
-        if display != _DRAFT_HINT:
-            display = display + _STREAM_SUFFIX
+        display = self._stream_display(text)
         if display == self.active_display:
             return
-        if self.can_use_draft and await self._send_draft(display):
-            self.active_display = display
+        self.pending_display = display
+        if self._is_retrying() or not self._should_stream_update(display):
             return
-        await self._upsert_live_message(display)
-        self.active_display = display
+        try:
+            if self.can_use_draft:
+                draft_result = await self._send_draft(display)
+                if draft_result is True:
+                    self._mark_stream_update(display)
+                    return
+                if draft_result is None:
+                    return
+            await self._upsert_live_message(display, wait_retry=False)
+            self._mark_stream_update(display)
+        except RetryAfter:
+            return
 
     async def _finalize_segment(self, text):
         final_text = (text or "").strip() or "..."
@@ -490,13 +533,15 @@ class _TelegramStreamSession:
 
     async def _send_draft(self, text):
         try:
-            formatted, _ = safe_format(text, prefer_html=False)  # drafts: MDv2
             await self.root_msg.reply_text_draft(
                 self.draft_id,
-                formatted,
+                _to_markdown_v2(text),
                 parse_mode=ParseMode.MARKDOWN_V2,
             )
             return True
+        except RetryAfter as exc:
+            self._set_retry_after(exc)
+            return None
         except Exception as exc:
             if _is_not_modified_error(exc):
                 return True
@@ -505,30 +550,71 @@ class _TelegramStreamSession:
             self.draft_id = _make_draft_id()
             return False
 
-    async def _reply_text(self, text):
-        try:
-            return await _send_formatted(self.root_msg.reply_text, text)
-        except Exception:
-            return await self.root_msg.reply_text(text)
+    async def _retry_call(self, func, *args):
+        while True:
+            await self._wait_for_retry()
+            try:
+                return await func(*args)
+            except RetryAfter as exc:
+                self._set_retry_after(exc)
 
-    async def _edit_text(self, msg, text):
+    async def _reply_text_once(self, text):
+        markdown = _to_markdown_v2(text)
         try:
-            result = await _send_formatted(msg.edit_text, text)
-            if result is None:  # not-modified
+            return await self.root_msg.reply_text(markdown, parse_mode=ParseMode.MARKDOWN_V2)
+        except RetryAfter as exc:
+            self._set_retry_after(exc)
+            raise
+        except Exception as exc:
+            if _is_not_modified_error(exc):
+                return None
+            try:
+                return await self.root_msg.reply_text(text)
+            except RetryAfter as retry_exc:
+                self._set_retry_after(retry_exc)
+                raise
+
+    async def _reply_text(self, text, wait_retry=True):
+        last_msg = None
+        for segment in _markdown_safe_segments(text) or ["..."]:
+            if wait_retry:
+                last_msg = await self._retry_call(self._reply_text_once, segment)
+            else:
+                last_msg = await self._reply_text_once(segment)
+        return last_msg
+
+    async def _edit_text_once(self, msg, text):
+        markdown = _to_markdown_v2(text)
+        try:
+            updated = await msg.edit_text(markdown, parse_mode=ParseMode.MARKDOWN_V2)
+        except RetryAfter as exc:
+            self._set_retry_after(exc)
+            raise
+        except Exception as exc:
+            if _is_not_modified_error(exc):
                 return msg
-            return result if hasattr(result, "edit_text") else msg
-        except Exception:
             try:
                 updated = await msg.edit_text(text)
-                return updated if hasattr(updated, "edit_text") else msg
-            except Exception:
-                return msg
+            except RetryAfter as retry_exc:
+                self._set_retry_after(retry_exc)
+                raise
+        return updated if hasattr(updated, "edit_text") else msg
 
-    async def _upsert_live_message(self, text):
-        if self.live_msg is None:
-            self.live_msg = await self._reply_text(text)
+    async def _edit_text(self, msg, text, wait_retry=True):
+        segments = _markdown_safe_segments(text) or ["..."]
+        if wait_retry:
+            updated = await self._retry_call(self._edit_text_once, msg, segments[0])
         else:
-            self.live_msg = await self._edit_text(self.live_msg, text)
+            updated = await self._edit_text_once(msg, segments[0])
+        for segment in segments[1:]:
+            updated = await self._reply_text(segment, wait_retry=wait_retry)
+        return updated if hasattr(updated, "edit_text") else msg
+
+    async def _upsert_live_message(self, text, wait_retry=True):
+        if self.live_msg is None:
+            self.live_msg = await self._reply_text(text, wait_retry=wait_retry)
+        else:
+            self.live_msg = await self._edit_text(self.live_msg, text, wait_retry=wait_retry)
 
 
 class _TelegramTurnStreamCoordinator:
@@ -647,9 +733,18 @@ async def _stream(dq, msg):
                 break
     except asyncio.CancelledError:
         await stream.finish_with_notice("⏹️ 已停止")
+    except RetryAfter as exc:
+        print(f"[TG stream retry_after] {type(exc).__name__}: {exc}", flush=True)
+        if stream.session is not None:
+            stream.session._set_retry_after(exc)
     except Exception as exc:
         print(f"[TG stream error] {type(exc).__name__}: {exc}", flush=True)
-        await stream.finish_with_notice(f"❌ 输出失败: {exc}")
+        if stream.session is not None and stream.session._is_retrying():
+            return
+        try:
+            await stream.finish_with_notice(f"❌ 输出失败: {exc}")
+        except RetryAfter as retry_exc:
+            print(f"[TG stream error notice retry_after] {type(retry_exc).__name__}: {retry_exc}", flush=True)
 
 def _normalized_command(text):
     parts = (text or "").strip().split(None, 1)
@@ -664,8 +759,6 @@ def _cancel_stream_task(ctx):
 
 async def _sync_commands(application):
     await application.bot.set_my_commands([BotCommand(command, description) for command, description in TELEGRAM_MENU_COMMANDS])
-
-_post_init = _sync_commands
 
 async def handle_msg(update, ctx):
     uid = update.effective_user.id
@@ -783,38 +876,9 @@ async def handle_command(update, ctx):
         return await update.message.reply_text(handle_frontend_command(agent, cmd))
     return await update.message.reply_text(HELP_TEXT)
 
-# ========== lifecycle notifications ==========
-def _tg_send_startup(notify_id, label):
-    """Send startup notification via Telegram Bot API."""
-    from telegram import Bot as _Bot
-    token = mykeys.get('tg_bot_token', '')
-    if not token or not notify_id:
-        return
-    async def _send():
-        bot = _Bot(token=token)
-        await bot.send_message(chat_id=notify_id, text=f"🟢 {label} Agent 已启动\n{time.strftime('%Y-%m-%d %H:%M:%S')}")
-    try:
-        asyncio.run(_send())
-    except Exception as e:
-        print(f"[TG notify] Startup failed: {e}")
-
-def _tg_send_shutdown(notify_id, label):
-    """Send shutdown notification via Telegram Bot API."""
-    from telegram import Bot as _Bot
-    token = mykeys.get('tg_bot_token', '')
-    if not token or not notify_id:
-        return
-    async def _send():
-        bot = _Bot(token=token)
-        await bot.send_message(chat_id=notify_id, text=f"🔴 {label} Agent 已停止\n{time.strftime('%Y-%m-%d %H:%M:%S')}")
-    try:
-        asyncio.run(_send())
-    except Exception as e:
-        print(f"[TG notify] Shutdown failed: {e}")
-
 if __name__ == '__main__':
     _LOCK_SOCK = ensure_single_instance(19527, "Telegram")
-    if not ALLOWED:
+    if not ALLOWED: 
         print('[Telegram] ERROR: tg_allowed_users in mykey.py is empty or missing. Set it to avoid unauthorized access.')
         sys.exit(1)
     require_runtime(agent, "Telegram", tg_bot_token=mykeys.get("tg_bot_token"))
@@ -830,11 +894,7 @@ if __name__ == '__main__':
     async def _error_handler(update, context: ContextTypes.DEFAULT_TYPE):
         print(f"[{time.strftime('%m-%d %H:%M')}] TG error: {context.error}", flush=True)
 
-    # Setup lifecycle: startup notification + shutdown monitor
-    from frontends.chatapp_common import setup_lifecycle_monitor
-    _shutdown_flag = setup_lifecycle_monitor("Telegram", _tg_send_startup, _tg_send_shutdown)
-
-    while not _shutdown_flag.is_set():
+    while True:
         try:
             print(f"TG bot starting... {time.strftime('%m-%d %H:%M')}")
             # Recreate request and app objects on each restart to avoid stale connections
@@ -843,7 +903,7 @@ if __name__ == '__main__':
                 request_kwargs['proxy'] = proxy
             request = HTTPXRequest(**request_kwargs)
             app = (ApplicationBuilder().token(mykeys['tg_bot_token'])
-                   .request(request).get_updates_request(request).post_init(_post_init).build())
+                   .request(request).get_updates_request(request).post_init(_sync_commands).build())
             app.add_handler(CallbackQueryHandler(handle_ask_callback, pattern=r"^ask:"))
             app.add_handler(MessageHandler(filters.COMMAND, handle_command))
             app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
@@ -853,8 +913,5 @@ if __name__ == '__main__':
             app.run_polling(drop_pending_updates=True, poll_interval=1.0, timeout=30)
         except Exception as e:
             print(f"[{time.strftime('%m-%d %H:%M')}] polling crashed: {e}", flush=True)
-            if _shutdown_flag.is_set():
-                break
             time.sleep(10)
             asyncio.set_event_loop(asyncio.new_event_loop())
-    print(f"[{time.strftime('%m-%d %H:%M')}] Telegram bot 已优雅退出", flush=True)

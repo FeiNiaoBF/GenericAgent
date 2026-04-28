@@ -129,8 +129,6 @@ native_claude_config = {
 
 ## 3. 初次启动
 
-### 命令行模式（最快上手）
-
 终端里进入项目文件夹，运行：
 
 ```bash
@@ -147,22 +145,6 @@ python3 agentmain.py
 ```
 
 > 💡 Windows 上如果 `python3` 不识别，换成 `python agentmain.py`。
-
-### 多 Bot 模式（进阶）
-
-项目内置了 **统一启动器** `boot/start.ps1`（Windows）和 **配置中心** `boot/config.json`，用来自动管理多个平台 Bot（Telegram / 飞书 / QQ / 微信等）：
-
-```powershell
-cd 你的解压路径\boot
-.\start.ps1                     # 按 boot/config.json 启动已启用 bot
-.\start.ps1 -Status             # 查看所有 bot 运行状态
-.\start.ps1 -Bots "tg,fs"       # 只启动 TG + 飞书
-.\start.ps1 -Restart            # 重启全部
-.\start.ps1 -Stop               # 停止全部
-.\start.ps1 -SetupAutoStart     # 安装开机自启
-```
-
-> 具体用法见 [boot/README.md](boot/README.md)（若有）或查看 `boot/start.ps1` 注释。
 
 ---
 
@@ -190,14 +172,6 @@ python3 launch.pyw
 ```
 
 启动后会出现一个桌面悬浮窗，直接在里面输入任务指令。
-
-**也可以用服务管理器 `hub.pyw`**（Tkinter 桌面面板）：
-
-```bash
-python3 hub.pyw
-```
-
-> 💡 这两者也可通过 `boot/start.ps1 -Bots "hub,launch"` 统一管理。
 
 ### 可选：让 Agent 帮你做的事
 
@@ -251,31 +225,11 @@ Agent 会自动配好。如果你电脑上没有 Git，它也会帮你下载 por
 
 接入后可以随时随地通过手机给电脑上的 Agent 发指令。
 
-#### 配置方法
-
 对 Agent 说：`看你的代码，帮我配置 XX 平台的机器人接入`
 
 支持的平台：**微信个人Bot** / QQ / 飞书 / 企业微信 / 钉钉 / Telegram
 
 > Agent 会自动读取代码、引导你完成配置。
-
-#### 启动管理
-
-配置完成后，在 `boot/config.json` 中开启对应 bot 的 `"enabled": true`，然后统一启动：
-
-```powershell
-cd boot
-.\start.ps1                    # 启动所有已启用 bot
-.\start.ps1 -Bots "tg,fs"      # 只启动指定 bot
-.\start.ps1 -Restart           # 重启全部
-.\start.ps1 -Stop              # 停止全部
-```
-
-开机自启（仅需一次）：
-
-```powershell
-.\start.ps1 -SetupAutoStart
-```
 
 ### 高级模式
 

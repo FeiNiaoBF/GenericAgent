@@ -637,44 +637,16 @@ def handle_command(open_id, cmd, chat_id=None):
         _send_cmd_response(f"未知命令: {cmd}")
 
 
-# ========== lifecycle notifications ==========
-def _fs_send_startup(notify_id, label):
-    if not client:
-        return
-    try:
-        notify_type = os.environ.get("GA_NOTIFY_CHAT_TYPE", "open_id")
-        send_message(notify_id, f"🟢 {label} Agent 已启动\n{time.strftime('%Y-%m-%d %H:%M:%S')}", receive_id_type=notify_type)
-    except Exception as e:
-        print(f"[FS notify] Startup failed: {e}")
-
-def _fs_send_shutdown(notify_id, label):
-    if not client:
-        return
-    try:
-        notify_type = os.environ.get("GA_NOTIFY_CHAT_TYPE", "open_id")
-        send_message(notify_id, f"🔴 {label} Agent 已停止\n{time.strftime('%Y-%m-%d %H:%M:%S')}", receive_id_type=notify_type)
-    except Exception as e:
-        print(f"[FS notify] Shutdown failed: {e}")
-
 def main():
     global client
     if not APP_ID or not APP_SECRET:
         print("错误: 请在 mykey.py 或 mykey.json 中配置 fs_app_id 和 fs_app_secret")
         sys.exit(1)
     client = create_client()
-    # Setup lifecycle notifications (after client is created)
-    from frontends.chatapp_common import setup_lifecycle_monitor
-    _shutdown_flag = setup_lifecycle_monitor("Feishu", _fs_send_startup, _fs_send_shutdown)
-    
     handler = lark.EventDispatcherHandler.builder("", "").register_p2_im_message_receive_v1(handle_message).build()
     cli = lark.ws.Client(APP_ID, APP_SECRET, event_handler=handler, log_level=lark.LogLevel.INFO)
     print("=" * 50 + "\n飞书 Agent 已启动（长连接模式）\n" + f"App ID: {APP_ID}\n等待消息...\n" + "=" * 50)
-    try:
-        cli.start()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        print(f"Feishu bot 已优雅退出")
+    cli.start()
 
 
 if __name__ == "__main__":

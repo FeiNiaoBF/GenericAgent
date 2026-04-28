@@ -1,25 +1,12 @@
-# hub.pyw - GenericAgent 服务管理器
+# launcher.pyw - GenericAgent 服务启动器
 # 纯 tkinter + 标准库，零第三方依赖，跨平台
-# 推荐统一入口: cd boot && .\start.ps1
-import os, sys, socket, subprocess, threading, json
+import os, sys, socket, subprocess, threading
 import tkinter as tk
 from tkinter import ttk
 from collections import deque
 
 LOCK_PORT = 19735
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# 加载 boot/config.json (参考用)
-_boot_cfg = {}
-_boot_cfg_path = os.path.join(BASE_DIR, 'boot', 'config.json')
-if os.path.isfile(_boot_cfg_path):
-    try:
-        with open(_boot_cfg_path, encoding='utf-8') as f:
-            _boot_cfg = json.load(f)
-    except Exception:
-        pass
-print(f'[Hub] boot/config.json: {"loaded" if _boot_cfg else "not found"}')
-print(f'[Hub] 推荐统一入口: cd boot && .\\start.ps1')
 
 
 def acquire_singleton():

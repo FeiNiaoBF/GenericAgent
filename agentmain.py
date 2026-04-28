@@ -72,7 +72,7 @@ class GeneraticAgent:
                     mixin = MixinSession(llm_sessions, s['mixin_cfg'])
                     if isinstance(mixin._sessions[0], (NativeClaudeSession, NativeOAISession)): llm_sessions[i] = NativeToolClient(mixin)
                     else: llm_sessions[i] = ToolClient(mixin)
-                except Exception as e: print(f'[WARN] Failed to init MixinSession with cfg {s["mixin_cfg"]}: {e}')
+                except Exception as e: print(f'\n\n\n[ERROR] Failed to init MixinSession with cfg {s["mixin_cfg"]}: {e}!!!\n\n')
         self.llmclients = llm_sessions
         self.llmclient = self.llmclients[self.llm_no%len(self.llmclients)]
         if oldhistory: self.llmclient.backend.history = oldhistory
@@ -102,22 +102,7 @@ class GeneraticAgent:
         print('Abort current task...')
         self.stop_sig = True
         if self.handler is not None: self.handler.code_stop_signal.append(1)
-
-    def restart_ga(self):
-        """内部重启：清空对话状态，重置LLM session，进程保持存活"""
-        self.abort()
-        try:
-            self.llmclient.backend.history = []
-        except:
-            pass
-        self.history = []
-        self.is_running = False
-        self.stop_sig = False
-        while not self.task_queue.empty():
-            try: self.task_queue.get_nowait(); self.task_queue.task_done()
-            except: break
-        print('[GA] 内部重启完成')
-
+            
     def put_task(self, query, source="user", images=None):
         display_queue = queue.Queue()
         self.task_queue.put({"query": query, "source": source, "images": images or [], "output": display_queue})
@@ -134,10 +119,6 @@ class GeneraticAgent:
             except (json.JSONDecodeError, ValueError): pass
             setattr(self.llmclient.backend, k, v)
             display_queue.put({'done': smart_format(f"✅ session.{k} = {repr(v)}", max_str_len=500), 'source': 'system'})
-            return None
-        if raw_query.strip() == '/restart':
-            self.restart_ga()
-            display_queue.put({'done': '[GA] 已重启', 'source': 'system'})
             return None
         if raw_query.strip() == '/resume':
             return r'扫temp/model_responses/下时间最近的10个文件(除本PID)，读取每个文件content后先replace("\\n","\n").replace("\\r","\r")统一为真换行，再用re.findall(r"<history>\n\[(?:USER|Agent)\].*?</history>", content, re.DOTALL)提取，取每文件最后一个匹配作为该会话内容，按mtime倒序，每个用一句话总结聊了什么让我选择；选定后再简单读该文件末尾作为聊天基础'

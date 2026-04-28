@@ -21,8 +21,6 @@ def code_run(code, code_type="python", timeout=60, cwd=None, code_cwd=None, stop
         tmp_file = tempfile.NamedTemporaryFile(suffix=".ai.py", delete=False, mode='w', encoding='utf-8', dir=code_cwd)
         cr_header = os.path.join(script_dir, 'assets', 'code_run_header.py')
         if os.path.exists(cr_header): tmp_file.write(open(cr_header, encoding='utf-8').read())
-        # Safety: prevent subprocess from killing GA parent
-        tmp_file.write("import os as _os, subprocess as _sp\n_ppid=_os.getppid()\n_ok=getattr(_os,'kill',None)\nif _ok:\n def _sk(p,s):\n  if p==_ppid: return\n  _ok(p,s)\n _os.kill=_sk\n_ok2=_sp.Popen.__init__\ndef _sp2(self,a,**kw):\n c=' '.join(a)if isinstance(a,(list,tuple))else str(a)\n if'taskkill'in c.lower()and str(_ppid)in c:import sys;sys.stderr.write('[Safety] taskkill parent blocked\\n');a=[sys.executable,'-c','pass']\n _ok2(self,a,**kw)\n_sp.Popen.__init__=_sp2\n")
         tmp_file.write(code)
         tmp_path = tmp_file.name
         tmp_file.close()
@@ -310,14 +308,6 @@ class GenericAgentHandler(BaseHandler):
         yield f"Waiting for your answer ...\n"
         return StepOutcome(result, next_prompt="", should_exit=True)
     
-    def do_restart_ga(self, args, response):
-        '''重启GenericAgent内部状态（清空对话历史、重置LLM Session、清空任务队列），保持进程存活继续服务。
-        禁止使用sys.exit()、os._exit()、os.kill(getppid())或taskkill等方式——使用本工具即可安全重启。'''
-        yield "[Info] 执行GA内部重启...\n"
-        self.agent.restart_ga()
-        yield "[OK] GA内部重启完成，状态已重置\n"
-        return StepOutcome("[Info] GA Restarted", next_prompt="", should_exit=True)
-    
     def do_web_scan(self, args, response):
         '''获取当前页面内容和标签页列表。也可用于切换标签页。
         注意：HTML经过简化，边栏/浮动元素等可能被过滤。如需查看被过滤的内容请用execute_js。
@@ -423,7 +413,7 @@ class GenericAgentHandler(BaseHandler):
         next_prompt = self._get_anchor_prompt(skip=args.get('_index', 0) > 0)
         log_memory_access(path)
         if 'memory' in path or 'sop' in path: 
-            next_prompt += "\n[SYSTEM] 若执行SOP→提取关键点→update_working_checkpoint"
+            next_prompt += "\n[SYSTEM TIPS] 正在读取记忆或SOP文件，若决定按sop执行请提取sop中的关键点（特别是靠后的）update working memory."
         return StepOutcome(result, next_prompt=next_prompt)
     
     def _in_plan_mode(self): return self.working.get('in_plan_mode')
@@ -457,7 +447,7 @@ class GenericAgentHandler(BaseHandler):
         if not response or (not content.strip() and not thinking.strip()):
             yield "[Warn] LLM returned an empty response. Retrying...\n"
             return StepOutcome({}, next_prompt="[System] Blank response, regenerate and tooluse")
-        if len(content) > 50 and ('未收到完整响应 !!!]' in content[-100:] or '!!!Error: [SSL:' in content[-100:]):
+        if len(content) > 50 and ('[!!! 流异常中断' in content[-100:] or '!!!Error:' in content[-100:]):
             return StepOutcome({}, next_prompt="[System] Incomplete response. Regenerate and tooluse.")
         if 'max_tokens !!!]' in content[-100:]:
             return StepOutcome({}, next_prompt="[System] max_tokens limit reached. Use multi small steps to do it.")
@@ -517,10 +507,11 @@ class GenericAgentHandler(BaseHandler):
 
     def _get_anchor_prompt(self, skip=False):
         if skip: return "\n"
-        h_str = "\n".join(self.history_info[-25:])
-        prompt = f"\n[WM]T:{self.current_turn}|{h_str}"
-        if self.working.get('key_info'): prompt += f"\n<ki>{self.working.get('key_info')}</ki>"
-        if self.working.get('related_sop'): prompt += f"\n[RE-READ:{self.working.get('related_sop')}]"
+        h_str = "\n".join(self.history_info[-40:])
+        prompt = f"\n### [WORKING MEMORY]\n<history>\n{h_str}\n</history>"
+        prompt += f"\nCurrent turn: {self.current_turn}\n"
+        if self.working.get('key_info'): prompt += f"\n<key_info>{self.working.get('key_info')}</key_info>"
+        if self.working.get('related_sop'): prompt += f"\n有不清晰的地方请再次读取{self.working.get('related_sop')}"
         if getattr(self.parent, 'verbose', False):
             try: print(prompt)
             except: pass
@@ -535,13 +526,13 @@ class GenericAgentHandler(BaseHandler):
             clean_args = {k: v for k, v in args.items() if not k.startswith('_')}
             summary = f"调用工具{tool_name}, args: {clean_args}"
             if tool_name == 'no_tool': summary = "直接回答了用户问题"
-            next_prompt += "\n[DANGER] 缺<summary>，每次回复须输出！" 
+            next_prompt += "\n[DANGER] 你遗漏了<summary>，必须按协议一直在每次回复中用<summary>中输出极简单行摘要！" 
         summary = smart_format(summary, max_str_len=100)
         self.history_info.append(f'[Agent] {summary}')
         if turn % 65 == 0 and 'plan' not in str(self.working.get('related_sop')):
-            next_prompt += f"\n[DANGER] 连续{turn}轮→总结情况，ask_user，禁止重试。"
+            next_prompt += f"\n\n[DANGER] 已连续执行第 {turn} 轮。你必须总结情况进行ask_user，不允许继续重试。"
         elif turn % 7 == 0:
-            next_prompt += f"\n[DANGER] 连续{turn}轮→禁无效重试，无进展则切换策略或ask_user。"
+            next_prompt += f"\n\n[DANGER] 已连续执行第 {turn} 轮。禁止无效重试。若无有效进展，必须切换策略：1. 探测物理边界 2. 请求用户协助。如有需要，可调用 update_working_checkpoint 保存关键上下文。"
         elif turn % 10 == 0: next_prompt += get_global_memory()
 
         if (_plan := self._in_plan_mode()) and turn >= 10 and turn % 5 == 0:

@@ -1,26 +1,9 @@
-import webview, threading, subprocess, sys, time, os, ctypes, atexit, socket, random, json
+import webview, threading, subprocess, sys, time, os, ctypes, atexit, socket, random
 
 WINDOW_WIDTH, WINDOW_HEIGHT, RIGHT_PADDING, TOP_PADDING = 600, 900, 0, 100
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 frontends_dir = os.path.join(script_dir, "frontends")
-boot_dir = os.path.join(script_dir, "boot")
-config_path = os.path.join(boot_dir, "config.json")
-
-# 加载 boot/config.json (推荐入口: .\boot\start.ps1)
-_boot_cfg = {}
-if os.path.isfile(config_path):
-    try:
-        with open(config_path, encoding='utf-8') as f:
-            _boot_cfg = json.load(f)
-    except Exception:
-        pass
-
-_BOOT_PYTHONW = _boot_cfg.get('pythonw', '')
-_BOOT_BOTS = {k: v for k, v in _boot_cfg.get('bots', {}).items()} if _boot_cfg else {}
-
-print(f'[Launch] boot/config.json loaded: {len(_BOOT_BOTS)} bots defined')
-print(f'[Launch] 推荐使用 unified boot: cd boot && .\\start.ps1')
 
 def find_free_port(lo=18501, hi=18599):
     ports = list(range(lo, hi+1)); random.shuffle(ports)
@@ -111,56 +94,38 @@ if __name__ == '__main__':
     print(f'[Launch] Using port {port}')
     threading.Thread(target=start_streamlit, args=(port,), daemon=True).start()
 
-    # 统一 python 路径: 优先 boot/config.json 中 pythonw，再退回到 venv python
-    def _resolve_py():
-        if _BOOT_PYTHONW and os.path.isfile(_BOOT_PYTHONW):
-            return _BOOT_PYTHONW
-        fallback = os.path.join(script_dir, ".venv", "Scripts", "python.exe")
-        if os.path.isfile(fallback):
-            return fallback
-        return sys.executable
-
     if args.tg:
-        _py = _resolve_py()
-        _entry = _BOOT_BOTS.get('tg', {}).get('entry', 'frontends/tgapp.py')
-        tgproc = subprocess.Popen([_py, os.path.join(script_dir, _entry)], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+        tgproc = subprocess.Popen([sys.executable, os.path.join(frontends_dir, "tgapp.py")], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         atexit.register(tgproc.kill)
-        print(f'[Launch] Telegram Bot started (entry={_entry})')
+        print('[Launch] Telegram Bot started')
     else: print('[Launch] Telegram Bot not enabled (use --tg to start)')
 
     if args.qq:
-        _py = _resolve_py()
-        qqproc = subprocess.Popen([_py, os.path.join(frontends_dir, "qqapp.py")], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+        qqproc = subprocess.Popen([sys.executable, os.path.join(frontends_dir, "qqapp.py")], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         atexit.register(qqproc.kill)
         print('[Launch] QQ Bot started')
     else: print('[Launch] QQ Bot not enabled (use --qq to start)')
 
     if args.feishu:
-        _py = _resolve_py()
-        _entry = _BOOT_BOTS.get('fs', {}).get('entry', 'frontends/fsapp.py')
-        fsproc = subprocess.Popen([_py, os.path.join(script_dir, _entry)], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+        fsproc = subprocess.Popen([sys.executable, os.path.join(frontends_dir, "fsapp.py")], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         atexit.register(fsproc.kill)
-        print(f'[Launch] Feishu Bot started (entry={_entry})')
+        print('[Launch] Feishu Bot started')
     else: print('[Launch] Feishu Bot not enabled (use --feishu to start)')
 
     if args.wecom:
-        _py = _resolve_py()
-        wcproc = subprocess.Popen([_py, os.path.join(frontends_dir, "wecomapp.py")], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+        wcproc = subprocess.Popen([sys.executable, os.path.join(frontends_dir, "wecomapp.py")], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         atexit.register(wcproc.kill)
         print('[Launch] WeCom Bot started')
     else: print('[Launch] WeCom Bot not enabled (use --wecom to start)')
 
     if args.dingtalk:
-        _py = _resolve_py()
-        _entry = _BOOT_BOTS.get('dt', {}).get('entry', 'frontends/dingtalkapp.py')
-        dtproc = subprocess.Popen([_py, os.path.join(script_dir, _entry)], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+        dtproc = subprocess.Popen([sys.executable, os.path.join(frontends_dir, "dingtalkapp.py")], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         atexit.register(dtproc.kill)
-        print(f'[Launch] DingTalk Bot started (entry={_entry})')
+        print('[Launch] DingTalk Bot started')
     else: print('[Launch] DingTalk Bot not enabled (use --dingtalk to start)')
     
     if args.sched:
-        _py = _resolve_py()
-        scheduler_proc = subprocess.Popen([_py, os.path.join(script_dir, "agentmain.py"), "--reflect", os.path.join(script_dir, "reflect", "scheduler.py"), "--llm_no", str(args.llm_no)], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+        scheduler_proc = subprocess.Popen([sys.executable, os.path.join(script_dir, "agentmain.py"), "--reflect", os.path.join(script_dir, "reflect", "scheduler.py"), "--llm_no", str(args.llm_no)], creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         atexit.register(scheduler_proc.kill)
         print('[Launch] Task Scheduler started (duplicate prevented by scheduler port lock)')
     else: print('[Launch] Task Scheduler not enabled (--sched)')
