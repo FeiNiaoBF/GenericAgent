@@ -117,3 +117,38 @@ git switch dev && git merge origin/main --allow-unrelated-histories --no-ff
 - 合并后验证(commit前): grep缺imports(上游可能删除/重命名模块)、grep缺函数/别名引用、确认新增符号可解析
 - file_patch精度: THEIRS的import路径可能与OUR不同(如`from chatapp_common` vs `from frontends.chatapp_common`)，必先file_read确认
 - commit message: `Merge upstream lsdefine/GenericAgent changes into dev` / `Merge dev into main: <desc>`
+
+### AA冲突分类决策框架 (2026-04-28实战验证)
+> 当merge产生大量AA冲突（本次28个）时，不逐文件盲解，先分类再批量处理：
+
+| 分类 | 判定特征 | 策略 | 示例 |
+|---|---|---|---|
+| **OURS** 本地独有SOP/工具 | `memory/*.md`, `memory/*.py`, 本地自定义脚本 | `git checkout --ours <file>` 全量保留 | `memory/plan_sop.md`, `memory/web_setup_sop.md` |
+| **THEIRS** 上游核心引擎 | `llmcore.py`, `ga.py`, `agentmain.py`, `*app.py` | `git checkout --theirs <file>` 为底，逐文件审查补丁 | `llmcore.py`, `tgapp.py`, `agentmain.py` |
+| **MANUAL** 配置/边界 | `.gitignore`, `assets/*`, 二极管的混合文件 | 逐行手动合并(先THEIRS+补OUR additions) | `.gitignore`, `GETTING_STARTED.md` |
+
+**分类流程**:
+1. `git diff --name-only --diff-filter=U` 列全冲突文件
+2. 对每个文件判定归属(OURS/THEIRS/MANUAL)，输出分类表格给用户确认
+3. 确认后批量执行: `git checkout --ours file1 file2...` → `git add` → 逐个THEIRS文件审查补丁 → MANUAL手动合并 → commit
+
+### THEIRS文件本地补丁回注
+当取上游THEIRS为底但需恢复本地增量时（如tgapp.py的HTML降级逻辑）:
+```
+git show <pre-merge-OURS-commit>:<file> > temp_ours.py  # 提取旧版
+diff temp_ours.py <theirs-file> | grep '^<'               # 提取我们独有的行
+# 用 file_patch 逐块回注（非全量覆盖THEIRS）
+```
+**原则**: 补丁最小化——只补上游明确缺失的本地功能，不动上游新增/修改。
+
+### 合并后清理（关键！遗漏会导致下次merge混乱）
+任何merge commit后必须:
+1. `git status -s` 检查unstaged残留（常见: `M`=modified未暂存, `D`=deleted未暂存）
+2. 立即 `git add -A && git commit -m "chore: commit staged ... and remove ..."` 清理
+3. 再次 `git status -s` 确认 clean
+> 本次实战: 合并commit后发现git_sop.md(M) + procmem_scanner.py(D)未暂存，清洗后才clean
+
+### 已知文件级风险登记
+| 文件 | 风险 | 缓解 |
+|---|---|---|
+| `frontends/tgapp.py` | 上游纯MarkdownV2替代了本地`safe_format` HTML→MDV2→plain三层降级 | TG消息格式异常(中文特殊字符MDV2解析失败)时，需快速补回fallback分支 |
