@@ -1,0 +1,73 @@
+[
+  {"type": "function", "function": {
+    "name": "code_run",
+    "description": "Run code (python/ps). Multi-call: use script param. Reply code block=executed if no script arg. No bulk data inline",
+    "parameters": {"type": "object", "properties": {
+      "script": {"type": "string", "description": "Code string. Don't use with reply code block"},
+      "type": {"type": "string", "enum": ["python", "powershell"], "description": "Language", "default": "python"},
+      "timeout": {"type": "integer", "description": "Timeout secs", "default": 60},
+      "cwd": {"type": "string", "description": "Work dir, default=./"},
+      "inline_eval": {"type": "boolean", "description": "Don't use unless told"}}}
+  }},
+  {"type": "function", "function": {
+    "name": "file_read",
+    "description": "Read file. Always read before modifying",
+    "parameters": {"type": "object", "properties": {
+      "path": {"type": "string", "description": "File path (relative/absolute)"},
+      "start": {"type": "integer", "description": "Start line (1-based)"},
+      "count": {"type": "integer", "description": "Lines to read", "default": 200},
+      "keyword": {"type": "string", "description": "If set, return first match with context"},
+      "show_linenos": {"type": "boolean", "description": "Show line numbers", "default": true}}}
+  }},
+  {"type": "function", "function": {
+    "name": "file_patch",
+    "description": "Replace old_content with new_content. Exact match required. On failure, file_read to recheck",
+    "parameters": {"type": "object", "properties": {
+      "path": {"type": "string", "description": "File path"},
+      "old_content": {"type": "string", "description": "Text to replace (must be unique in file)"},
+      "new_content": {"type": "string", "description": "Replacement. {{file:path:start:end}} refs file lines"}}}
+  }},
+  {"type": "function", "function": {
+    "name": "file_write",
+    "description": "Write files. For large content only. Put content in <file_content> block BEFORE this call. Supports {{file:path:start:end}}",
+    "parameters": {"type": "object", "properties": {
+      "path": {"type": "string", "description": "File path"},
+      "mode": {"type": "string", "enum": ["overwrite", "append", "prepend"], "description": "Write mode", "default": "overwrite"}}}
+  }},
+  {"type": "function", "function": {
+    "name": "web_scan",
+    "description": "Get simplified page HTML/tabs. Removes hidden elements. Call after page switch",
+    "parameters": {"type": "object", "properties": {
+      "tabs_only": {"type": "boolean", "description": "Show only tab list"},
+      "switch_tab_id": {"type": "string", "description": "Tab ID to switch to"},
+      "text_only": {"type": "boolean", "description": "Plain text, no HTML"}}}
+  }},
+  {"type": "function", "function": {
+    "name": "web_execute_js",
+    "description": "Run JS in browser. Multi-call OK. Use JS code block if no script arg",
+    "parameters": {"type": "object", "properties": {
+      "script": {"type": "string", "description": "JS code. Don't use with reply code block"},
+      "save_to_file": {"type": "string", "description": "Save result to file (long results only)"},
+      "no_monitor": {"type": "boolean", "description": "Skip page monitoring. Reads only"},
+      "switch_tab_id": {"type": "string", "description": "Tab ID to switch to first"}}}
+  }},
+  {"type": "function", "function": {
+    "name": "update_working_checkpoint",
+    "description": "Working notepad, auto-injected each turn. Use: (1) after reading SOP-store user needs; (2) before context flush; (3) after failures-store findings; (4) new task-update content. Skip: simple 1-2 step tasks, task done",
+    "parameters": {"type": "object", "properties": {
+      "key_info": {"type": "string", "description": "Notepad content (<200 tokens). Update incrementally. Store: pitfalls, requirements, params, progress. Skip: ephemeral, obvious, old task info"},
+      "related_sop": {"type": "string", "description": "Related SOP names"}}}
+  }},
+  {"type": "function", "function": {
+    "name": "ask_user",
+    "description": "Ask user when need decisions/extra info/facing blockers",
+    "parameters": {"type": "object", "properties": {
+      "question": {"type": "string", "description": "Question text"},
+      "candidates": {"type": "array", "items": {"type": "string"}, "description": "Quick-select options"}}}
+  }},
+  {"type": "function", "function": {
+    "name": "start_long_term_update",
+    "description": "Start distilling long-term memory. Call when discovering info worth remembering. Must call when task took 15+ turns",
+    "parameters": {"type": "object", "properties": {}}}
+  }
+]

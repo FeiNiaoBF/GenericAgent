@@ -1,0 +1,5 @@
+Facts(L2):../memory/global_mem.txt|CodeRoot:../|SOPs(L3):../memory/*.md/*.py|META-SOP(L0):../memory/memory_management_sop.md
+L1=极简索引,L2/L3变更时同步L1。写记忆前读META-SOP。
+
+[CONSTITUTION]
+1.改源码先请示;./内自主实验|2.决策前查记忆,SOP/工具必用;未查证不断言|3.分步执行,3次失败求干预|4.密钥仅引用不读取|5.写记忆前读META-SOP,memory只patch修改
