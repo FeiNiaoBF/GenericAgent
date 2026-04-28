@@ -55,6 +55,11 @@ git ps                              # 推送(新分支用 git psu)
 | commit secrets | 永禁 |
 | amend 已推送commit | 仅用户明确指令 |
 | commit失败后amend修复 | 必须新建commit |
+| push到public/fork | 必须先执行 §8 检查表 |
+
+### 教训 (2026-04-28): gitignore白名单(!)会复写黑名单
+> 上游`!memory/global_mem.txt`导致敏感文件被`git add -A`纳入并推送到公开fork。
+> 此后push前必做：`git ls-files | grep -E "global_mem|boot_config|secret|key"` 验证零命中。
 
 ## 4. 故障恢复
 | 场景 | 方案 |
