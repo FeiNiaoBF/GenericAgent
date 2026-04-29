@@ -1,8 +1,19 @@
 # TMWebDriver SOP
+> 版本: v2.0 | 最后更新: 2026-04-28
 
 - 直接用web_scan/web_execute_js工具。本文件只记录特性和坑。
 - 底层：`../TMWebDriver.py`通过Chrome扩展接管用户浏览器（保留登录态/Cookie）
 - 非Selenium/Playwright，保留用户浏览器登录态
+
+## 0. 安装（仅新环境执行一次）
+
+若 web_scan 和 web_execute_js 已可用 → 跳过。仅供初始安装时 web 工具尚未配置的场景。
+
+1. 打开 Chrome 扩展管理页，开启「开发者模式」
+2. 点击「加载已解压的扩展程序」，选择 `../assets/tmwd_cdp_bridge/` 目录
+3. 显示"错误"不用管，一般只是因为还没连上GA
+4. 用 `start "" "https://www.baidu.com"` 打开正常页面，再 `web_scan` 确认
+5. 若仍不可用 → 请用户协助（默认浏览器/插件位置需人工确认）
 
 ## 通用特性
 - ⚠web_execute_js里使用`await`时需**显式`return`**才能拿到返回值（底层async包裹，不写return则返回null）

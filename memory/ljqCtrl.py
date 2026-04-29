@@ -1,11 +1,20 @@
 """
-CRITICAL: 严禁在此工具链中 import pyautogui (会污染 win32api 导致逻辑冲突)。
-ljqCtrl Quick Reference:
+ljqCtrl - 键鼠操作与坐标转换工具
+CRITICAL: 严禁在此工具链中 import pyautogui (会污染 win32api 导致逻辑冲突)
+
+Quick Reference:
 - dpi_scale: float (Logical = Physical * dpi_scale)
 - Click(x, y): Use Physical Coordinates (from screenshots)
 - SetCursorPos(z): Use Physical Coordinates z=(x, y)
-- Press(cmd, staytime=0): Keyboard shortcuts (e.g. 'ctrl+v')
-- FindBlock(fn, wrect=None, threshold=0.8) -> (obj_center_phys, is_found)
+- Press(cmd, staytime=0): Keyboard shortcuts
+- FindBlock(fn, wrect=None, threshold=0.8) -> ((cx,cy), is_found)
+- MouseDClick(staytime=0.05): 双击
+
+核心换算: 物理坐标 = 逻辑坐标 / dpi_scale
+使用流程: gw激活窗口 → 获取客户区坐标 → 换算物理坐标 → Click
+⚠️ 一律用物理坐标! win32gui.GetWindowRect返回逻辑坐标(未SetProcessDPIAware时)
+   ClientToScreen获取客户区原点, 再用截图坐标偏移
+   文本输入: pyperclip.copy('text'); Press('ctrl+v')
 - MouseDClick(staytime=0.05), MouseClick(staytime=0.05)
 - GrabWindow(hwnd) -> PIL Image: DPI-safe window screenshot
 """

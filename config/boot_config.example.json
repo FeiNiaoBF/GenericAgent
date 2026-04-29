@@ -1,0 +1,18 @@
+{
+  "api_keys": {
+    "openai": "<your-openai-key>",
+    "claude": "<your-anthropic-key>",
+    "claude_rip": "<your-claude-rip-key>",
+    "google": "<your-google-key>",
+    "serper": "<your-serper-key>",
+    "serpapi": "<your-serpapi-key>",
+    "deepseek": "<your-deepseek-key>",
+    "siliconflow": "<your-siliconflow-key>"
+  },
+  "mode": "<your-default-mode>",
+  "data_paths": {
+    "user_root": "~",
+    "memory_dir": "~/path/to/memory",
+    "log_dir": "~/path/to/logs"
+  }
+}

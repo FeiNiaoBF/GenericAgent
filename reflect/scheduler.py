@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 try: _lock
 except NameError:
     _lock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
-    _lock.bind(('127.0.0.1', 45762)); _lock.listen(1)
+    _lock.bind(('127.0.0.1', 50123)); _lock.listen(1)
 
 INTERVAL = 120
 ONCE = False
@@ -28,6 +28,8 @@ if not _logger.handlers:
 # 默认最大延迟窗口（小时），超过此时间不触发
 DEFAULT_MAX_DELAY = 6
 _l4_t = 0  # last L4 archive time
+_last_task_id = None   # for on_done diary hook
+_last_task_rpt = None
 
 def _parse_cooldown(repeat):
     """解析repeat为冷却时间(比实际周期略短,防漂移)"""
@@ -122,6 +124,9 @@ def check():
         ts = now.strftime('%Y-%m-%d_%H%M')
         rpt = os.path.join(DONE, f'{ts}_{tid}.md')
         prompt = task.get('prompt', '')
+        global _last_task_id, _last_task_rpt
+        _last_task_id = tid
+        _last_task_rpt = rpt
         return (f'[定时任务] {tid}\n'
                 f'[报告路径] {rpt}\n\n'
                 f'先读 scheduled_task_sop 了解执行流程，然后执行以下任务：\n\n'
@@ -129,3 +134,80 @@ def check():
                 f'完成后将执行报告写入 {rpt}。')
 
     return None
+
+
+# --- 日记足迹钩子 (agentmain on_done) ---
+VAULT = os.environ.get('GA_OBSIDIAN_VAULT', r"D:\Documents_Learn\Personal\Obsidian\Codex Vitae")
+DIARY_DIR = os.path.join(VAULT, "00.Chronicles/Daily") if VAULT else None
+TEMPLATE = os.path.join(VAULT, "99.System/Templates/Daily.md") if VAULT else None
+
+def _extract_summary(result, max_len=80):
+    """从LLM输出提取简洁摘要"""
+    lines = result.strip().split('\n')
+    for line in lines:
+        s = line.strip()
+        if len(s) > 5 and not s.startswith(('#', '[', '`', '>')):
+            return s[:max_len] + ('...' if len(s) > max_len else '')
+    for line in lines:
+        s = line.strip()
+        if s:
+            return s[:max_len]
+    return '任务完成'
+
+def on_done(result):
+    """任务完成后写日记足迹"""
+    global _last_task_id, _last_task_rpt
+    if not _last_task_id or not VAULT or not DIARY_DIR:
+        return
+    try:
+        now = datetime.now()
+        date_str = now.strftime('%Y-%m-%d')
+        diary_path = os.path.join(DIARY_DIR, f'{date_str}.md')
+
+        # 日记不存在则从模板创建
+        if not os.path.exists(diary_path):
+            os.makedirs(DIARY_DIR, exist_ok=True)
+            if os.path.exists(TEMPLATE):
+                with open(TEMPLATE, 'r', encoding='utf-8') as f:
+                    tmpl = f.read()
+                wd = ['星期一','星期二','星期三','星期四','星期五','星期六','星期日']
+                tmpl = tmpl.replace('{{date:YYYY年MM月DD日-dddd}}',
+                                    now.strftime('%Y年%m月%d日-') + wd[now.weekday()])
+                tmpl = tmpl.replace('{{date:MM月DD日}}', now.strftime('%m月%d日'))
+                with open(diary_path, 'w', encoding='utf-8') as f:
+                    f.write(tmpl)
+            else:
+                with open(diary_path, 'w', encoding='utf-8') as f:
+                    f.write(f"# {now.strftime('%Y年%m月%d日')}\n\n## 🐾 唧の足迹\n\n")
+
+        # 提取摘要
+        summary = _extract_summary(result)
+        time_str = now.strftime('%H:%M')
+        entry = f"- [{time_str}] **{_last_task_id}** — {summary}\n"
+
+        # 读日记，在唧の足迹区追加
+        with open(diary_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        footprint_marker = '## 🐾 唧の足迹'
+        if footprint_marker in content:
+            head, tail = content.split(footprint_marker, 1)
+            # 找到下一个 ## 或 --- 作为尾部边界
+            next_sec = len(tail)
+            for marker in ('\n## ', '\n---'):
+                idx = tail.find(marker)
+                if idx != -1 and idx < next_sec:
+                    next_sec = idx
+            new_content = head + footprint_marker + tail[:next_sec] + entry + tail[next_sec:]
+        else:
+            new_content = content.rstrip() + f'\n\n{footprint_marker}\n\n{entry}\n'
+
+        with open(diary_path, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+
+        _logger.info(f'Diary footprint: {_last_task_id} @ {time_str}')
+    except Exception as e:
+        _logger.error(f'Diary footprint failed: {e}')
+    finally:
+        _last_task_id = None
+        _last_task_rpt = None

@@ -1,0 +1,7 @@
+# [Global Memory Index] - TEMPLATE
+# Copy to global_mem.txt and fill in your local paths
+
+## 通用
+|| name | <your-name> ||
+|| proj_root | ~/path/to/GenericAgent ||
+|| user_file_root | ~ ||

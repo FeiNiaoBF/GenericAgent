@@ -1,29 +1,12 @@
 # GitHub Contribution SOP
+> 版本: v1.0 | 最后更新: 2026-04-28
 **触发**：需要给开源项目提 PR（修 bug / 加功能 / 改文档）| **禁用**：仅读代码、不需要提交变更时
 **核心原则**：一个 PR 做一件事，测试通过才推，尊重项目规范
 
 ## 前置准备（每个新项目首次执行）
-1. **读项目规范**（必须，不可跳过）
-   ```
-   file_read('CONTRIBUTING.md')  # 贡献指南
-   file_read('.github/PULL_REQUEST_TEMPLATE.md')  # PR 模板
-   file_read('.github/ISSUE_TEMPLATE/')  # Issue 模板
-   ```
-   没有就读 README 的 Contributing 部分。如果都没有，按本 SOP 默认流程。
-
-2. **了解项目结构和测试方式**
-   ```
-   # 找测试命令
-   file_read('package.json')  # Node: scripts.test
-   file_read('Makefile')      # 或 Makefile
-   file_read('pyproject.toml') # Python: [tool.pytest] 等
-   ```
-   记下测试命令备用。跑不了测试的 PR = 未验证的 PR。
-
-3. **Fork + Clone**
-   ```
-   code_run('bash', 'gh repo fork OWNER/REPO --clone && cd REPO && git remote -v')
-   ```
+1. **读项目规范**：`CONTRIBUTING.md` / `.github/PULL_REQUEST_TEMPLATE.md` / `.github/ISSUE_TEMPLATE/` → 没有则按本SOP默认流程
+2. **找测试命令**：`package.json`(Node) / `Makefile` / `pyproject.toml`(Python) → 记下命令，跑不了测试的PR=未验证
+3. **Fork+Clone**：`gh repo fork OWNER/REPO --clone && cd REPO && git remote -v`
 
 ## 工作流程（每个 PR）
 

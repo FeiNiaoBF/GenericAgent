@@ -1,6 +1,17 @@
+# ============================================================
+# GenericAgent .gitignore
+# Structure: A) Universal  B) Official GA  C) Fork (yeelight)
+# ============================================================
+
+# ============================================================
+# PART A: UNIVERSAL IGNORES (all branches, all forks)
+# ============================================================
+
+# --- Workspace temp ---
 temp/
 tmp/
 
+# --- Python artifacts ---
 __pycache__/
 *.py[cod]
 *$py.class
@@ -10,95 +21,209 @@ env/
 build/
 dist/
 *.egg-info/
+**/__pycache__/
 
-.streamlit/
-
+# --- IDE / Editor ---
 .vscode/
 .idea/
 *.swp
 *.swo
+.streamlit/
+.vs/
 
+# --- OS junk ---
 .DS_Store
 Thumbs.db
 
+# --- Sensitive / secrets ---
 *.log
 .env
 auth.json
-model_responses.txt
-
-# Sensitive files (API keys, credentials)
 mykey.py
 
+# --- Runtime / generated ---
 tasks/
-
 *.zip
+model_responses.txt
+.startup_pid
+*.pid
+ga_config.json
+ga_config*.json
+logs/
+logs/**/*
+*.spec
+dist/
+build/
+restore_commit.txt
+**log.*
 
+# --- CDP Bridge auto-generated ---
+assets/tmwd_cdp_bridge/config.js
+assets/copilot_proxy.pyw
+
+
+# ============================================================
+# PART B: OFFICIAL GA WHITELIST (from upstream lsdefine/GenericAgent)
+#   LEGACY entries (fork_sync,memory_cleanup,scheduled_task,web_setup)
+#   are kept for upstream merge compat -- NOT FOUND warnings safe.
+# ============================================================
+
+# Blacklist all memory/, then whitelist specific SOPs/tools
 memory/*
 !memory/memory_management_sop.md
 
-# Allow tracking of specific SOPs
-!memory/web_setup_sop.md
+# --- SOP: Autonomous Operation (upstream) ---
 !memory/autonomous_operation_sop.md
 !memory/autonomous_operation_sop/
 !memory/autonomous_operation_sop/**
-!memory/scheduled_task_sop.md
 
-# L4 session archiver (only the script, not archives)
+# --- SOP: TMWebDriver ---
+!memory/tmwebdriver_sop.md
+
+# --- SOP: Subagent (upstream uses subagent.md) ---
+!memory/subagent.md
+
+# --- SOP: Plan ---
+!memory/plan_sop.md
+
+# --- SOP: Git ---
+!memory/git_sop.md
+
+# --- LEGACY (upstream merge compat; merged into newer SOPs) ---
+!memory/memory_cleanup_sop.md
+!memory/web_setup_sop.md
+!memory/scheduled_task_sop.md
+!memory/fork_sync_sop.md
+
+# --- SOP: Vision ---
+!memory/vision_sop.md
+!memory/vision_api.template.py
+
+# --- Tool: ljqCtrl ---
+!memory/ljqCtrl.py
+!memory/ljqCtrl_sop.md
+
+# --- Tool: procmem_scanner ---
+!memory/procmem_scanner.py
+!memory/procmem_scanner_sop.md
+
+# --- Tool: ADB UI ---
+!memory/adb_ui.py
+
+# --- Tool: Keychain ---
+!memory/keychain.py
+
+# --- Tool: OCR / UI Detection ---
+!memory/ocr_utils.py
+!memory/ui_detect.py
+
+# --- Tool: Skill Search ---
+!memory/skill_search/
+!memory/skill_search/**
+
+# --- L4 Session Archiver (script only) ---
 !memory/L4_raw_sessions/
 memory/L4_raw_sessions/*
 !memory/L4_raw_sessions/compress_session.py
 
-# ljqCtrl related tools
-!memory/ljqCtrl.py
-!memory/ljqCtrl_sop.md
+# --- Other upstream files ---
+!memory/github_contribution_sop.md
+!memory/verify_sop.md
 
-# procmem_scanner related tools
-!memory/procmem_scanner.py
-!memory/procmem_scanner_sop.md
-
-# TMWebDriver SOP
-!memory/tmwebdriver_sop.md
-
-# Subagent SOP
-!memory/subagent_sop.md
-
-# Plan SOP
-!memory/plan_sop.md
-
-# Skill Search SOP
-!memory/skill_search/
-!memory/skill_search/**
-
-
-# ADB UI tool
-!memory/adb_ui.py
-
-# Keychain
-!memory/keychain.py
-
-# Vision / OCR / UI detection tools
-!memory/ocr_utils.py
-!memory/vision_sop.md
-!memory/ui_detect.py
-!memory/vision_api.template.py
-
-# Memory management
-!memory/memory_cleanup_sop.md
-
-# Visual Studio
-.vs/
-restore_commit.txt
-
-sche_tasks/
-# CDP Bridge 密钥配置（首次运行自动生成）
-assets/tmwd_cdp_bridge/config.js
-assets/copilot_proxy.pyw
-**log.*
-
-# Reflect (ignore new files, whitelist existing)
+# --- Reflect (only upstream modules) ---
 reflect/*
 !reflect/autonomous.py
 !reflect/scheduler.py
 
-# Universal: never track __pycache__ anywhere
-**/__pycache__/
+
+# ============================================================
+# PART C: FORK-SPECIFIC WHITELIST (FeiNiaoBF/yeelight)
+# ============================================================
+
+# --- Core: Global Memory (SENSITIVE - use .example templates) ---
+# global_mem.txt and global_mem_insight.txt are EXCLUDED
+# Copy from .example files and fill in your local paths
+!memory/global_mem.example.txt
+!memory/global_mem_insight.example.txt
+config/boot_config.json
+
+# --- SOP: TG Chinese Format ---
+!memory/tg_chi_format_sop.md
+
+# --- SOP: Daily News ---
+!memory/daily_news_sop.md
+
+# --- SOP: Guizang PPT ---
+!memory/guizang_ppt_sop.md
+!memory/guizang-ppt-skill/
+!memory/guizang-ppt-skill/**
+
+# --- SOP: Obsidian ---
+!memory/obsidian_library_sop.md
+!memory/obsidian_blog_sync_sop.md
+!memory/obsidian_blog_sync.py
+!memory/vault_classifier.py
+
+# --- SOP: Daily Task ---
+!memory/daily_task_sop.md
+
+# --- SOP: Excalidraw Draw ---
+!memory/excalidraw_draw_sop.md
+!memory/excalidraw_draw.py
+
+# --- SOP: User Profile ---
+!memory/user_profile_sop.md
+
+# --- SOP: Chi Character Card ---
+!memory/chi_character_card.md
+
+# --- SOP: SOP Refactoring ---
+!memory/sop_refactoring_sop.md
+
+# --- SOP: English Learning ---
+!memory/english_learning_sop.md
+
+# --- SOP: Yeekox Blog Style ---
+!memory/yeekox_blog_style_sop.md
+
+# --- SOP: Web Search ---
+!memory/web_search_sop.md
+
+# --- Tool: Vision API (fork version) ---
+!memory/vision_api.py
+
+# --- Tool: GCal helper ---
+!memory/gcal_helper.py
+!memory/gcal_oauth_setup.py
+
+# --- Tool: Autonomous helper ---
+!memory/autonomous_helper.py
+
+# --- Tool: Task reminder helper ---
+!memory/task_reminder_helper.py
+
+# --- Tool: Capture window ---
+!memory/capture_window.py
+
+# --- Scripts (fork) ---
+!scripts/
+!scripts/sanity_check.py
+
+# --- Tests (fork) ---
+!tests/
+!tests/*
+
+# --- sche_tasks: only active schedules, NO done/ logs ---
+sche_tasks/*
+!sche_tasks/daily_news.json
+!sche_tasks/health_water.json
+!sche_tasks/task_reminder_*.json
+
+
+# ============================================================
+# PART D: NOTES
+# ============================================================
+# - Upstream new SOPs -> PART B | Fork new SOPs -> PART C
+# - LEGACY entries for upstream merge compat; safe to ignore
+#   "NOT FOUND" warnings in sanity_check
+# - Run `python scripts/sanity_check.py` before commits

@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-极简UI元素检测脚本 - 基于OmniParser的YOLO模型
-依赖: ultralytics, rapidocr-onnxruntime, pillow, numpy
+ui_detect.py - YOLO UI元素检测
+API: detect_ui_elements(image_path, model_path=None, conf_threshold=0.25) → [{'bbox':..,'confidence':..,'class':..},...]
+     ocr_text(image_path) → [{'text':..,'bbox':..,'confidence':..},...]
+     visualize(image_path, detections, ocr_results, output_path="output.png")
+CLI: python ui_detect.py screenshot.png [model_path] [output.png]
+依赖: 必装ultralytics/pillow/numpy, 可选rapidocr-onnxruntime
+默认权重: temp/weights/icon_detect/model.pt
+⚠️ 首次推理自动下载模型需网络, 无OCR时跳过文本识别(非阻塞)
 """
 import sys
 from pathlib import Path
