@@ -1,0 +1,168 @@
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+&lt;title&gt;Guizang Magazine PPT&lt;/title&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/lucide-static@0.460.0/font/lucide.min.css&quot;&gt;
+&lt;style&gt;
+/* ===== CSS Variables ===== */
+:root {
+  --ink: #1a1a2e; --ink-rgb: 26,26,46;
+  --paper: #faf8f5; --paper-rgb: 250,248,245;
+  --paper-tint: #f0ece6; --ink-tint: #3d3d5c;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+
+body{font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-weight:400;line-height:1.618;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased}
+
+/* Slides */
+.slide{width:100vw;height:100vh;display:flex;flex-direction:column;justify-content:center;padding:6vh 8vw;position:relative;overflow:hidden;page-break-after:always}
+.slide.light{background:var(--paper);color:var(--ink)}
+.slide.dark{background:var(--ink);color:var(--paper)}
+.slide.hero{padding:4vh 6vw}
+.slide.hero.light{background:var(--paper)}
+.slide.hero.dark{background:var(--ink)}
+.slide.hero.dark .h-hero,.slide.hero.dark .h-mega{color:var(--paper)}
+
+/* Typography */
+.h-mega{font-family:"Noto Serif SC","SimSun",serif;font-size:clamp(3.5rem,8vw,6rem);font-weight:900;line-height:1.1;letter-spacing:-0.02em}
+.h-hero{font-family:"Noto Serif SC","SimSun",serif;font-size:clamp(2.4rem,5.5vw,4rem);font-weight:800;line-height:1.15;letter-spacing:-0.01em;white-space:nowrap}
+.h-xl{font-family:"Noto Serif SC","SimSun",serif;font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:700;line-height:1.25}
+.h-sub{font-family:"Noto Serif SC","SimSun",serif;font-size:1.4rem;font-weight:600;line-height:1.35}
+.h-md{font-size:1.15rem;font-weight:600;line-height:1.4}
+.body-zh{font-size:1.05rem;line-height:1.75}
+.lead{font-size:1.25rem;font-weight:300;line-height:1.6;color:var(--ink-tint)}
+.dark .lead{color:rgba(var(--paper-rgb),0.75)}
+.kicker{font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.15em;color:var(--ink-tint);opacity:0.7}
+.dark .kicker{color:rgba(var(--paper-rgb),0.6)}
+blockquote{border-left:3px solid var(--ink);padding:0.5em 1.2em;margin:1em 0;font-style:italic;opacity:0.85}
+.dark blockquote{border-left-color:var(--paper)}
+
+/* Grids */
+.frame{display:grid;gap:2vh 2vw;align-items:start;flex:1}
+.frame.grid-2-8-4{grid-template-columns:2fr 8fr 4fr}
+.frame.grid-2-7-5{grid-template-columns:2fr 7fr 5fr}
+.frame.grid-2-6-6{grid-template-columns:2fr 6fr 6fr}
+.frame.grid-2-5-7{grid-template-columns:2fr 5fr 7fr}
+.frame.grid-3{grid-template-columns:repeat(3,1fr)}
+.frame.grid-6{grid-template-columns:repeat(6,1fr)}
+.frame.grid-2{grid-template-columns:repeat(2,1fr)}
+.frame.grid-4{grid-template-columns:repeat(4,1fr)}
+.frame.stack{grid-template-columns:1fr;grid-auto-rows:min-content}
+
+/* Components */
+.meta-row{display:flex;gap:2vw;align-items:center;flex-wrap:wrap;font-size:0.85rem;opacity:0.8}
+.stat-card{background:var(--paper-tint);border-radius:12px;padding:1.5vh 1.5vw;text-align:center}
+.dark .stat-card{background:rgba(var(--paper-rgb),0.08)}
+.stat-card .stat-num{font-size:2.5rem;font-weight:800;line-height:1}
+.stat-card .stat-label{font-size:0.8rem;opacity:0.6;margin-top:0.3em}
+.callout{background:rgba(var(--ink-rgb),0.05);border-left:4px solid var(--ink);padding:1.5vh 2vw;border-radius:0 8px 8px 0;margin:1vh 0}
+.dark .callout{background:rgba(var(--paper-rgb),0.06);border-left-color:var(--paper)}
+.pipeline{display:flex;align-items:center;justify-content:center;gap:0}
+.pipeline .pipe-step{padding:1vh 2vw;background:var(--paper-tint);text-align:center;font-weight:600}
+.dark .pipeline .pipe-step{background:rgba(var(--paper-rgb),0.08)}
+.pipeline .pipe-arrow{font-size:1.5rem;padding:0 0.5vw;opacity:0.4}
+.pipeline .pipe-step:first-child{border-radius:8px 0 0 8px}
+.pipeline .pipe-step:last-child{border-radius:0 8px 8px 0}
+
+/* Images */
+.slide img{max-width:100%;height:auto;object-fit:contain}
+.slide .img-full{width:100%;height:50vh;object-fit:cover;border-radius:8px}
+.slide .img-placeholder{width:100%;height:40vh;background:var(--paper-tint);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-tint);font-size:0.85rem;opacity:0.5;border:1px dashed rgba(var(--ink-rgb),0.15)}
+.dark .img-placeholder{background:rgba(var(--paper-rgb),0.06);border-color:rgba(var(--paper-rgb),0.1);color:rgba(var(--paper-rgb),0.4)}
+.slide .img-placeholder i{font-size:2rem;opacity:0.3}
+
+/* Data Table */
+.slide table.data-table{width:100%;border-collapse:collapse;font-size:0.95rem;line-height:1.6}
+.slide table.data-table thead th{padding:1vh 1.2vw;text-align:left;font-weight:600;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:2px solid var(--ink);opacity:0.7}
+.dark .data-table thead th{border-bottom-color:var(--paper);opacity:0.6}
+.slide table.data-table tbody td{padding:0.8vh 1.2vw;border-bottom:1px solid rgba(var(--ink-rgb),0.08)}
+.dark .data-table tbody td{border-bottom-color:rgba(var(--paper-rgb),0.08)}
+.slide table.data-table tbody tr:hover{background:rgba(var(--ink-rgb),0.03)}
+.dark .data-table tbody tr:hover{background:rgba(var(--paper-rgb),0.04)}
+.slide table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+.slide table.data-table .tag{display:inline-block;padding:0.15em 0.6em;border-radius:4px;font-size:0.75rem;font-weight:600;background:rgba(var(--ink-rgb),0.06);color:var(--ink-tint)}
+.dark .data-table .tag{background:rgba(var(--paper-rgb),0.08);color:rgba(var(--paper-rgb),0.7)}
+
+/* Footer */
+.slide-footer{position:absolute;bottom:2vh;left:4vw;right:4vw;display:flex;justify-content:space-between;font-size:0.72rem;opacity:0.35}
+
+/* Utils */
+.nowrap{white-space:nowrap}
+.text-center{text-align:center}
+.mt-1{margin-top:1vh}.mt-2{margin-top:2vh}.mt-3{margin-top:3vh}
+.mb-1{margin-bottom:1vh}
+.gap-1{gap:1vh 1vw}
+
+@media print{
+  .slide{page-break-after:always;height:auto;min-height:100vh}
+  body{background:white}
+}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+&lt;section class=&quot;slide hero dark&quot;&gt;
+  &lt;div class=&quot;kicker mb-1&quot;&gt;GUZANG MAGAZINE&lt;/div&gt;
+  &lt;h1 class=&quot;h-hero&quot;&gt;标题区域&lt;/h1&gt;
+  &lt;p class=&quot;lead mt-2&quot;&gt;副标题或引导文字，阐述核心主题。&lt;/p&gt;
+  &lt;div class=&quot;meta-row mt-3&quot;&gt;
+    &lt;span&gt;&lt;i class=&quot;lucide-user&quot;&gt;&lt;/i&gt; 作者&lt;/span&gt;
+    &lt;span&gt;&lt;i class=&quot;lucide-calendar&quot;&gt;&lt;/i&gt; 2026.04&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+
+&lt;section class=&quot;slide light&quot;&gt;
+  &lt;div class=&quot;kicker mb-1&quot;&gt;章节 01&lt;/div&gt;
+  &lt;div class=&quot;frame grid-2-6-6 mt-1&quot;&gt;
+    &lt;div&gt;&lt;/div&gt;
+    &lt;div&gt;
+      &lt;h2 class=&quot;h-xl&quot;&gt;双栏布局&lt;/h2&gt;
+      &lt;p class=&quot;body-zh mt-1&quot;&gt;左侧留白给标题，正文占据主视觉区。&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div&gt;
+      &lt;div class=&quot;stat-card mt-2&quot;&gt;&lt;div class=&quot;stat-num&quot;&gt;98%&lt;/div&gt;&lt;div class=&quot;stat-label&quot;&gt;完成率&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;callout mt-2&quot;&gt;关键要点：保持信息层级清晰。&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+
+&lt;section class=&quot;slide hero light text-center&quot;&gt;
+  &lt;div class=&quot;kicker&quot;&gt;过渡页&lt;/div&gt;
+  &lt;h2 class=&quot;h-hero&quot;&gt;新章节&lt;/h2&gt;
+  &lt;p class=&quot;lead mt-2&quot;&gt;用大标题分割内容区块，给观众呼吸节奏。&lt;/p&gt;
+&lt;/section&gt;
+
+&lt;section class=&quot;slide dark&quot;&gt;
+  &lt;div class=&quot;kicker mb-1&quot;&gt;三列卡片&lt;/div&gt;
+  &lt;div class=&quot;frame grid-3 mt-1 gap-1&quot;&gt;
+    &lt;div class=&quot;stat-card&quot;&gt;&lt;div class=&quot;stat-num&quot;&gt;01&lt;/div&gt;&lt;div class=&quot;stat-label&quot;&gt;第一步&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;stat-card&quot;&gt;&lt;div class=&quot;stat-num&quot;&gt;02&lt;/div&gt;&lt;div class=&quot;stat-label&quot;&gt;第二步&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;stat-card&quot;&gt;&lt;div class=&quot;stat-num&quot;&gt;03&lt;/div&gt;&lt;div class=&quot;stat-label&quot;&gt;第三步&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+
+&lt;section class=&quot;slide light&quot;&gt;
+  &lt;div class=&quot;kicker mb-1&quot;&gt;流程展示&lt;/div&gt;
+  &lt;h3 class=&quot;h-md&quot;&gt;工作流&lt;/h3&gt;
+  &lt;div class=&quot;pipeline mt-2&quot;&gt;
+    &lt;div class=&quot;pipe-step&quot;&gt;收集&lt;/div&gt;&lt;div class=&quot;pipe-arrow&quot;&gt;&#8594;&lt;/div&gt;
+    &lt;div class=&quot;pipe-step&quot;&gt;整理&lt;/div&gt;&lt;div class=&quot;pipe-arrow&quot;&gt;&#8594;&lt;/div&gt;
+    &lt;div class=&quot;pipe-step&quot;&gt;创作&lt;/div&gt;&lt;div class=&quot;pipe-arrow&quot;&gt;&#8594;&lt;/div&gt;
+    &lt;div class=&quot;pipe-step&quot;&gt;发布&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+
+&lt;section class=&quot;slide hero dark text-center&quot;&gt;
+  &lt;div class=&quot;kicker&quot;&gt;感谢&lt;/div&gt;
+  &lt;h2 class=&quot;h-hero&quot;&gt;Q&amp;A&lt;/h2&gt;
+  &lt;p class=&quot;lead mt-2&quot;&gt;谢谢观看&lt;/p&gt;
+  &lt;div class=&quot;meta-row mt-3&quot; style=&quot;justify-content:center&quot;&gt;
+    &lt;span&gt;Built with Guizang PPT&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;

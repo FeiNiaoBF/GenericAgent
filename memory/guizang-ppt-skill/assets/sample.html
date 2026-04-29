@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guizang Magazine PPT - Sample</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.460.0/font/lucide.min.css">
+<style>
+/* Noir Editorial Theme */
+:root {
+  --ink: #1a1a2e; --ink-rgb: 26,26,46;
+  --paper: #faf8f5; --paper-rgb: 250,248,245;
+  --paper-tint: #f0ece6; --ink-tint: #3d3d5c;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-weight:400;line-height:1.618;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased}
+
+.slide{width:100vw;height:100vh;display:flex;flex-direction:column;justify-content:center;padding:6vh 8vw;position:relative;overflow:hidden;page-break-after:always}
+.slide.light{background:var(--paper);color:var(--ink)}
+.slide.dark{background:var(--ink);color:var(--paper)}
+.slide.hero{padding:4vh 6vw}
+.slide.hero.light{background:var(--paper)}
+.slide.hero.dark{background:var(--ink)}
+.slide.hero.dark .h-hero,.slide.hero.dark .h-mega{color:var(--paper)}
+
+.h-mega{font-family:"Noto Serif SC","SimSun",serif;font-size:clamp(3.5rem,8vw,6rem);font-weight:900;line-height:1.1;letter-spacing:-0.02em}
+.h-hero{font-family:"Noto Serif SC","SimSun",serif;font-size:clamp(2.4rem,5.5vw,4rem);font-weight:800;line-height:1.15;letter-spacing:-0.01em;white-space:nowrap}
+.h-xl{font-family:"Noto Serif SC","SimSun",serif;font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:700;line-height:1.25}
+.h-sub{font-family:"Noto Serif SC","SimSun",serif;font-size:1.4rem;font-weight:600;line-height:1.35}
+.h-md{font-size:1.15rem;font-weight:600;line-height:1.4}
+.body-zh{font-size:1.05rem;line-height:1.75}
+.lead{font-size:1.25rem;font-weight:300;line-height:1.6;color:var(--ink-tint)}
+.dark .lead{color:rgba(var(--paper-rgb),0.75)}
+.kicker{font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.15em;color:var(--ink-tint);opacity:0.7}
+.dark .kicker{color:rgba(var(--paper-rgb),0.6)}
+blockquote{border-left:3px solid var(--ink);padding:0.5em 1.2em;margin:1em 0;font-style:italic;opacity:0.85}
+.dark blockquote{border-left-color:var(--paper)}
+
+.frame{display:grid;gap:2vh 2vw;align-items:start;flex:1}
+.frame.grid-2-8-4{grid-template-columns:2fr 8fr 4fr}
+.frame.grid-2-7-5{grid-template-columns:2fr 7fr 5fr}
+.frame.grid-2-6-6{grid-template-columns:2fr 6fr 6fr}
+.frame.grid-3{grid-template-columns:repeat(3,1fr)}
+.frame.grid-6{grid-template-columns:repeat(6,1fr)}
+.frame.stack{grid-template-columns:1fr;grid-auto-rows:min-content}
+
+.meta-row{display:flex;gap:2vw;align-items:center;flex-wrap:wrap;font-size:0.85rem;opacity:0.8}
+.stat-card{background:var(--paper-tint);border-radius:12px;padding:1.5vh 1.5vw;text-align:center}
+.dark .stat-card{background:rgba(var(--paper-rgb),0.08)}
+.stat-card .stat-num{font-size:2.5rem;font-weight:800;line-height:1}
+.stat-card .stat-label{font-size:0.8rem;opacity:0.6;margin-top:0.3em}
+.callout{background:rgba(var(--ink-rgb),0.05);border-left:4px solid var(--ink);padding:1.5vh 2vw;border-radius:0 8px 8px 0;margin:1vh 0}
+.dark .callout{background:rgba(var(--paper-rgb),0.06);border-left-color:var(--paper)}
+.pipeline{display:flex;align-items:center;justify-content:center;gap:0}
+.pipeline .pipe-step{padding:1vh 2vw;background:var(--paper-tint);text-align:center;font-weight:600}
+.dark .pipeline .pipe-step{background:rgba(var(--paper-rgb),0.08)}
+.pipeline .pipe-arrow{font-size:1.5rem;padding:0 0.5vw;opacity:0.4}
+.pipeline .pipe-step:first-child{border-radius:8px 0 0 8px}
+.pipeline .pipe-step:last-child{border-radius:0 8px 8px 0}
+
+.slide img{max-width:100%;height:auto;object-fit:contain}
+.slide .img-full{width:100%;height:50vh;object-fit:cover;border-radius:8px}
+
+.slide-footer{position:absolute;bottom:2vh;left:4vw;right:4vw;display:flex;justify-content:space-between;font-size:0.72rem;opacity:0.35}
+
+.nowrap{white-space:nowrap}
+.text-center{text-align:center}
+.mt-1{margin-top:1vh}.mt-2{margin-top:2vh}.mt-3{margin-top:3vh}
+.mb-1{margin-bottom:1vh}
+.gap-1{gap:1vh 1vw}
+
+@media print{
+  .slide{page-break-after:always;height:auto;min-height:100vh}
+  body{background:white}
+}
+</style>
+</head>
+<body>
+
+<!-- P01: Hero Dark Cover (L01) -->
+<section class="slide hero dark">
+  <div class="kicker mb-1">MAGAZINE DESIGN SYSTEM</div>
+  <h1 class="h-hero">归藏杂志风</h1>
+  <p class="lead mt-2">一套基于HTML/CSS的单文件PPT生成框架——用代码写演示文稿，像排杂志一样排版。</p>
+  <div class="meta-row mt-3">
+    <span><i class="lucide-user"></i> Guizang Studio</span>
+    <span><i class="lucide-calendar"></i> 2026.04</span>
+    <span><i class="lucide-globe"></i> 5 Themes · 10 Layouts</span>
+  </div>
+</section>
+
+<!-- P02: Light 2-6-6 Overview (L03) -->
+<section class="slide light">
+  <div class="kicker mb-1">设计理念</div>
+  <div class="frame grid-2-6-6 mt-1">
+    <div></div>
+    <div>
+      <h2 class="h-xl">代码即排版</h2>
+      <p class="body-zh mt-1">传统PPT拖拽对齐耗时且难以复用。Guizang将排版抽象为CSS类名：选主题→拷布局→填内容，三步产出杂志级演示。所有样式集中在单一HTML文件中，零依赖运行。</p>
+      <div class="callout mt-2">核心理念：用变量控制色彩，用骨架控制结构，用类名控制排版。所见即所得，复制即复用。</div>
+    </div>
+    <div>
+      <div class="stat-card mt-2"><div class="stat-num">5</div><div class="stat-label">主题配色</div></div>
+      <div class="stat-card mt-1"><div class="stat-num">10</div><div class="stat-label">布局骨架</div></div>
+      <div class="stat-card mt-1"><div class="stat-num">1</div><div class="stat-label">单文件模板</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- P03: Light 2-7-5 Features (L04) -->
+<section class="slide light">
+  <div class="kicker mb-1">核心特性</div>
+  <div class="frame grid-2-7-5 mt-1">
+    <div></div>
+    <div>
+      <h2 class="h-xl">三大支柱</h2>
+      <p class="body-zh mt-1">
+        <strong>主题变量系统</strong><br>6个CSS变量定义整套色彩：ink、paper、tint。换一套:root即换一套视觉风格，无需修改任何HTML结构。
+      </p>
+      <p class="body-zh mt-1">
+        <strong>布局骨架库</strong><br>10种预设布局覆盖封面、过渡、正文、数据、流程、金句、致谢等场景，直接粘贴替换占位符。
+      </p>
+      <p class="body-zh mt-1">
+        <strong>P0自检清单</strong><br>生成后6条阻断级检查，确保类名有效、主题节奏正确、无emoji污染。
+      </p>
+    </div>
+    <div>
+      <div class="stat-card"><div class="stat-num"><i class="lucide-palette"></i></div><div class="stat-label">变量驱动色彩</div></div>
+      <div class="stat-card mt-1"><div class="stat-num"><i class="lucide-layout-grid"></i></div><div class="stat-label">骨架复用排版</div></div>
+      <div class="stat-card mt-1"><div class="stat-num"><i class="lucide-check-circle"></i></div><div class="stat-label">清单保障质量</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- P04: Hero Dark Quote (L09) -->
+<section class="slide hero dark text-center">
+  <div class="kicker">设计哲学</div>
+  <blockquote>
+    <p class="h-xl">好的排版是看不见的设计。</p>
+  </blockquote>
+  <p class="lead mt-2">&mdash; 字体排印学第一原理</p>
+</section>
+
+<!-- P05: Dark 3-col Themes Showcase (L06) -->
+<section class="slide dark">
+  <div class="kicker mb-1">主题矩阵</div>
+  <h3 class="h-md">五套主题 · 覆盖全场景</h3>
+  <div class="frame grid-3 mt-1 gap-1">
+    <div class="stat-card"><div class="stat-num">Noir</div><div class="stat-label">深度长文<br>经典杂志</div></div>
+    <div class="stat-card"><div class="stat-num">Bone</div><div class="stat-label">提案竞品<br>强对比</div></div>
+    <div class="stat-card"><div class="stat-num">Navy</div><div class="stat-label">产品科技<br>发布演示</div></div>
+    <div class="stat-card"><div class="stat-num">Forest</div><div class="stat-label">年度复盘<br>沉稳自然</div></div>
+    <div class="stat-card"><div class="stat-num">Slate</div><div class="stat-label">数据学术<br>极简克制</div></div>
+  </div>
+  <p class="lead mt-2 text-center">每套主题6个CSS变量，覆盖 ink / paper / tint 三轴色彩空间</p>
+</section>
+
+<!-- P06: Hero Light Transition (L02) -->
+<section class="slide hero light text-center">
+  <div class="kicker">实践</div>
+  <h2 class="h-hero">从零到一</h2>
+  <p class="lead mt-2">三步生成你的第一份杂志风PPT</p>
+</section>
+
+<!-- P07: Light Pipeline Workflow (L08) -->
+<section class="slide light">
+  <div class="kicker mb-1">工作流</div>
+  <h3 class="h-md">三步生成</h3>
+  <div class="pipeline mt-2">
+    <div class="pipe-step"><i class="lucide-palette"></i><br>选主题</div>
+    <div class="pipe-arrow">&rarr;</div>
+    <div class="pipe-step"><i class="lucide-layout-grid"></i><br>选布局</div>
+    <div class="pipe-arrow">&rarr;</div>
+    <div class="pipe-step"><i class="lucide-file-text"></i><br>填内容</div>
+    <div class="pipe-arrow">&rarr;</div>
+    <div class="pipe-step"><i class="lucide-eye"></i><br>阅览</div>
+  </div>
+  <div class="callout mt-3">全程无需离开编辑器。HTML文件双击即开，或用 <code>python -m http.server</code> 本地预览。</div>
+</section>
+
+<!-- P08: Hero Dark Thanks (L10) -->
+<section class="slide hero dark text-center">
+  <div class="kicker">开始创作</div>
+  <h2 class="h-hero">归藏</h2>
+  <p class="lead mt-2">用代码书写演示之美</p>
+  <div class="meta-row mt-3" style="justify-content:center">
+    <span><i class="lucide-github"></i> Guizang PPT Skill</span>
+    <span><i class="lucide-check-circle"></i> v1.0</span>
+  </div>
+</section>
+
+</body>
+</html>

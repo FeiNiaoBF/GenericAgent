@@ -1,7 +1,0 @@
-# [Global Memory Insight] - TEMPLATE
-# Copy to global_mem_insight.txt and fill in
-
-## Personal
-|| name | <your-name> ||
-|| browser | <your-browser-type> ||
-|| vision | <your-vision-api> ||

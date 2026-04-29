@@ -61,3 +61,6 @@
   "dependencies": ["paper_info.txt必须存在"]
 }
 ```
+
+## 已知限制 (2026-04-29验证)
+- agentmain.py **无SOP加载接口**：subagent无法通过`--sop`参数指定SOP，只能依赖global_mem_insight.txt导航。Map模式并行测试因此阻塞（subagent无法接收skill SOP指令）。未来若需启用，需先给agentmain.py添加SOP加载能力。
