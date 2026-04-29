@@ -109,6 +109,187 @@ def _markdown_safe_segments(text, limit=None):
         remaining = remaining[len(chunk):].lstrip()
     return parts
 
+def _is_table_line(line):
+    """Check if line is a markdown table row (has pipe-separated cells)."""
+    return bool(line) and '|' in line and line.count('|') >= 2
+
+def _is_table_separator(line):
+    """Check if line is a markdown table separator like |---|---|"""
+    return bool(re.match(r'^\|[\s:\-]+\|', line))
+
+def _parse_table_cells(line):
+    """Parse a table row into cleaned cell values."""
+    parts = line.split('|')
+    # Remove leading/trailing empty parts from leading/trailing pipes
+    if parts and not parts[0].strip():
+        parts = parts[1:]
+    if parts and not parts[-1].strip():
+        parts = parts[:-1]
+    return [p.strip() for p in parts]
+
+def _format_table_row_mobile(headers, cells):
+    """Format a table row for mobile: use first cell as emoji-prefixed key."""
+    n = len(cells)
+    if n == 0:
+        return ""
+    first = cells[0]
+    if n == 1:
+        return f"🔹 **{first}**"
+    if n == 2:
+        return f"🔹 **{first}** — {cells[1]}"
+    # 3+ columns: first as key, rest as key: value pairs
+    parts = []
+    for j in range(1, n):
+        hdr = headers[j] if j < len(headers) else f"C{j+1}"
+        parts.append(f"{hdr}: {cells[j]}")
+    return f"🔹 **{first}** — {', '.join(parts)}"
+
+def _convert_md_tables_to_list(text):
+    """Convert markdown pipe tables to mobile-friendly emoji list format.
+    Tables inside code fences are left untouched."""
+    if not text:
+        return text
+    lines = text.split('\n')
+    result = []
+    i, n = 0, len(lines)
+    in_code = False
+    while i < n:
+        line = lines[i]
+        stripped = line.strip()
+        # Track code fences to skip tables inside code blocks
+        if stripped.startswith('```'):
+            in_code = not in_code
+            result.append(line)
+            i += 1
+            continue
+        if in_code:
+            result.append(line)
+            i += 1
+            continue
+        # Detect table: row line + separator line + at least one data row
+        if (_is_table_line(stripped) and not _is_table_separator(stripped)
+                and i + 2 < n
+                and _is_table_separator(lines[i + 1].strip())
+                and _is_table_line(lines[i + 2].strip())):
+            # Parse header
+            headers = _parse_table_cells(stripped)
+            i += 1  # skip header
+            # Skip separator line
+            i += 1
+            # Process data rows until non-table line
+            while i < n:
+                row_stripped = lines[i].strip()
+                if not _is_table_line(row_stripped) or _is_table_separator(row_stripped):
+                    break
+                cells = _parse_table_cells(row_stripped)
+                if cells:
+                    result.append(_format_table_row_mobile(headers, cells))
+                i += 1
+            # Blank line after table for readability
+            if i < n and lines[i].strip():
+                result.append('')
+            continue
+        result.append(line)
+        i += 1
+    return '\n'.join(result)
+
+def _beautify_tg_message(text):
+    """TG-specific: convert markdown headings to bold+emoji, add dividers, fix spacing.
+    Only touches tgapp.py path; other frontends unaffected."""
+    text = _convert_md_tables_to_list(text)
+    if not text or not text.strip():
+        return text
+
+    EMOJI_MAP = {
+        "总结": "📋", "摘要": "📋", "关键": "🔑", "重点": "⭐",
+        "错误": "❌", "警告": "⚠️", "注意": "⚠️", "问题": "❓",
+        "步骤": "📝", "操作": "🔧", "执行": "▶️", "完成": "✅",
+        "结果": "📊", "数据": "📊", "统计": "📈",
+        "文件": "📁", "生成": "📄", "创建": "📄",
+        "代码": "💻", "命令": "⌨️", "配置": "⚙️",
+        "帮助": "🆘", "信息": "ℹ️", "状态": "🔍",
+        "计划": "📅", "任务": "📌", "进度": "🚧",
+        "回复": "💬", "消息": "💬",
+        "新闻": "📰", "今日": "📅", "日记": "📔",
+    }
+
+    lines = text.split("\n")
+    result = []
+    in_code = False
+    prev_blank = True
+    prev_divider = False
+    section_n = 0
+
+    for line in lines:
+        stripped = line.strip()
+        is_blank = not stripped
+        is_fence = stripped.startswith("```")
+        mh = re.match(r"^(#{1,4})\s+(.*)", stripped)
+        is_hrule = bool(re.match(r"^[─━═\-_]{3,}$", stripped))
+
+        if is_fence:
+            if in_code and not prev_blank and result:
+                result.append("")
+            in_code = not in_code
+            result.append(line)
+            if not in_code:
+                result.append("")
+            prev_blank = True
+            prev_divider = False
+            continue
+
+        if is_hrule:
+            if not prev_divider:
+                result.append("─" * 24)
+                prev_divider = True
+            continue
+
+        if in_code:
+            result.append(line)
+            prev_blank = is_blank
+            continue
+
+        if is_blank:
+            result.append("")
+            prev_blank = True
+            continue
+
+        if mh:
+            section_n += 1
+            header = mh.group(2)
+            # Already has formatting or emoji? Keep as-is (remove ## prefix)
+            if re.search(r"[\U0001F300-\U0001F9FF\u2600-\u27BF]", header) or \
+               re.match(r"^\*\*.*\*\*$", header):
+                result.append(f"**{header}**" if not header.startswith("**") else header)
+                prev_blank = False
+                prev_divider = False
+                continue
+            # Pick emoji by keyword match
+            emoji = "🔹"
+            for kw, em in EMOJI_MAP.items():
+                if kw in header:
+                    emoji = em
+                    break
+            # Divider before ## level (not first section)
+            if section_n > 1 and mh.group(1) == "##" and not prev_divider:
+                if result and result[-1] != "":
+                    result.append("")
+                result.append("─" * 24)
+                result.append("")
+                prev_divider = True
+            result.append(f"**{emoji} {header}**")
+            prev_blank = False
+            prev_divider = False
+        else:
+            result.append(line)
+            prev_blank = False
+            prev_divider = False
+
+    # Collapse 3+ blank lines → 2
+    out = "\n".join(result)
+    out = re.sub(r"\n{3,}", "\n\n", out)
+    return out.strip()
+
 def _line_complete(line):
     return (line or "").endswith(("\n", "\r"))
 
@@ -480,7 +661,7 @@ class _TelegramStreamSession:
         summary = _extract_turn_summary(self.raw_text)
         cleaned = clean_reply(self.raw_text) if self.raw_text.strip() else ""
         self.files = _files_from_text(cleaned)
-        body = _inject_turn_summary(_render_file_markers(cleaned), summary)
+        body = _beautify_tg_message(_inject_turn_summary(_render_file_markers(cleaned), summary))
         if done and not body and self.files:
             body = "已生成附件"
         elif done and not body:
