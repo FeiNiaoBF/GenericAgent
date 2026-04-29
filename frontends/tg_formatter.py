@@ -265,14 +265,17 @@ def _parse_table_row(row):
     return [c.strip().replace("\x00PIPE\x00", "|") for c in cells]
 
 
-def _build_pre_table(rows_text):
-    """Build a plain-text ASCII table wrapped in <pre> tags.
+def _build_table_list_html(rows_text):
+    """Build mobile-friendly HTML list from markdown table rows.
 
-    Cell content at this point may contain HTML formatting tags from the
-    inline-formatting pass; strip them (and unescape HTML entities) when
-    measuring column widths so the monospace layout is correct.
-    Telegram does not render HTML <table> tags, so <pre> gives consistent
-    monospace display across all clients.
+    Converts horizontal pipe tables to vertical list format
+    that wraps naturally on mobile devices (no horizontal overflow):
+
+    2-column:  🔹 <b>col0</b> — col1
+    3+-column: 🔹 <b>header0</b> — <b>col1</b>: val1 | <b>col2</b>: val2
+
+    Cell content already contains HTML formatting tags from the
+    inline-formatting pass (e.g. <b>, <i>), preserved as-is.
     """
     if len(rows_text) < 2:
         return None
@@ -287,38 +290,38 @@ def _build_pre_table(rows_text):
     if not parsed:
         return None
 
-    num_cols = max(len(r) for r in parsed)
-    for row in parsed:
-        while len(row) < num_cols:
-            row.append("")
+    headers = parsed[0] if len(parsed) > 0 else []
+    data_rows = parsed[1:] if len(parsed) > 1 else []
 
-    def strip_to_plain(s):
-        """Strip HTML tags and unescape entities for width calculation."""
-        return html.unescape(re.sub(r"<[^>]+>", "", s))
+    lines = []
+    for row in data_rows:
+        if not row or all(not c.strip() for c in row):
+            continue
+        first = (row[0] or "").strip()
+        rest = row[1:] if len(row) > 1 else []
 
-    plain_rows = [[strip_to_plain(c) for c in row] for row in parsed]
-    col_widths = [
-        max(len(plain_rows[r][c]) for r in range(len(plain_rows)))
-        for c in range(num_cols)
-    ]
+        line = f"🔹 <b>{first}</b>"
 
-    sep = "+" + "+".join("-" * (w + 2) for w in col_widths) + "+"
+        if headers and len(headers) > 1:
+            parts = []
+            for j, val in enumerate(rest):
+                h = headers[j + 1] if j + 1 < len(headers) else f"Col{j + 2}"
+                if val.strip():
+                    parts.append(f"<b>{h.strip()}</b>: {val.strip()}")
+            if parts:
+                line += " — " + " | ".join(parts)
+        elif rest:
+            vals = [v.strip() for v in rest if v.strip()]
+            if vals:
+                line += " — " + " | ".join(vals)
 
-    def fmt_row(cells):
-        parts = [f" {c:<{col_widths[i]}} " for i, c in enumerate(cells)]
-        return "|" + "|".join(parts) + "|"
+        lines.append(line)
 
-    lines = [sep, fmt_row(plain_rows[0]), sep]
-    for row in plain_rows[1:]:
-        lines.append(fmt_row(row))
-    lines.append(sep)
-
-    table_text = "\n".join(lines)
-    return f"<pre>{html.escape(table_text, quote=False)}</pre>"
+    return "\n".join(lines) if lines else None
 
 
 def _extract_markdown_tables(text):
-    """Extract markdown table blocks and convert to HTML table tags.
+    """Extract markdown table blocks and convert to mobile-friendly HTML list.
 
     Must be called AFTER html.escape + markdown formatting regexes,
     so cell content is already escaped and formatted.
@@ -353,7 +356,7 @@ def _extract_markdown_tables(text):
                         break
 
                 table_lines = lines[i:j]
-                html_table = _build_pre_table(table_lines)
+                html_table = _build_table_list_html(table_lines)
                 if html_table:
                     placeholder = f"{_PLACEHOLDER_PREFIX}TABLE_{table_id}{_PLACEHOLDER_SUFFIX}"
                     protected[placeholder] = html_table
@@ -387,7 +390,7 @@ def to_telegram_html(text):
     - <a href="url">inline URL</a>
     - # H1 / ## H2 / ### H3+ → <b>bold</b> with level indicator
     - > blockquote → <blockquote>...</blockquote>
-    - Markdown tables → ASCII-art <pre> block (Telegram ignores <table> tags)
+    - Markdown tables → mobile-friendly vertical list (no horizontal overflow)
 
     Args:
         text: Raw text with Markdown-like formatting
