@@ -84,6 +84,17 @@ git ps                              # 推送(新分支用 git psu)
 ## 7. Fork同步（3分支合并上游）
 > remote：`origin`=上游(lsdefine/GenericAgent)，`yeelight`=当前fork
 
+### 分支铁律（AI Agent 必须遵守）
+| 分支 | 用途 | 允许操作 | 禁止操作 |
+|------|------|----------|----------|
+| `original` | 跟踪上游官方GA | `git merge origin/main --ff-only` | **任何写入（commit/file_write）** |
+| `dev` | **日常工作主分支** | 所有开发操作 | — |
+| `main` | 稳定版，从dev合并 | `git merge dev --no-ff` | 直接commit/file_write |
+
+> **AI Agent：任何文件修改/新建前，必须先执行 `git branch --show-current` 确认当前在 `dev` 分支。**
+> 发现自己在 `main` 或 `original` → 立即 `git stash -u` → `git switch dev` → `git stash pop` → 继续工作。
+> `original` 分支永远只读，只通过 `origin/main` 快进同步，绝不直接改动。
+
 ### 前置报告（必须先做，用户确认后才能合并）
 每次从上游拉取时，主分支是`dev`，必须先做干跑分析并报告给用户：
 1. `git fetch origin` 后，`git log dev..origin/main --oneline` 列出上游新增提交
