@@ -56,6 +56,18 @@ function Stop-Bot { param([string]$scriptPath, [string]$botLabel)
 }
 
 function Start-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botKey, $cfg, [string]$pythonwPath)
+    # Check bot_script (also_check) for stale processes from old configs
+    $botCfg = $cfg.bots.$botKey
+    if ($botCfg.also_check) {
+        $stalePids = Get-RunningPids $botCfg.also_check
+        if ($stalePids.Count -gt 0) {
+            foreach ($sp in $stalePids) {
+                try { Stop-Process -Id $sp -Force; Write-Log "  [$botLabel] 清理旧进程 PID=$sp ($($botCfg.also_check))" }
+                catch { Write-Log "  [$botLabel] 清理旧进程失败 PID=$sp : $_" }
+            }
+            Start-Sleep -Milliseconds 500
+        }
+    }
     $existingPids = Get-RunningPids $scriptPath
     if ($existingPids.Count -gt 0) {
         Write-Log "  [$botLabel] 已在运行 PID=$($existingPids -join ',') 跳过"
@@ -73,7 +85,6 @@ function Start-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botK
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
     # Pass notification config via env vars
-    $botCfg = $cfg.bots.$botKey
     if ($botCfg.notify_chat_id) {
         $psi.EnvironmentVariables["GA_NOTIFY_CHAT_ID"] = $botCfg.notify_chat_id
     }

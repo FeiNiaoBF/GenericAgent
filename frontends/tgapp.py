@@ -141,17 +141,18 @@ def _quote_tag(text):
     return f"{_QUOTE_OPEN_TAG}{safe_text}{_QUOTE_CLOSE_TAG}"
 
 def _inject_turn_summary(body, summary):
-    if not (body or "").strip() or not (summary or "").strip():
+    if not (body or "").strip():
         return body
     lines = (body or "").splitlines()
     if not lines or _turn_marker_number(lines[0]) is None:
         return body
-    title = lines[0].strip()
     rest = "\n".join(lines[1:]).strip()
+    if not (summary or "").strip():
+        return rest or ""
     summary_line = _quote_tag(summary)
     if rest:
-        return f"{title}\n\n{summary_line}\n\n{rest}"
-    return f"{title}\n\n{summary_line}"
+        return f"{summary_line}\n\n{rest}"
+    return summary_line
 
 def _resolve_files(paths):
     files, seen = [], set()
