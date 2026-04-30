@@ -131,6 +131,9 @@ memory/L4_raw_sessions/*
 !memory/verify_sop.md
 
 # --- Reflect (only upstream modules) ---
+
+# --- Supervisor SOP (new from upstream) ---
+!memory/supervisor_sop.md
 reflect/*
 !reflect/autonomous.py
 !reflect/scheduler.py

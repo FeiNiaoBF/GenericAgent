@@ -14,11 +14,6 @@
   --paper-rgb: 250, 248, 245;
   --paper-tint: #f0ece6;
   --ink-tint: #3d3d5c;
-  --chart-1: #2d3561;
-  --chart-2: #6b2d3e;
-  --chart-3: #c9a96e;
-  --chart-4: #5c6b5c;
-  --chart-5: #8a8a9a;
 }
 ```
 
@@ -35,11 +30,6 @@
   --paper-rgb: 254, 250, 245;
   --paper-tint: #f5e8e0;
   --ink-tint: #8b3a3a;
-  --chart-1: #c0392b;
-  --chart-2: #6b1a1a;
-  --chart-3: #e8d5c0;
-  --chart-4: #7a6a6a;
-  --chart-5: #b8944a;
 }
 ```
 
@@ -56,11 +46,6 @@
   --paper-rgb: 232, 236, 240;
   --paper-tint: #d4dbe3;
   --ink-tint: #2c3e6b;
-  --chart-1: #3b6db5;
-  --chart-2: #2da4a4;
-  --chart-3: #9aacbc;
-  --chart-4: #6b4d8b;
-  --chart-5: #d4863b;
 }
 ```
 
@@ -77,11 +62,6 @@
   --paper-rgb: 248, 245, 238;
   --paper-tint: #ebe5d5;
   --ink-tint: #3d5c3d;
-  --chart-1: #4a7c4a;
-  --chart-2: #8b9a3b;
-  --chart-3: #b87b3b;
-  --chart-4: #5a3d2b;
-  --chart-5: #3b6b8b;
 }
 ```
 
@@ -98,11 +78,6 @@
   --paper-rgb: 252, 252, 252;
   --paper-tint: #f0f0f3;
   --ink-tint: #48485c;
-  --chart-1: #4a6fa5;
-  --chart-2: #5a5a6a;
-  --chart-3: #9a9a9a;
-  --chart-4: #6b8ba4;
-  --chart-5: #b8706e;
 }
 ```
 

@@ -107,3 +107,4 @@ cleanup_old_reminders(keep_days=3)  # 清理3天前的once任务
 - 新闻播报使用daily_news_sop的三大特性（真实性·时效性·准确性）
 - 模板路径: `99.System/Templates/Daily.md`
 - Obsidian vault 路径见 L2 `## [Obsidian Vault]`
+- **Obsidian笔记原则**: 长文分析 → 独立笔记 + [[双链]]，勿在日记内嵌全文（遵守Obsidian原子笔记最佳实践）

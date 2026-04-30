@@ -35,3 +35,18 @@ ROI = (不放这几个词的犯错概率 × 代价) / 每轮词数成本
 
 **红线**：记忆修改是持久性伤害，错误每轮复利。L1只能patch词级别修改，禁overwrite
 产生误导应及时修正L1或记忆更名
+
+## 目录污染清理
+memory/ 只放L3 SOP/工具。非L3文件分类清理：
+- 运行时统计/JSON → `temp/`
+- 历史任务报告 → `L4_raw_sessions/archive/`
+- 过期模板(.example.txt) → 删除（官方模板在 `assets/`）
+- 触发：每次 `ls ../memory/` 发现非 `.md/.py` 或 `.example` 文件时检查
+
+## L1审计快速清单
+对比官方模板 `assets/global_mem_insight_template.txt` 查5要素：
+1. 导航提示行 `需要时read L2 或 ls ../memory/ 查L3`
+2. 层标记 L0(META-SOP)/L2:/L3:/L4:
+3. RULES完整性——压缩时不可丢失核心禁止项(禁PS递归/事件链/disabled检测等)
+4. 规则是指针非工作流——多步骤决策树→单行触发词
+5. 行数 ≤ 30（当前21行，余量9行）
