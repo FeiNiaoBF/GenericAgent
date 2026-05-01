@@ -1,8 +1,9 @@
 # sop_refactoring_sop · SOP重构/去重/版本升级 标准流程
 > 版本: v1.0 | 最后更新: 2026-04-28
 
-> **来源经验**：[chi_format_sop v1.0 去TG化重构](vault://memory/chi_format_sop.md)
-> — 删除TG引擎规则/MarkdownV2转义/TG专属避坑，重命名为chi_format_sop.md
+> **来源经验**：chi_format_sop v1.0 去TG化重构 → 重命名为chi_format_sop.md
+>
+> **复用工具**：`file_read`(关键词对比) | `code_run+Python`(跨文件diff) | `file_patch`(精确替换) | L2→`global_mem.txt patch` | L1→`global_mem_insight.txt patch`
 
 ---
 

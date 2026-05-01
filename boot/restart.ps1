@@ -17,6 +17,18 @@ $BootDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $StopScript = Join-Path $BootDir "stop.ps1"
 $StartScript = Join-Path $BootDir "start.ps1"
 
+# ---------- helper ----------
+function Show-Popup { param([string]$title, [string]$message, [int]$timeout = 5)
+    try {
+        $wshell = New-Object -ComObject Wscript.Shell
+        $wshell.Popup($message, $timeout, $title, 0x40) | Out-Null
+    } catch {
+        Write-Host "[Popup] $title : $message" -ForegroundColor Cyan
+    }
+}
+
+if (-not $StopOnly) { Show-Popup "GenericAgent · 重启中" "正在重启所有 Bot，请稍候..." 3 }
+
 $ErrorActionPreference = "Stop"
 
 # ====== Stop phase ======

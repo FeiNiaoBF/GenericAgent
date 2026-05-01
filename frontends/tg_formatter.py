@@ -590,11 +590,3 @@ def safe_format(text, prefer_html=True):
         md_text = to_markdown_v2(text)
         return md_text, ParseMode.MARKDOWN_V2
 
-
-def get_parse_mode_for_fallback(current_mode):
-    """Get fallback parse mode when current mode fails."""
-    if current_mode == ParseMode.HTML:
-        return ParseMode.MARKDOWN_V2
-    elif current_mode == ParseMode.MARKDOWN_V2:
-        return None  # No parse mode = plain text fallback
-    return None

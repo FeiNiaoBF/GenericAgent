@@ -1,13 +1,12 @@
-import os, sys, re, threading, asyncio, queue as Q, time, random, uuid
+import os, sys, re, threading, asyncio, queue as Q, time, random, uuid, json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _TEMP_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'temp')
 from agentmain import GeneraticAgent
 try:
-    from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
+    from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, Update
     from telegram.constants import ChatType, MessageLimit, ParseMode
     from telegram.error import RetryAfter
     from telegram.ext import ApplicationBuilder, CallbackQueryHandler, MessageHandler, filters, ContextTypes
-    from telegram.helpers import escape_markdown
     from telegram.request import HTTPXRequest
 except:
     print("Please ask the agent install python-telegram-bot to use telegram module.")
@@ -26,14 +25,72 @@ from chatapp_common import (
 )
 from continue_cmd import handle_frontend_command, reset_conversation
 from llmcore import mykeys
+from frontends.tg_formatter import (
+    safe_format as tg_safe_format,
+    to_telegram_html,
+)
 
 agent = GeneraticAgent()
 agent.verbose = False
 agent.inc_out = True
 ALLOWED = set(mykeys.get('tg_allowed_users', []))
 
-_DRAFT_HINT = "thinking..."
-_STREAM_SUFFIX = " ⏳"
+# ───── 唧 (Chii) 人格化随机池 ─────
+_CHII_THINK = [
+    "えっと…ちょっと考え中なの…",
+    "ん…待ってね、なの",
+    "ちっ…ちい…考えてるところです",
+    "唧、今頑張ってるです！",
+    "ちょっとだけ…待ってほしいなの",
+    "あの…もうすぐできると思うなの",
+    "むむ…これ、どうかな…なの",
+    "すこし時間かかるかも…ごめんね",
+    "えへへ…考えごとしてるです",
+    "わかった、なの！ちょっと考えるね",
+    "しゅくだい、やってます…なの",
+    "ん〜…ちょっと待ってね、なの",
+]
+
+_CHII_FILE = [
+    "できた、なの！",
+    "しゅくだい完成です〜",
+    "じゃーん！できたよ、なの",
+    "はい、これです！",
+    "ファイル作れたの！えへへ",
+    "できあがり…なの！",
+]
+
+_CHII_EMPTY = [
+    "…ちっ？",
+    "…あれ？なの",
+    "…む？",
+    "…え？",
+    "…ちい？",
+    "…うーん？",
+]
+
+_CHII_ERROR = [
+    "ちげー！なんか変なの…ごめんね",
+    "うぅ…失敗しちゃった…なの",
+    "あわわ…ごめんなさい、なの…",
+    "うー…もう一回やってみる？",
+    "えっと…エラー出ちゃった…直すね",
+]
+
+_CHII_SUFFIX = [
+    " …なの",
+    " …です",
+    " …ちっ",
+    " …むむ",
+    " …えっとね",
+]
+
+def _chii_think():
+    return random.choice(_CHII_THINK)
+
+def _chii_suffix():
+    return random.choice(_CHII_SUFFIX)
+# ────────────────────────────────────
 _STREAM_SEGMENT_LIMIT = max(1200, MessageLimit.MAX_TEXT_LENGTH - 256)
 _STREAM_UPDATE_INTERVAL_SECONDS = 2.0
 _STREAM_MIN_UPDATE_CHARS = 400
@@ -46,22 +103,10 @@ _ASK_CANCEL_LABEL = "none of these above"
 _ASK_CANCEL_PROMPT = "已取消选择，请直接发送下一步操作。"
 _ask_menu_events = Q.Queue()
 _ask_menu_store = {}
+_STICKER_STORE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tg_sticker_store.json')
 _QUOTE_OPEN_TAG = "<_quote_>"
 _QUOTE_CLOSE_TAG = "</_quote_>"
-_QUOTE_TOKEN_PATTERN = re.escape(_QUOTE_OPEN_TAG) + r"([\s\S]*?)" + re.escape(_QUOTE_CLOSE_TAG)
-_MD_TOKEN_RE = re.compile(
-    (
-        r"(`{3,})([A-Za-z0-9_+-]*)\n([\s\S]*?)\1"
-        r"|" + _QUOTE_TOKEN_PATTERN +
-        r"|\[([^\]]+)\]\(([^)\n]+)\)"
-        r"|`([^`\n]+)`"
-        r"|\*\*([^\n]+?)\*\*"
-        r"|__([^\n]+?)__"
-        r"|~~([^\n]+?)~~"
-        r"|(?<!\*)\*(?!\*)([^\n]+?)(?<!\*)\*(?!\*)"
-    ),
-    re.DOTALL,
-)
+# MarkdownV2 conversion now handled by tg_formatter.to_telegram_html()
 _TURN_MARKER_RE = re.compile(r"^\*{0,2}LLM Running \(Turn (\d+)\) \.\.\.\*{0,2}\s*$")
 _CODE_FENCE_RE = re.compile(r"^\s*(`{3,})(.*)$")
 _TURN_SUMMARY_LIMIT = 160
@@ -70,6 +115,71 @@ _TURN_SUMMARY_SEARCH_STRIP_RE = re.compile(r"`{3,}[\s\S]*?`{3,}|<thinking>[\s\S]
 
 def _make_draft_id():
     return random.randint(1, 2**31 - 1)
+
+# --- sticker store helpers ---
+def _load_sticker_store():
+    try:
+        with open(_STICKER_STORE_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {"version": 1, "stickers": {}}
+
+def _save_sticker_store(store):
+    try:
+        with open(_STICKER_STORE_PATH, 'w', encoding='utf-8') as f:
+            json.dump(store, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[sticker] save error: {e}", flush=True)
+
+def _store_sticker(file_id, emoji, user_id):
+    store = _load_sticker_store()
+    emoji = emoji or "❓"
+    if emoji not in store["stickers"]:
+        store["stickers"][emoji] = []
+    # avoid duplicates
+    if any(s.get("file_id") == file_id for s in store["stickers"][emoji]):
+        return
+    store["stickers"][emoji].append({
+        "file_id": file_id,
+        "added_by": user_id,
+        "added_at": time.strftime("%Y-%m-%d %H:%M:%S")
+    })
+    _save_sticker_store(store)
+
+def _get_stickers_by_emoji(emoji):
+    store = _load_sticker_store()
+    return store["stickers"].get(emoji, [])
+
+def _get_all_stickers():
+    store = _load_sticker_store()
+    all_stickers = []
+    for emoji, stickers in store["stickers"].items():
+        all_stickers.extend(stickers)
+    return all_stickers
+
+def _get_random_sticker():
+    all_s = _get_all_stickers()
+    return random.choice(all_s) if all_s else None
+
+async def _import_sticker_set(bot, set_name, user_id):
+    """Import all stickers from a public sticker set using Bot API.
+    Returns (count, emoji_list_str) on success, or (0, error_msg) on failure."""
+    try:
+        ss = await bot.get_sticker_set(set_name)
+    except Exception as e:
+        err = str(e)
+        if "STICKERSET_INVALID" in err or "not found" in err.lower():
+            return 0, f"找不到贴纸包 `{set_name}`，请确认名称正确（区分大小写，不含空格）"
+        return 0, f"获取贴纸包失败：{err[:200]}"
+    count = 0
+    emojis = set()
+    for sticker in ss.stickers:
+        emoji = sticker.emoji or "❤️"
+        file_id = sticker.file_id
+        _store_sticker(file_id, emoji, user_id)
+        emojis.add(emoji)
+        count += 1
+    return count, f"成功导入 **{ss.title}**（{ss.name}）的 {count} 张贴纸！包含 emoji：{' '.join(sorted(emojis)[:20])}{'...' if len(emojis) > 20 else ''}"
 
 def _visible_segments(text):
     text = (text or "").strip()
@@ -85,18 +195,18 @@ def _markdown_safe_segments(text, limit=None):
     text = (text or "").strip()
     if not text:
         return []
-    if len(_to_markdown_v2(text)) <= limit:
+    if len(to_telegram_html(text)) <= limit:
         return [text]
     parts = []
     remaining = text
     while remaining:
-        if len(_to_markdown_v2(remaining)) <= limit:
+        if len(to_telegram_html(remaining)) <= limit:
             parts.append(remaining)
             break
         low, high, best = 1, len(remaining), 1
         while low <= high:
             mid = (low + high) // 2
-            if len(_to_markdown_v2(remaining[:mid].rstrip() or remaining[:mid])) <= limit:
+            if len(to_telegram_html(remaining[:mid].rstrip() or remaining[:mid])) <= limit:
                 best = mid
                 low = mid + 1
             else:
@@ -109,94 +219,11 @@ def _markdown_safe_segments(text, limit=None):
         remaining = remaining[len(chunk):].lstrip()
     return parts
 
-def _is_table_line(line):
-    """Check if line is a markdown table row (has pipe-separated cells)."""
-    return bool(line) and '|' in line and line.count('|') >= 2
-
-def _is_table_separator(line):
-    """Check if line is a markdown table separator like |---|---|"""
-    return bool(re.match(r'^\|[\s:\-]+\|', line))
-
-def _parse_table_cells(line):
-    """Parse a table row into cleaned cell values."""
-    parts = line.split('|')
-    # Remove leading/trailing empty parts from leading/trailing pipes
-    if parts and not parts[0].strip():
-        parts = parts[1:]
-    if parts and not parts[-1].strip():
-        parts = parts[:-1]
-    return [p.strip() for p in parts]
-
-def _format_table_row_mobile(headers, cells):
-    """Format a table row for mobile: use first cell as emoji-prefixed key."""
-    n = len(cells)
-    if n == 0:
-        return ""
-    first = cells[0]
-    if n == 1:
-        return f"🔹 **{first}**"
-    if n == 2:
-        return f"🔹 **{first}** — {cells[1]}"
-    # 3+ columns: first as key, rest as key: value pairs
-    parts = []
-    for j in range(1, n):
-        hdr = headers[j] if j < len(headers) else f"C{j+1}"
-        parts.append(f"{hdr}: {cells[j]}")
-    return f"🔹 **{first}** — {', '.join(parts)}"
-
-def _convert_md_tables_to_list(text):
-    """Convert markdown pipe tables to mobile-friendly emoji list format.
-    Tables inside code fences are left untouched."""
-    if not text:
-        return text
-    lines = text.split('\n')
-    result = []
-    i, n = 0, len(lines)
-    in_code = False
-    while i < n:
-        line = lines[i]
-        stripped = line.strip()
-        # Track code fences to skip tables inside code blocks
-        if stripped.startswith('```'):
-            in_code = not in_code
-            result.append(line)
-            i += 1
-            continue
-        if in_code:
-            result.append(line)
-            i += 1
-            continue
-        # Detect table: row line + separator line + at least one data row
-        if (_is_table_line(stripped) and not _is_table_separator(stripped)
-                and i + 2 < n
-                and _is_table_separator(lines[i + 1].strip())
-                and _is_table_line(lines[i + 2].strip())):
-            # Parse header
-            headers = _parse_table_cells(stripped)
-            i += 1  # skip header
-            # Skip separator line
-            i += 1
-            # Process data rows until non-table line
-            while i < n:
-                row_stripped = lines[i].strip()
-                if not _is_table_line(row_stripped) or _is_table_separator(row_stripped):
-                    break
-                cells = _parse_table_cells(row_stripped)
-                if cells:
-                    result.append(_format_table_row_mobile(headers, cells))
-                i += 1
-            # Blank line after table for readability
-            if i < n and lines[i].strip():
-                result.append('')
-            continue
-        result.append(line)
-        i += 1
-    return '\n'.join(result)
+# Table conversion handled by tg_formatter.to_telegram_html()
 
 def _beautify_tg_message(text):
-    """TG-specific: convert markdown headings to bold+emoji, add dividers, fix spacing.
+    """TG-specific: convert markdown headings to bold+emoji, fix spacing.
     Only touches tgapp.py path; other frontends unaffected."""
-    text = _convert_md_tables_to_list(text)
     if not text or not text.strip():
         return text
 
@@ -217,7 +244,6 @@ def _beautify_tg_message(text):
     result = []
     in_code = False
     prev_blank = True
-    prev_divider = False
     section_n = 0
 
     for line in lines:
@@ -235,13 +261,10 @@ def _beautify_tg_message(text):
             if not in_code:
                 result.append("")
             prev_blank = True
-            prev_divider = False
             continue
 
         if is_hrule:
-            if not prev_divider:
-                result.append("─" * 24)
-                prev_divider = True
+            # Skip ASCII hrules — TG doesn’t render them well
             continue
 
         if in_code:
@@ -256,13 +279,12 @@ def _beautify_tg_message(text):
 
         if mh:
             section_n += 1
-            header = mh.group(2)
-            # Already has formatting or emoji? Keep as-is (remove ## prefix)
+            hashes, header = mh.group(1), mh.group(2)
+            # Already has emoji or bold formatting → keep as-is
             if re.search(r"[\U0001F300-\U0001F9FF\u2600-\u27BF]", header) or \
                re.match(r"^\*\*.*\*\*$", header):
-                result.append(f"**{header}**" if not header.startswith("**") else header)
+                result.append(f"{hashes} {header}")
                 prev_blank = False
-                prev_divider = False
                 continue
             # Pick emoji by keyword match
             emoji = "🔹"
@@ -270,25 +292,30 @@ def _beautify_tg_message(text):
                 if kw in header:
                     emoji = em
                     break
-            # Divider before ## level (not first section)
-            if section_n > 1 and mh.group(1) == "##" and not prev_divider:
+            # Blank line separator before ## level (not first section)
+            if section_n > 1 and hashes == "##":
                 if result and result[-1] != "":
                     result.append("")
-                result.append("─" * 24)
-                result.append("")
-                prev_divider = True
-            result.append(f"**{emoji} {header}**")
+            # Keep markdown heading syntax — tg_formatter handles conversion
+            result.append(f"{hashes} {emoji} {header}")
             prev_blank = False
-            prev_divider = False
         else:
             result.append(line)
             prev_blank = False
-            prev_divider = False
 
     # Collapse 3+ blank lines → 2
     out = "\n".join(result)
     out = re.sub(r"\n{3,}", "\n\n", out)
     return out.strip()
+
+
+def _format_for_tg(text):
+    """Format text for Telegram send. Returns (formatted_text, parse_mode).
+    HTML preferred per official recommendation.
+    """
+    if not text:
+        return text, ParseMode.HTML
+    return tg_safe_format(text, prefer_html=True)
 
 def _line_complete(line):
     return (line or "").endswith(("\n", "\r"))
@@ -374,49 +401,7 @@ async def _send_files(root_msg, files):
 async def _send_files_from_text(root_msg, text):
     await _send_files(root_msg, _files_from_text(text))
 
-def _escape_pre(text):
-    return escape_markdown(text or "", version=2, entity_type="pre")
-
-def _escape_code(text):
-    return escape_markdown(text or "", version=2, entity_type="code")
-
-def _escape_link_target(text):
-    return escape_markdown(text or "", version=2, entity_type="text_link")
-
-def _quote_to_markdown_v2(text):
-    lines = (text or "").strip().splitlines() or [""]
-    return "\n".join(f"> {escape_markdown(line, version=2)}" for line in lines)
-
-def _to_markdown_v2(text):
-    if not text:
-        return ""
-    parts, pos = [], 0
-    for match in _MD_TOKEN_RE.finditer(text):
-        parts.append(escape_markdown(text[pos:match.start()], version=2))
-        if match.group(1):
-            lang = re.sub(r"[^A-Za-z0-9_+-]", "", match.group(2) or "")
-            code = _escape_pre(match.group(3) or "")
-            header = f"```{lang}\n" if lang else "```\n"
-            parts.append(f"{header}{code}\n```")
-        elif match.group(4) is not None:
-            parts.append(_quote_to_markdown_v2(match.group(4)))
-        elif match.group(5) is not None:
-            label = escape_markdown(match.group(5), version=2)
-            target = _escape_link_target(match.group(6))
-            parts.append(f"[{label}]({target})")
-        elif match.group(7) is not None:
-            parts.append(f"`{_escape_code(match.group(7))}`")
-        elif match.group(8) is not None:
-            parts.append(f"*{escape_markdown(match.group(8), version=2)}*")
-        elif match.group(9) is not None:
-            parts.append(f"*{escape_markdown(match.group(9), version=2)}*")
-        elif match.group(10) is not None:
-            parts.append(f"~{escape_markdown(match.group(10), version=2)}~")
-        elif match.group(11) is not None:
-            parts.append(f"_{escape_markdown(match.group(11), version=2)}_")
-        pos = match.end()
-    parts.append(escape_markdown(text[pos:], version=2))
-    return "".join(parts)
+# All MarkdownV2 conversion now handled by tg_formatter.to_telegram_html() (HTML mode)
 
 def _is_not_modified_error(exc):
     return "not modified" in str(exc).lower()
@@ -608,31 +593,32 @@ class _TelegramStreamSession:
         self.last_update_raw_len = len(self.raw_text)
 
     def _stream_display(self, text):
-        base = (text or _DRAFT_HINT).strip() or _DRAFT_HINT
+        base = (text or _chii_think()).strip() or _chii_think()
         safe_parts = _markdown_safe_segments(base)
-        base = safe_parts[-1] if safe_parts else _DRAFT_HINT
-        if base == _DRAFT_HINT:
+        base = safe_parts[-1] if safe_parts else _chii_think()
+        if base in _CHII_THINK:
             return base
-        display = base + _STREAM_SUFFIX
-        if len(_to_markdown_v2(display)) <= MessageLimit.MAX_TEXT_LENGTH:
+        display = base + _chii_suffix()
+        if len(to_telegram_html(display)) <= MessageLimit.MAX_TEXT_LENGTH:
             return display
         return base
 
     async def prime(self):
+        hint = _chii_think()
         if self.can_use_draft:
-            draft_result = await self._send_draft(_DRAFT_HINT)
+            draft_result = await self._send_draft(hint)
             if draft_result is True:
-                self.active_display = _DRAFT_HINT
+                self.active_display = hint
                 return
             if draft_result is None:
-                self.active_display = _DRAFT_HINT
+                self.active_display = hint
                 return
         try:
-            await self._upsert_live_message(_DRAFT_HINT, wait_retry=False)
+            await self._upsert_live_message(hint, wait_retry=False)
         except RetryAfter:
-            self.active_display = _DRAFT_HINT
+            self.active_display = hint
             return
-        self.active_display = _DRAFT_HINT
+        self.active_display = hint
 
     async def add_chunk(self, chunk):
         if not chunk:
@@ -664,9 +650,9 @@ class _TelegramStreamSession:
         self.files = _files_from_text(cleaned)
         body = _beautify_tg_message(_inject_turn_summary(_render_file_markers(cleaned), summary))
         if done and not body and self.files:
-            body = "已生成附件"
+            body = random.choice(_CHII_FILE)
         elif done and not body:
-            body = "..."
+            body = random.choice(_CHII_EMPTY)
         segments = _visible_segments(body)
         finalized_target = len(segments) if done else max(len(segments) - 1, 0)
         while self.sent_segments < finalized_target:
@@ -676,7 +662,7 @@ class _TelegramStreamSession:
             if send_files:
                 await self._send_files()
             return
-        active_text = segments[-1] if segments else _DRAFT_HINT
+        active_text = segments[-1] if segments else _chii_think()
         await self._stream_active(active_text)
 
     async def _stream_active(self, text):
@@ -715,10 +701,11 @@ class _TelegramStreamSession:
 
     async def _send_draft(self, text):
         try:
+            formatted, parse_mode = _format_for_tg(text)
             await self.root_msg.reply_text_draft(
                 self.draft_id,
-                _to_markdown_v2(text),
-                parse_mode=ParseMode.MARKDOWN_V2,
+                formatted,
+                parse_mode=parse_mode,
             )
             return True
         except RetryAfter as exc:
@@ -741,20 +728,23 @@ class _TelegramStreamSession:
                 self._set_retry_after(exc)
 
     async def _reply_text_once(self, text):
-        markdown = _to_markdown_v2(text)
-        try:
-            return await self.root_msg.reply_text(markdown, parse_mode=ParseMode.MARKDOWN_V2)
-        except RetryAfter as exc:
-            self._set_retry_after(exc)
-            raise
-        except Exception as exc:
-            if _is_not_modified_error(exc):
-                return None
+        formatted, parse_mode = _format_for_tg(text)
+        if parse_mode is not None:
             try:
-                return await self.root_msg.reply_text(text)
-            except RetryAfter as retry_exc:
-                self._set_retry_after(retry_exc)
+                return await self.root_msg.reply_text(formatted, parse_mode=parse_mode)
+            except RetryAfter as exc:
+                self._set_retry_after(exc)
                 raise
+            except Exception as exc:
+                if _is_not_modified_error(exc):
+                    return None
+                # HTML failed, fallback to plain text
+        # Plain text fallback
+        try:
+            return await self.root_msg.reply_text(text)
+        except RetryAfter as retry_exc:
+            self._set_retry_after(retry_exc)
+            raise
 
     async def _reply_text(self, text, wait_retry=True):
         last_msg = None
@@ -766,15 +756,19 @@ class _TelegramStreamSession:
         return last_msg
 
     async def _edit_text_once(self, msg, text):
-        markdown = _to_markdown_v2(text)
-        try:
-            updated = await msg.edit_text(markdown, parse_mode=ParseMode.MARKDOWN_V2)
-        except RetryAfter as exc:
-            self._set_retry_after(exc)
-            raise
-        except Exception as exc:
-            if _is_not_modified_error(exc):
-                return msg
+        formatted, parse_mode = _format_for_tg(text)
+        if parse_mode is not None:
+            try:
+                updated = await msg.edit_text(formatted, parse_mode=parse_mode)
+            except RetryAfter as exc:
+                self._set_retry_after(exc)
+                raise
+            except Exception as exc:
+                if _is_not_modified_error(exc):
+                    return msg
+                # HTML failed, fallback to plain text
+                formatted, parse_mode = None, None
+        if parse_mode is None:
             try:
                 updated = await msg.edit_text(text)
             except RetryAfter as retry_exc:
@@ -914,7 +908,7 @@ async def _stream(dq, msg):
                     await _send_ask_user_menu(msg, event)
                 break
     except asyncio.CancelledError:
-        await stream.finish_with_notice("⏹️ 已停止")
+        await stream.finish_with_notice("⏹️ ちっ…おわったの")
     except RetryAfter as exc:
         print(f"[TG stream retry_after] {type(exc).__name__}: {exc}", flush=True)
         if stream.session is not None:
@@ -924,7 +918,7 @@ async def _stream(dq, msg):
         if stream.session is not None and stream.session._is_retrying():
             return
         try:
-            await stream.finish_with_notice(f"❌ 输出失败: {exc}")
+            await stream.finish_with_notice(random.choice(_CHII_ERROR))
         except RetryAfter as retry_exc:
             print(f"[TG stream error notice retry_after] {type(retry_exc).__name__}: {retry_exc}", flush=True)
 
@@ -1056,7 +1050,62 @@ async def handle_command(update, ctx):
     if op == '/continue':
         if cmd != '/continue': _cancel_stream_task(ctx)
         return await update.message.reply_text(handle_frontend_command(agent, cmd))
+    if op == '/stickerset':
+        parts = cmd.split()
+        if len(parts) < 2:
+            return await update.message.reply_text(
+                "用法：`/stickerset <贴纸包短名称>`\n"
+                "例如：`/stickerset UtyaDuck` \n\n"
+                "💡 短名称是 sticker set 的唯一 ID，可从已知贴纸包的分享链接中获得（如 `t.me/addstickers/UtyaDuck` → 短名称是 `UtyaDuck`）\n\n"
+                "找热门贴纸包？试试这些：\n"
+                "• `CuteBunnyy` 可爱兔子\n"
+                "• `peachhappycat` 蜜桃猫\n"
+                "• `notnotkobo` Kobo贴纸\n"
+                "• `WhityCat` 小白猫\n"
+                "• `kotikkitiket` 猫猫\n"
+                "• `UtyaDuck` 小黄鸭",
+                parse_mode="Markdown")
+        set_name = parts[1]
+        msg = await update.message.reply_text(f"正在获取贴纸包 `{set_name}` ...", parse_mode="Markdown")
+        count, result = await _import_sticker_set(context.bot, set_name, uid)
+        try:
+            await msg.edit_text(result, parse_mode="Markdown")
+        except Exception:
+            await msg.edit_text(result)
+        return
+    if op == '/sticker':
+        parts = cmd.split()
+        emoji = parts[1] if len(parts) > 1 else None
+        sticker_info = _get_stickers_by_emoji(emoji) if emoji else _get_all_stickers()
+        if not sticker_info:
+            return await update.message.reply_text("我还没有贴纸呢～发一个给我收藏吧！")
+        chosen = random.choice(sticker_info)
+        try:
+            return await update.message.reply_sticker(sticker=chosen["file_id"])
+        except Exception:
+            return await update.message.reply_text("贴纸发不出来...")
     return await update.message.reply_text(HELP_TEXT)
+
+async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle incoming stickers - store them and acknowledge cutely."""
+    uid = update.effective_user.id
+    if ALLOWED and uid not in ALLOWED:
+        return await update.message.reply_text("no")
+    sticker = update.message.sticker
+    emoji = sticker.emoji or "❤️"
+    file_id = sticker.file_id
+    _store_sticker(file_id, emoji, uid)
+    # cute acknowledgment
+    replies = [
+        f"收到贴纸 {emoji}！收藏啦～",
+        f"嘿嘿，存起来了 {emoji}",
+        f"{emoji} 好可爱的贴纸！",
+        f"收到～ {emoji}",
+    ]
+    try:
+        await update.message.reply_text(random.choice(replies))
+    except Exception:
+        pass  # fail silently, sticker still stored
 
 if __name__ == '__main__':
     _LOCK_SOCK = ensure_single_instance(19527, "Telegram")
@@ -1091,6 +1140,7 @@ if __name__ == '__main__':
             app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
             app.add_handler(MessageHandler(filters.Document.ALL, handle_photo))
             app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_msg))
+            app.add_handler(MessageHandler(filters.Sticker.ALL, handle_sticker))
             app.add_error_handler(_error_handler)
             app.run_polling(drop_pending_updates=True, poll_interval=1.0, timeout=30)
         except Exception as e:

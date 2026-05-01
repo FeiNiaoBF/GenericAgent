@@ -1,110 +1,96 @@
-# daily_news_sop · 唧的每日早安新闻简报
-> 版本: v1.0 | 最后更新: 2026-04-28
+# daily_news_sop · 唧的每日早安新闻简报（新闻模块）
+> 版本: v2.0 | 最后更新: 2026-04-30
 
-## 0. 触发方式
-- **定时任务**：`../sche_tasks/daily_news.json`（07:00 每天）
+## 0. 🎯 架构说明（v2.0 重要变更）
+
+```
+08:00  新闻（本 SOP）     → 国际/国内/财经 → 脚本 daily_news_fetch.py → GA 解读+写日记
+10:00  消息源（HN）        → 科技/深度/学习 → 脚本 hn_daily_fetch.py  → GA 写入📡今日信号
+```
+
+- **新闻** = 今天发生了什么（时事播报）
+- **消息源** = 有什么值得深入学习（信号/洞察/深度内容）
+- ⚠️ 科技/技术不在新闻范围内，那是 10:00 HN 消息源的任务！
+
+## 1. 触发方式
+- **定时任务**：`../sche_tasks/daily_news.json`（**08:00** 每天）
 - **手动触发**：主人说"唧早安"/"唧新闻"/"今天有什么新闻"
-- 执行前先从 [报告路径] 读调度器注入的目标路径
 - **Vault路径**：`D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
 - **日记路径**：`{vault}/00.Chronicles/Daily/{YYYY-MM-DD}.md`
-- **日记模板**：`{vault}/99.System/Templates/Daily.md`
-
-## 1. Phase 0: 日记检查/创建 → 委托 `daily_task_sop.md`
-> 日记的存在性检查、模板读取、日期替换、文件创建均由 `daily_task_sop.md` 统一管理。
-> 新闻写入前调用其「流程」步骤3-5确认日记就绪，然后更新 `> 🗞️ **唧式早安播报**` 区域。
 
 ## 2. 新闻三大特性（必须遵守）
 ```
-✅ 真实性 → 可靠来源 + 交叉验证 + 不转谣言
-✅ 时效性 → 仅今天/昨天新闻，每条标注日期
-✅ 准确性 → 核实人名/数字/机构名，进详情页
+✅ 真实性 → Google News RSS 聚合 + 可靠来源标注 + 不转谣言
+✅ 时效性 → RSS 自动反映当天新闻，每条标注来源
+✅ 准确性 → 脚本取 Google News 头部聚合，来源均为主流媒体
 ```
 
-### 可靠新闻源 & 搜索模板（9个固定来源）
+## 3. 执行流程（脚本化 v2.0）
 
-| 领域 | 搜索模板 (`site:`+`after:`+`OR`) | 来源 |
-|------|-----|------|
-| 国际深度 | `after:YYYY-MM-DD site:theatlantic.com OR site:axios.com OR site:newyorker.com` | The Atlantic, Axios, New Yorker |
-| 国际科技 | `after:YYYY-MM-DD site:restofworld.org OR site:marginalrevolution.com` | Rest of World, MargRev |
-| HN热帖 | 直接访问 `news.ycombinator.com` 取前15条 | Hacker News |
-| 国内综合 | `after:YYYY-MM-DD site:thepaper.cn OR site:xinhuanet.com OR site:sspai.com` | 澎湃, 新华, 少数派 |
-
-> `after:`日期=今天-3天。URL: `urllib.parse.quote(query)` + `&tbm=nws` → Google News
-
-#### 1c. 提取URL链接（Phase 1.5）
-搜索完成后，用以下JS提取真实文章URL（替换纯文本摘要，确保可点击跳转）：
-```javascript
-(function(){
-  const links=document.querySelectorAll('a[href^="http"]');
-  const seen=new Set(),items=[];
-  links.forEach(a=>{
-    const href=a.href,text=a.textContent.trim();
-    if(text.length>10&&!seen.has(href)&&!href.includes('google.com/search')&&href.match(/\.(com|cn|org|net)\//)){
-      seen.add(href);
-      items.push({title:text.substring(0,80),url:href});
-    }
-  });
-  return JSON.stringify(items,null,2);
-})();
+### Step 1 — 运行脚本获取新闻
+```bash
+python ../memory/daily_news_fetch.py --json
 ```
+得到 JSON：`{"国际": [{"title":"...", "url":"...", "source":"..."}, ...], "国内": [...], "财经": [...]}`
+每类 5 条，共 15 条原始数据。RSS 源：
+- 国际: Google News WORLD section (en-US)
+- 国内: Google News zh-CN 综合
+- 财经: Google News BUSINESS section (en-US)
 
-### Phase 2: 核实（每条新闻）
-- 点开详情页（web_scan 或 web_execute_js 获取正文）
-- 确认：标题 ≠ 标题党，数据有来源，日期正确
-- 至少核实 2-3 条关键新闻的详情页
+### Step 2 — 唧化解读
+- 每类 5 条中挑最重要的 **3 条**
+- 每条加唧的解读（1-2句俏皮点评，体现唧式视角）
+- 保留原文超链接 `[标题](URL)`，附来源 `— *来源名*`
 
-### Phase 3: 筛选
-- 每类选 2-3 条最值得关注的新闻
-- 优先选对主人有实际影响/参考价值的
-- 剔除重复、标题党、软文
+### Step 3 — 写入日记
+- 确认日记存在（调用 `daily_task_sop.md` 流程步骤3-5）
+- 找到 `## 📰 新闻` 区块，替换内容
+- 如区块不存在则新建（放在日记靠前位置）
 
-### Phase 4: 写回日记 + 回复主人（含超链接）
-
-**每条新闻必须有超链接**：格式为 `[标题文字](原文URL)`，主人可一键点开看详情。
-
-### 4a. 写入Obsidian日记
-> **日记路径**由 `daily_task_sop.md` 流程步骤3-5统一管理（模板读取、日期替换、文件创建）。
-> 确认日记就绪后，更新 `> 🗞️ **唧式早安播报**` 区域（替换原有内容或填入新内容），并加超链接 `[标题](原文URL)`。
-
-### 4b. 回复主人（本对话内）
-- 使用唧式口吻（第三身 + 语尾软化 + 好奇心）
-- 日记用 `[标题文字](原文URL)` 格式（Markdown）
-- TG回复用 `<a href="URL">标题</a>` 格式（HTML）
-- 结构见下文
-
-## 3. 报告模板（带超链接）
-
-### 日记内播报区格式（Markdown：• 列表每行一条）
+**写入格式：**
 ```
+## 📰 新闻
+
 > 🗞️ **唧式早安播报 · MM月DD日新闻快讯**
->
-> 🌏 **国际**
-> • [标题文字](原文URL) — 一句话摘要（来源·MM-DD）
-> • [标题文字](原文URL) — 一句话摘要（来源·MM-DD）
->
-> 🇨🇳 **国内**
-> • [标题文字](原文URL) — 一句话摘要（来源·MM-DD）
-> • [标题文字](原文URL) — 一句话摘要（来源·MM-DD）
->
-> 💻 **科技**
-> • [标题文字](原文URL) — 一句话摘要（来源·MM-DD）
-> • [标题文字](原文URL) — 一句话摘要（来源·MM-DD）
->
-> 📈 **财经**
-> • [标题文字](原文URL) — 一句话摘要（来源·MM-DD）
+
+### 🌏 国际
+- [标题](URL) — *来源*
+  > 唧的解读：...
+
+### 🇨🇳 国内
+- [标题](URL) — *来源*
+  > 唧的解读：...
+
+### 📈 财经
+- [标题](URL) — *来源*
+  > 唧的解读：...
+
+> 📌 新闻三大特性：✅ 真实性 ✅ 时效性 ✅ 准确性
+> 📡 科技资讯见今日信号 HN 消息源~
 ```
 
-### 回答主人格式（TG HTML → 用 `<b>`+`<a>`，无需转义）| 日记内用Markdown `[标题](URL)` | 每条新闻必有超链接
-## 5. 避坑指南
+### Step 4 — 回复主人
+唧式口吻摘要，每条带超链接：
+```
+> 🗞️ **唧式早安播报 · MM月DD日**
+> 🌏 国际 — [标题](URL)
+> 🇨🇳 国内 — [标题](URL)
+> 📈 财经 — [标题](URL)
+> 唧觉得…这条新闻最让唧在意呢。主人怎么看？
+```
+
+## 4. 避坑指南
 
 | 坑 | 解法 |
 |----|------|
-| Google返回旧新闻 | 搜索词限定 `after:YYYY-MM-DD` |
-| 摘要断章取义/URL为空 | 每条点详情页核实，取真实URL不用搜索页link |
-| 新闻源不可靠/爬太多次被封 | 只用SOP可靠来源；每次间隔1-2秒 |
-| TG MarkdownV2转义炸裂 | 改用HTML（`<b>`/`<a>`/`<i>`），无需转义 |
-| 忘了唧式口吻/像工具日报 | 删掉重写，加"唧觉得" |
-| 新闻没超链接 | Phase 1.5提取真实URL，`[标题](URL)` |
-| 日记已存在/模板日期未替换 | 只更新播报区不碰待办；`str.replace`替换`{{date:…}}` |
+| RSS 返回空/网络错误 | 脚本有容错，某类失败不影响其他；全失败则用浏览器 Google News 兜底 |
+| 新闻太旧（>2天前） | Google News RSS 自动按时间排序，头几条基本是今天 |
+| 国内 RSS 偏官方 | 正常（新华/人民/生态环境部）；如有需要可补澎湃 `site:thepaper.cn` |
+| 忘了唧式口吻 | 每条加"唧的解读"，用第三身+语气词 |
+| 科技新闻窜入 | 严格去科技：AI/航天/互联网/代码相关归 HN 消息源，本任务跳过 |
+| 脚本导入失败 | 路径：`import sys; sys.path.insert(0, 'D:/Creative_Studio/WorkSpace/Github/GenericAgent'); from memory.daily_news_fetch import fetch_all_news` |
 
-### 日记路径速查 → 见 `daily_task_sop.md` L2 `## [Obsidian Vault]` 及「流程」步骤3-5
+## 5. 扩展预留
+- 后续消息源扩展（如 Reddit r/MachineLearning、arXiv 热点等）统一走 `📡今日信号` 区块
+- 新增消息源脚本命名规范：`memory/{source}_daily_fetch.py`
+- 新闻模块保持轻量（只做时事播报），不做深度聚合

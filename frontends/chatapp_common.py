@@ -10,6 +10,9 @@ HELP_COMMANDS = (
     ("/continue [n]", "恢复第 n 个会话"),
     ("/llm", "查看当前模型列表"),
     ("/llm [n]", "切换到第 n 个模型"),
+    ("/sticker", "发送一个随机贴纸"),
+    ("/sticker [emoji]", "发送匹配emoji的贴纸"),
+    ("/stickerset [name]", "导入公开贴纸包（如 /stickerset UtyaDuck）"),
 )
 TELEGRAM_MENU_COMMANDS = (
     ("help", "显示帮助"),
@@ -219,7 +222,8 @@ def allowed_label(allowed):
 def ensure_single_instance(port, label):
     try:
         lock_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        lock_sock.bind(("127.0.0.1", port))
+        lock_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        lock_sock.bind(("0.0.0.0", port))
         return lock_sock
     except OSError:
         print(f"[{label}] Another instance is already running, skipping...")

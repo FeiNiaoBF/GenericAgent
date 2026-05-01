@@ -21,7 +21,7 @@
 - **路径**: `{vault}/00.Chronicles/Daily/{YYYY-MM-DD}.md`
 - **frontmatter**: type=daily, status=in-progress, tags匹配今日
 - **标题**: `# {{date:YYYY年MM月DD日-dddd}}`
-- **`> 🗞️ ...`**: 唧式早安播报（国际/国内/科技/财经/文体，用daily_news_sop）
+- **`> 🗞️ ...`**: 唧式早安播报（国际/国内/财经，用daily_news_sop v2.0，科技→📡HN消息源）
 - **`## 待办`**: 按三时段 checkbox 清单 → 替换填入
 - **`## 闪念`** / **`## 回顾`**: 保持骨架待用户填充
 - **`## 🐣 唧の足迹`**: 每次任务完成后追加一条（见下方规则）

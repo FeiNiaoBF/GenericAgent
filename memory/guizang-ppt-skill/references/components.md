@@ -84,6 +84,34 @@
 </table>
 ```
 
+## Mermaid 图表组件 `.mermaid-diagram` (v1.2新增)
+
+通过 mmdc_wrapper.py 将 Mermaid 代码转为 SVG，再嵌入模板。
+
+**依赖**: `@mermaid-js/mermaid-cli` (npm global) + 系统Chrome浏览器
+
+```python
+from mmdc_wrapper import mermaid_to_html_component
+html = mermaid_to_html_component("graph TD\n  A-->B", diagram_type="flowchart", caption="简单流程", max_height_vh=50, theme="default")
+# 返回可直接粘入 <section> 的 HTML 片段
+```
+
+**嵌入模板**:
+```html
+<section class="slide">
+  <h2 class="h-xl">系统架构</h2>
+  {{ mermaid_html_component }}
+</section>
+```
+
+**支持的图表类型**: flowchart, sequence, class, state, er, gantt, pie, git, mindmap, timeline
+
+**样式**:
+```css
+.mermaid-diagram { width:100%; display:flex; flex-direction:column; align-items:center; }
+.mermaid-diagram svg { max-width:100%; height:auto; }
+```
+
 ## 图片占位器 `.img-placeholder` (v1.1新增)
 
 纯CSS占位图，无外部图片依赖。虚线框+半透明图标+文字。适合：

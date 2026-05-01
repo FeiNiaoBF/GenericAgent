@@ -29,6 +29,15 @@ function Write-Log { param([string]$msg)
     Write-Host "$time $msg"
 }
 
+function Show-Popup { param([string]$title, [string]$message, [int]$timeout = 5)
+    try {
+        $wshell = New-Object -ComObject Wscript.Shell
+        $wshell.Popup($message, $timeout, $title, 0x40) | Out-Null
+    } catch {
+        Write-Host "[Popup] $title : $message" -ForegroundColor Cyan
+    }
+}
+
 function Get-RunningPids { param([string]$scriptName)
     $scriptName = $scriptName -replace '\.pyw?$',''
     # 优先用 Get-CimInstance (非Admin也能拿到CommandLine)
@@ -245,16 +254,25 @@ foreach ($key in $botKeys) {
 
 # --- verify ---
 Write-Log "--- 状态验证 ---"
-$allOk = $true
+$startedOk = @()
+$startedFail = @()
 foreach ($s in $started) {
     $bot = $cfg.bots.$($s.key)
     $scriptPath = Join-Path $ProjectRoot $bot.entry
     $pids = Get-RunningPids $scriptPath
-    if ($pids.Count -gt 0) { Write-Log "  [OK] $($s.name) 运行中 PID=$($pids -join ',')" }
-    else { Write-Log "  [X] $($s.name) 已退出"; $allOk = $false }
+    if ($pids.Count -gt 0) { Write-Log "  [OK] $($s.name) 运行中 PID=$($pids -join ',')"; $startedOk += $s.name }
+    else { Write-Log "  [X] $($s.name) 已退出"; $allOk = $false; $startedFail += $s.name }
 }
 if ($allOk) { Write-Log "=== OK 全部启动成功 ===" }
 else { Write-Log "=== Warn 部分启动失败, 请检查日志 ===" }
+
+# --- Bot 通知 (替代弹窗) ---
+$okList = if ($startedOk.Count -gt 0) { $startedOk -join ', ' } else { '' }
+$failList = if ($startedFail.Count -gt 0) { $startedFail -join ', ' } else { '' }
+$pythonExe = Join-Path $PSScriptRoot '..\.venv\Scripts\python.exe'
+if (-not (Test-Path $pythonExe)) { $pythonExe = 'python' }
+$notifyScript = Join-Path $PSScriptRoot 'notify_boot.py'
+& $pythonExe $notifyScript -Ok $okList -Fail $failList *> $null
 
 # 开机自启提示 (不再静默安装)
 $vbsPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\GenericAgent.vbs"
