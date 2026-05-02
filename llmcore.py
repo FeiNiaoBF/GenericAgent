@@ -30,11 +30,11 @@ def __getattr__(name):  # once guard in PEP 562
     if name == 'mykeys': return reload_mykeys()[0]
     raise AttributeError(f"module 'llmcore' has no attribute {name}")
 
-def compress_history_tags(messages, keep_recent=10, max_len=800, force=False):
+def compress_history_tags(messages, keep_recent=6, max_len=500, force=False):
     """Compress <thinking>/<tool_use>/<tool_result> tags in older messages to save tokens."""
     compress_history_tags._cd = getattr(compress_history_tags, '_cd', 0) + 1
     if force: compress_history_tags._cd = 0
-    if compress_history_tags._cd % 5 != 0: return messages
+    if compress_history_tags._cd % 3 != 0: return messages
     _before = sum(len(json.dumps(m, ensure_ascii=False)) for m in messages)
     _pats = {tag: re.compile(rf'(<{tag}>)([\s\S]*?)(</{tag}>)') for tag in ('thinking', 'think', 'tool_use', 'tool_result')}
     _hist_pat = re.compile(r'<(history|key_info)>[\s\S]*?</\1>')
@@ -89,11 +89,11 @@ print = safeprint
 
 def trim_messages_history(history, context_win):
     compress_history_tags(history)
-    cost = sum(len(json.dumps(m, ensure_ascii=False)) for m in history) 
+    cost = sum(len(json.dumps(m, ensure_ascii=False)) for m in history)
     print(f'[Debug] Current context: {cost} chars, {len(history)} messages.')
-    if cost > context_win * 3: 
+    if cost > context_win * 2.5:
         compress_history_tags(history, keep_recent=4, force=True)   # trim breaks cache, so compress more btw
-        target = context_win * 3 * 0.6
+        target = context_win * 2.5 * 0.6
         while len(history) > 5 and cost > target:
             history.pop(0)
             while history and history[0].get('role') != 'user': history.pop(0)
@@ -305,7 +305,7 @@ def _record_usage(usage, api_mode):
     elif api_mode == 'messages':
         ci, cr, inp = usage.get("cache_creation_input_tokens", 0), usage.get("cache_read_input_tokens", 0), usage.get("input_tokens", 0)
         print(f"[Cache] input={inp} creation={ci} read={cr}")
-    
+
 def _parse_openai_json(data, api_mode="chat_completions"):
     blocks = []
     if api_mode == "responses":
@@ -358,7 +358,7 @@ def _stream_with_retry(sess, url, headers, payload, parse_fn):
     for attempt in range(sess.max_retries + 1):
         streamed = False
         try:
-            with requests.post(url, headers=headers, json=payload, stream=sess.stream, 
+            with requests.post(url, headers=headers, json=payload, stream=sess.stream,
                                timeout=(sess.connect_timeout, sess.read_timeout), proxies=sess.proxies, verify=sess.verify) as r:
                 if r.status_code >= 400:
                     if r.status_code in _RETRYABLE and attempt < sess.max_retries:
@@ -393,7 +393,7 @@ def _openai_stream(sess, messages):
     headers = {"Authorization": f"Bearer {sess.api_key}", "Content-Type": "application/json", "Accept": "text/event-stream"}
     if api_mode == "responses":
         url = auto_make_url(sess.api_base, "responses")
-        payload = {"model": model, "input": _to_responses_input(messages), "stream": sess.stream, 
+        payload = {"model": model, "input": _to_responses_input(messages), "stream": sess.stream,
                    "prompt_cache_key": _RESP_CACHE_KEY, "instructions": sess.system or "You are an Omnipotent Executor."}
         if sess.reasoning_effort: payload["reasoning"] = {"effort": sess.reasoning_effort}
         if sess.max_tokens: payload["max_output_tokens"] = sess.max_tokens
@@ -411,7 +411,7 @@ def _openai_stream(sess, messages):
     if sess.service_tier: payload["service_tier"] = sess.service_tier
     parse_fn = (lambda r: _parse_openai_sse(r.iter_lines(), api_mode)) if sess.stream else (lambda r: _parse_openai_json(r.json(), api_mode))
     return (yield from _stream_with_retry(sess, url, headers, payload, parse_fn))
-        
+
 def _prepare_oai_tools(tools, api_mode="chat_completions"):
     if api_mode == "responses":
         resp_tools = []
@@ -710,8 +710,8 @@ def openai_tools_to_claude(tools):
     return result
 
 class MockFunction:
-    def __init__(self, name, arguments): self.name, self.arguments = name, arguments  
-         
+    def __init__(self, name, arguments): self.name, self.arguments = name, arguments
+
 class MockToolCall:
     def __init__(self, name, args, id=''):
         arg_str = json.dumps(args, ensure_ascii=False) if isinstance(args, (dict, list)) else (args or '{}')
@@ -719,10 +719,10 @@ class MockToolCall:
 
 class MockResponse:
     def __init__(self, thinking, content, tool_calls, raw, stop_reason='end_turn'):
-        self.thinking = thinking; self.content = content          
+        self.thinking = thinking; self.content = content
         self.tool_calls = tool_calls; self.raw = raw
         self.stop_reason = 'tool_use' if tool_calls else stop_reason
-    def __repr__(self):    
+    def __repr__(self):
         return f"<MockResponse thinking={bool(self.thinking)}, content='{self.content}', tools={bool(self.tool_calls)}>"
 
 class ToolClient:
@@ -786,7 +786,7 @@ Follow these steps to think and act:
             user += str(m['content']) + "\n"
             self.total_cd_tokens += len(user) // 3
         if self.total_cd_tokens > 9000: self.last_tools = ''
-        user += "=== ASSISTANT ===\n" 
+        user += "=== ASSISTANT ===\n"
         return system + user
 
     def _parse_mixed_response(self, text):
@@ -872,7 +872,7 @@ class MixinSession:
     def __init__(self, all_sessions, cfg):
         self._retries, self._base_delay = cfg.get('max_retries', 3), cfg.get('base_delay', 1.5)
         self._spring_sec = cfg.get('spring_back', 300)
-        self._sessions = [all_sessions[i].backend if isinstance(i, int) else 
+        self._sessions = [all_sessions[i].backend if isinstance(i, int) else
                           next(s.backend for s in all_sessions if type(s) is not dict and s.backend.name == i) for i in cfg.get('llm_nos', [])]
         is_native = lambda s: 'Native' in s.__class__.__name__
         groups = {is_native(s) for s in self._sessions}
@@ -956,7 +956,7 @@ class NativeToolClient:
         combined_content = []; resp = None; tool_results = []
         for msg in messages:
             c = msg.get('content', '')
-            if msg['role'] == 'system': 
+            if msg['role'] == 'system':
                 self.set_system(c); continue
             if isinstance(c, str): combined_content.append({"type": "text", "text": c})
             elif isinstance(c, list): combined_content.extend(c)
@@ -974,7 +974,7 @@ class NativeToolClient:
         _write_llm_log('Prompt', json.dumps(merged, ensure_ascii=False, indent=2))
         gen = self.backend.ask(merged)
         try:
-            while True: 
+            while True:
                 chunk = next(gen); yield chunk
         except StopIteration as e: resp = e.value
         if resp: _write_llm_log('Response', resp.raw)
