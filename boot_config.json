@@ -1,0 +1,7 @@
+{
+  "scheduler": {
+    "enabled": true,
+    "script": "reflect/scheduler.py",
+    "port": 50123
+  }
+}

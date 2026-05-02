@@ -1,5 +1,5 @@
 # WEB 搜索 SOP · 唧的 Google 高效搜索指南
-> 版本: v1.1 | 最后更新: 2026-04-29 | 变更: 补深度查找停止条件+协议
+> 版本: v1.2 | 最后更新: 2026-05-02 | 变更: 补§8 GitHub API降级方案(浏览器不可用时Python直接调用)
 
 ## 0. 铁律（每次搜索前强制执行）
 
@@ -325,3 +325,47 @@ def quick_search(keywords, site=None, after_date=None, title_only=False,
 - [How to Google like a Pro – 10 Tips for Effective Googling](https://www.freecodecamp.org/news/how-to-google-like-a-pro-10-tips-for-effective-googling/) — freeCodeCamp, Aug 2022
 - [Google Search Operators: The Complete List](https://ahrefs.com/blog/google-advanced-search-operators/) — Ahrefs
 - 优化记录：2026-04-27 v2 — 合并冗余、修复 Phase3 新标签页、统一 URL 函数、新增 `&as_qdr` 参数
+- 优化记录：2026-05-02 v1.2 — 补§8 GitHub API 降级方案 (浏览器失败→Python requests直搜)
+
+---
+
+## 8. GitHub API 搜索降级方案（浏览器不可用时）
+
+> **触发条件**：`web_execute_js` 三次失败 → 浏览器无可用标签页 → 切换到此方案。
+> 适用场景：搜索 GitHub 仓库（AI 工具、开源项目、技术方案）。
+
+```python
+import requests, time
+
+def github_search(query, per_page=10, max_retries=2):
+    """GitHub Repository Search API，不需要浏览器"""
+    url = "https://api.github.com/search/repositories"
+    params = {"q": query, "sort": "stars", "order": "desc", "per_page": per_page}
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    for attempt in range(max_retries + 1):
+        resp = requests.get(url, params=params, headers=headers, timeout=15)
+        if resp.status_code == 200:
+            data = resp.json()
+            for item in data.get("items", []):
+                print(f"{item['full_name']:45s} ⭐{item['stargazers_count']:>8,}  | {item.get('description', '')[:120]}")
+            return data
+        elif resp.status_code == 403:
+            # Rate limit: wait and retry
+            wait = min(60, 2 ** attempt)
+            print(f"Rate limited, waiting {wait}s...")
+            time.sleep(wait)
+        else:
+            print(f"HTTP {resp.status_code}")
+            break
+    return None
+
+# 快捷封装
+def search_ai_tools(keyword, stars=">=50"):
+    return github_search(f"{keyword} language:python stars:{stars}")
+```
+
+**注意事项**：
+- 无认证速率限制 ~10 req/min，批量查询需间隔 ≥ 6s
+- `stars:` 过滤可大幅减少噪声 (50+ 为有效项目下限)
+- 浏览器恢复后切换回 Goole → web_execute_js 标准流程
+- 结果必须交叉验证（点进 repo URL 用 `code_run` 确认 stars 和描述一致性）

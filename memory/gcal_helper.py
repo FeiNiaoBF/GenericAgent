@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 
 # ========== 浏览器方式（tmwebdriver/CDP桥）==========
 
-def add_gcal_event(title, description="", date_str=None, time_str=None, duration_min=30):
+def add_gcal_event(title, description="", date_str=None, time_str=None, duration_min=30, account_index=1):
     """
     通过浏览器 CDP 桥在 Google Calendar 创建事件
     
@@ -26,6 +26,7 @@ def add_gcal_event(title, description="", date_str=None, time_str=None, duration
         date_str: 日期 YYYY-MM-DD，默认今天
         time_str: 时间 HH:MM，默认当前时间
         duration_min: 时长分钟，默认30
+        account_index: Google 账号索引 (0=默认, 1=yeekox.pai)，默认1
     Returns:
         dict: {"ok": bool, "msg": str}
     """
@@ -54,7 +55,7 @@ def add_gcal_event(title, description="", date_str=None, time_str=None, duration
     end_min = end_minutes % 60
     
     # 导航到 Google Calendar 日视图
-    cal_url = f"https://calendar.google.com/calendar/u/0/r/week"
+    cal_url = f"https://calendar.google.com/calendar/u/{account_index}/r/week"
     
     result = {"ok": False, "msg": ""}
     
@@ -95,7 +96,7 @@ def add_gcal_event(title, description="", date_str=None, time_str=None, duration
             ];
             
             // Just try clicking the + button or navigate to new event URL
-            var newEventUrl = 'https://calendar.google.com/calendar/u/0/r/eventedit';
+            var newEventUrl = 'https://calendar.google.com/calendar/u/' + {{ACCOUNT_INDEX}} + '/r/eventedit';
             
             // Fill event details by URL parameters
             var startStr = '{{DATE_STR}}T{{HOUR:02d}}{{MIN:02d}}00';
@@ -119,7 +120,7 @@ def add_gcal_event(title, description="", date_str=None, time_str=None, duration
         end_str = f"{date_str}T{end_hour:02d}{end_min:02d}00"
         
         create_url = (
-            f"https://calendar.google.com/calendar/u/0/r/eventedit"
+            f"https://calendar.google.com/calendar/u/{account_index}/r/eventedit"
             f"?text={safe_title}"
             f"&details={safe_desc}"
             f"&dates={start_str}/{start_str}"  # All-day for simplicity, or specific
@@ -130,7 +131,7 @@ def add_gcal_event(title, description="", date_str=None, time_str=None, duration
         # Better to navigate to calendar, click the time slot
         
         # Approach: Navigate to day view at the specific time
-        day_url = f"https://calendar.google.com/calendar/u/0/r/day/{date_str}"
+        day_url = f"https://calendar.google.com/calendar/u/{account_index}/r/day/{date_str}"
         d.execute_js(f'location.href="{day_url}"')
         time.sleep(2)
         

@@ -6,6 +6,13 @@
 &lt;title&gt;Guizang Magazine PPT&lt;/title&gt;
 &lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/lucide-static@0.460.0/font/lucide.min.css&quot;&gt;
 &lt;style&gt;
+/* ===== Fandol Font Face (Chinese OpenType) ===== */
+@font-face{font-family:'FandolSong';src:url('file:///D:/local/texlive/2025/texmf-dist/fonts/opentype/public/fandol/FandolSong-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'FandolSong';src:url('file:///D:/local/texlive/2025/texmf-dist/fonts/opentype/public/fandol/FandolSong-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'FandolHei';src:url('file:///D:/local/texlive/2025/texmf-dist/fonts/opentype/public/fandol/FandolHei-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'FandolHei';src:url('file:///D:/local/texlive/2025/texmf-dist/fonts/opentype/public/fandol/FandolHei-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'FandolFang';src:url('file:///D:/local/texlive/2025/texmf-dist/fonts/opentype/public/fandol/FandolFang-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'FandolKai';src:url('file:///D:/local/texlive/2025/texmf-dist/fonts/opentype/public/fandol/FandolKai-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
 /* ===== CSS Variables ===== */
 :root {
   --ink: #1a1a2e; --ink-rgb: 26,26,46;
@@ -15,7 +22,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;scroll-behavior:smooth}
 
-body{font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-weight:400;line-height:1.618;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased}
+body{font-family:"FandolHei","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-weight:400;line-height:1.618;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased}
 
 /* Slides */
 .slide{width:100vw;height:100vh;display:flex;flex-direction:column;justify-content:center;padding:6vh 8vw;position:relative;overflow:hidden;page-break-after:always}
@@ -27,10 +34,10 @@ body{font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-
 .slide.hero.dark .h-hero,.slide.hero.dark .h-mega{color:var(--paper)}
 
 /* Typography */
-.h-mega{font-family:"Noto Serif SC","SimSun",serif;font-size:clamp(3.5rem,8vw,6rem);font-weight:900;line-height:1.1;letter-spacing:-0.02em}
-.h-hero{font-family:"Noto Serif SC","SimSun",serif;font-size:clamp(2.4rem,5.5vw,4rem);font-weight:800;line-height:1.15;letter-spacing:-0.01em;white-space:nowrap}
-.h-xl{font-family:"Noto Serif SC","SimSun",serif;font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:700;line-height:1.25}
-.h-sub{font-family:"Noto Serif SC","SimSun",serif;font-size:1.4rem;font-weight:600;line-height:1.35}
+.h-mega{font-family:"FandolSong","Noto Serif SC","SimSun",serif;font-size:clamp(3.5rem,8vw,6rem);font-weight:900;line-height:1.1;letter-spacing:-0.02em}
+.h-hero{font-family:"FandolSong","Noto Serif SC","SimSun",serif;font-size:clamp(2.4rem,5.5vw,4rem);font-weight:800;line-height:1.15;letter-spacing:-0.01em;white-space:nowrap}
+.h-xl{font-family:"FandolSong","Noto Serif SC","SimSun",serif;font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:700;line-height:1.25}
+.h-sub{font-family:"FandolSong","Noto Serif SC","SimSun",serif;font-size:1.4rem;font-weight:600;line-height:1.35}
 .h-md{font-size:1.15rem;font-weight:600;line-height:1.4}
 .body-zh{font-size:1.05rem;line-height:1.75}
 .lead{font-size:1.25rem;font-weight:300;line-height:1.6;color:var(--ink-tint)}

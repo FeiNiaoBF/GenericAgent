@@ -1,5 +1,7 @@
 # [L3 SOP] obsidian_library_sop — 图书馆·读书心流SOP
-> 版本: v1.0 | 最后更新: 2026-04-28
+> 版本: v1.2 | 最后更新: 2026-05-02 | 变更: P0修复→MOC路径02.Domains/→03.Library/Maps/;MOCs/→Maps/;§6去重引用vault_knowledge§10
+> Vault 路径: `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
+> 架构文档: `Codex Vitae知识库架构.md` (v2.1, Vault根) — 写笔记前必读
 
 ## 1. 核心心流 (读书→笔记→发布)
 ```
@@ -52,7 +54,7 @@
 
 ### 阶段D：MOC主题聚合
 多书围绕同一主题时：
-1. 用 `MOC.md` 模板 → `02.Domains/` 下
+1. 用 `MOC.md` 模板 → `03.Library/Maps/` 下（路径以 `vault_knowledge_sop` §1 为准）
 2. 双链汇总所有相关笔记
 3. 进一步提炼 → 可发布为Blog文章
 
@@ -67,7 +69,7 @@
 | template | `/Templates/` | `{{date:}}` 或 `{{title}}` | 0(最高) | 模板文件，不参与内容归档 | `99.System/Templates/` |
 | daily | `/Daily/` | `# 202X年M月D日` / `本日待办` / 含checkbox | 1 | 日记/日志 | `00.Chronicles/Daily/` |
 | book | `/Books/` | `## 核心摘要/书摘与批注/书评/概要/读书笔记` 或 isbn/dewey字段 | 2 | 读书笔记 | `03.Library/Books/` |
-| moc | `/MOCs/` | 含DATAVIEW 或 `[[`双链>=3 或 含`总览/索引/目录` | 3 | 主题聚合/索引 | `03.Library/MOCs/` |
+| moc | `/Maps/` | 含DATAVIEW 或 `[[`双链>=3 或 含`总览/索引/目录` | 3 | 主题聚合/索引 | `03.Library/Maps/` |
 | project | `/Quests/` | `## 项目定义/项目规划/功能拆解/架构拆解/系统设计` | 4 | 项目笔记 | `01.Quests/` |
 | technique | 不限 | `## 步骤/方法/流程/技巧/操作/实现方式/操作步骤/实施` | 5 | 方法论/操作指南 | `02.Domains/` |
 | area | `/Domains/` | `[[`双链>=3 | 6 | 领域总览/成熟知识 | `02.Domains/` |
@@ -150,15 +152,17 @@ python ../memory/vault_classifier.py --stats-only
 - ⚠️ **Daily文件**：`00.Chronicles/Daily/` 下的日记第一次扫描容易漏status，需要单独处理补 `completed`
 
 ## 6. 红牌规则
-- ❌ Clipping忘加 `source: [[书名]]` → 双链断裂
-- ❌ Book放Books外 → Catalog查不到
-- ❌ rating留0不评 → 体系失效
+
+> **⚡ 权威红牌**：Vault 级通用禁则参见 [`vault_knowledge_sop` §10 红牌禁则](../memory/vault_knowledge_sop.md)，涵盖 domain/subject 区分、Notes 禁原文、Knowledge 断言句、Clipping 双链、评分体系等。以下仅列 **obsidian_library 独有规则**（读书心流 + 日记写作）：
+
+- ❌ Clipping 忘加 `source: [[书名]]` → 双链断裂（同 vault_knowledge §10 #5）
+- ❌ Book 放 Books 外 → Catalog 查不到
 - ❌ 只粘贴不写想法 → 沦为搬运工
-- ❌ **写笔记不先读架构文档** → 分类错误（先读 `Codex Vitae知识库架构.md` 确认放哪个文件夹）
 - ❌ 日记中 `[[文件夹路径/]]` 双链 → 生成垃圾 .md 文件（用纯文本或 `[]()` 代替）
 - ❌ 外部链接用双链 `[[GitHub项目]]` → 应使用 `[文字](URL)` 格式
 - ❌ 同一条目同时在"今日消化"+"✍️今日笔记" → 只留一处
 - ✅ 多用 `[[ ]]` 双链 → 知识网络自然生长
+- ❌ 项目/调研类笔记放错位置 → **进行中的 quest → `01.Quests/Active/`**（勿放 Someday 或其他目录），完成后由用户移至对应子目录
 
 ## 7. Diary 写作规范（唧专用）
 
@@ -184,5 +188,97 @@ python ../memory/vault_classifier.py --stats-only
 | 📝 今日消化 | 从 Inbox 消化后的笔记 | `[[笔记名]]` |
 | ✍️ 今日笔记 | 今天自己写的笔记 | `[[笔记名]]` |
 | 文件夹标题 | 纯文本分隔 | 无链接 |
+
+## 8. 课程学习笔记 (Course Learning Notes)
+
+> 新增于 2026-05-02 | 经验来源：Shell 学习（MIT Missing Semester）+ SICP 预习笔记实践
+
+### 8.1 双笔记模式
+
+每开一门新课，创建**两份**笔记，各司其职：
+
+| # | 笔记 | Type | 位置 | 用途 |
+|---|------|------|------|------|
+| 1 | 课程大纲 | `quest` | `01.Quests/Active/课程名.md` | 课程信息、讲次清单、进度追踪、`progress` 字段 |
+| 2 | 学习笔记 | `note` | `01.Quests/Active/主题名.md` | Blog 风格、唧第一人称叙事、代码配解释、顿悟记录 |
+
+**示例**（MIT Missing Semester）：
+- 课程大纲：`MIT Missing Semester 2026.md`（type: quest, progress: "L1 Shell 学习中"）
+- 学习笔记：`Shell 简要学习.md`（type: note, status: budding）
+
+### 8.2 课程大纲 frontmatter 模板
+
+```yaml
+---
+type: quest
+status: active
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+domain: "[[学业]]"
+subject: CS  # 学科缩写
+topic: 课程名
+source: "[课程名](URL)"
+priority: high  # high | medium | low
+progress: "未开始"  # 持续更新
+tags:
+  - 相关标签
+---
+```
+
+### 8.3 Blog 学习笔记风格
+
+> 风格参考 → [`yeekox_blog_style_sop` §4 反AI腔调黑名单](../memory/yeekox_blog_style_sop.md)，但不是对外博文，是 Obsidian 内笔记。核心差异见下。
+
+**必须有的元素**：
+- 🎙️ **唧第一人称叙事**（"唧の一句话"、"唧の顿悟"、"唧の学习心得"）
+- 🧩 **困惑→探索→顿悟 结构**（从一个让你困惑的问题开始）
+- 💻 **代码配解释**，不是文档堆砌（每个代码块后必须有唧的解读）
+- 🔗 **双链到课程大纲 + VKB 断言卡片**
+
+**style difference from yeekox blog**：
+| 维度 | Yeekox 博文（对外） | Blog 学习笔记（对内） |
+|------|-------------------|---------------------|
+| 受众 | 网络读者 | 主人 + 唧自己 |
+| 长度 | 2000-8000字 | 800-3000字即可 |
+| 结尾 | Hugo `<!--more-->` 分隔 | `## 下一步` + checklist |
+| frontmatter | Hugo配置(title/date/draft/tags) | Obsidian(type/status/domain/subject/topic) |
+| 外部链接 | 文末"外部链接"区 | 文末 `## 相关链接` 区，区分双链和URL |
+| 语调 | 带个人风味但适度 | 可以更随意，唧の口吻更浓 |
+
+**反AI腔**：同 yeekox_blog_style_sop §4 黑名单，特别注意：
+- ❌ "首先/其次/最后/值得注意的是/有着重要意义"
+- ✅ "说实话.../我踩坑了.../唧逼自己做实验..."
+
+### 8.4 VKB 提取规则
+
+学习中**验证通过**的概念 → 提取到 `05.Knowledge/{subject}/`：
+
+```
+学习笔记中验证的概念（如 2>&1 = dup2(1,2)）
+        │
+        ▼  满足以下条件：
+        │  1. 唧亲手做过实验验证 ✅
+        │  2. 能用一句话说清本质 ✅
+        │  3. 被坑过一次所以终身难忘 ✅
+        ▼
+05.Knowledge/CS/Shell redirection dup2 semantics.md
+  type: knowledge
+  assertion: "2>&1 = dup2(1,2)，一次性快照，不是永久绑定"
+  verified_date + verified_by: 唧 + 来源学习笔记双链
+```
+
+**触发时机**：不在学习过程中打断心流，而是在**学习笔记收尾时**统一检查"哪些概念值得入VKB"。
+
+### 8.5 完整心流（新课）
+
+```
+主人："我要学 X"
+  │
+  ├─ Step 1: 创建课程大纲 (quest) → 01.Quests/Active/X.md
+  ├─ Step 2: 提取课程内容（课程网站抓取/视频目录）
+  ├─ Step 3: 学习第一讲 → 创建学习笔记 (note) → 01.Quests/Active/主题.md
+  ├─ Step 4: 学习中验证概念 → 写入学习笔记"唧の顿悟"区
+  └─ Step 5: 收尾 → VKB提取检查 → 笔记归档
+```
 
 

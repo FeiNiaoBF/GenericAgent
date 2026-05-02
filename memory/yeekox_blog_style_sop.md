@@ -2,6 +2,7 @@
 
 > 版本: v2.0 | 最后更新: 2026-04-28
 > 基于 16 篇已有博文分析 + Google blog writing best practices 2024-2025
+> ℹ️ 通用回复格式（表格、代码块、FILE 引用等）→ 见 [`chi_format_sop`](../memory/chi_format_sop.md)，本 SOP 仅负责博客长文写作风格 
 
 ---
 
