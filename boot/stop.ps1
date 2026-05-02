@@ -98,6 +98,19 @@ foreach ($key in $cfg.bots.PSObject.Properties.Name) {
 }
 Write-Log "=== 已全部停止 ==="
 
+# --- Bot 通知 (关闭消息) ---
+$okList = if ($stopResults.Where({ $_.status -eq "graceful" -or $_.status -eq "not_running" }).Count -gt 0) {
+    ($stopResults.Where({ $_.status -eq "graceful" -or $_.status -eq "not_running" }) | ForEach-Object { $_.name }) -join ', '
+} else { '' }
+$failList = if ($stopResults.Where({ $_.status -ne "graceful" -and $_.status -ne "not_running" }).Count -gt 0) {
+    ($stopResults.Where({ $_.status -ne "graceful" -and $_.status -ne "not_running" }) | ForEach-Object { $_.name }) -join ', '
+} else { '' }
+$pythonExe = Join-Path $PSScriptRoot '..\.venv\Scripts\python.exe'
+if (-not (Test-Path $pythonExe)) { $pythonExe = 'python' }
+$notifyScript = Join-Path $PSScriptRoot 'notify_boot.py'
+Write-Log "  发送关闭通知..."
+& $pythonExe $notifyScript --event shutdown -Ok $okList -Fail $failList *> $null
+
 # --- 弹窗提示 ---
 $graceful = ($stopResults | Where-Object { $_.status -eq "graceful" }).Count
 $forced = ($stopResults | Where-Object { $_.status -eq "forced" }).Count
