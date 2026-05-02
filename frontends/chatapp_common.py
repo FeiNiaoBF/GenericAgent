@@ -45,9 +45,13 @@ HISTORY_RE = re.compile(r"<history>\s*(.*?)\s*</history>", re.DOTALL)
 SUMMARY_RE = re.compile(r"<summary>\s*(.*?)\s*</summary>", re.DOTALL)
 
 
+_TOOL_TRACE_RE = re.compile(r"^\s*(?:🛠️|⚙️|🔧)\s*\w+\(.*?\).*\n?", re.MULTILINE)
+
 def clean_reply(text):
     for pat in TAG_PATS:
         text = re.sub(pat, "", text or "", flags=re.DOTALL)
+    # Strip tool call traces like 🛠️ file_read({"path": ""})
+    text = _TOOL_TRACE_RE.sub("", text)
     return re.sub(r"\n{3,}", "\n\n", text).strip() or "..."
 
 
