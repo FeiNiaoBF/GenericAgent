@@ -30,7 +30,7 @@ class BaseHandler:
 
 def json_default(o): return list(o) if isinstance(o, set) else str(o)
 def exhaust(g):
-    try: 
+    try:
         while True: next(g)
     except StopIteration as e: return e.value
 
@@ -57,18 +57,18 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
             yield '\n\n'
         else:
             response = exhaust(response_gen)
-            cleaned = _clean_content(response.content)
+            cleaned = _clean_content(response.content, shrink_code=not getattr(handler.parent, 'disable_code_shrink', False))
             if cleaned: yield cleaned + '\n'
 
         if not response.tool_calls: tool_calls = [{'tool_name': 'no_tool', 'args': {}}]
         else: tool_calls = [{'tool_name': tc.function.name, 'args': json.loads(tc.function.arguments), 'id': tc.id}
                           for tc in response.tool_calls]
-       
+
         tool_results = []; next_prompts = set(); exit_reason = {}
         for ii, tc in enumerate(tool_calls):
             tool_name, args, tid = tc['tool_name'], tc['args'], tc.get('id', '')
             if tool_name == 'no_tool': pass
-            else: 
+            else:
                 if verbose: yield f"🛠️ Tool: `{tool_name}`  📥 args:\n````text\n{get_pretty_json(args)}\n````\n"
                 else: yield f"🛠️ {tool_name}({_compact_tool_args(tool_name, args)})\n\n\n"
             handler.current_turn = turn
@@ -80,14 +80,14 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
                 outcome = (yield from proxy()) if verbose else exhaust(proxy())
                 if verbose: yield '`````\n'
             except StopIteration as e: outcome = e.value
-            
-            if outcome.should_exit: 
+
+            if outcome.should_exit:
                 exit_reason = {'result': 'EXITED', 'data': outcome.data}; break
-            if not outcome.next_prompt: 
+            if not outcome.next_prompt:
                 exit_reason = {'result': 'CURRENT_TASK_DONE', 'data': outcome.data}; break
             if outcome.next_prompt.startswith('未知工具'): client.last_tools = ''
-            if outcome.data is not None and tool_name != 'no_tool': 
-                datastr = json.dumps(outcome.data, ensure_ascii=False, default=json_default) if type(outcome.data) in [dict, list] else str(outcome.data) 
+            if outcome.data is not None and tool_name != 'no_tool':
+                datastr = json.dumps(outcome.data, ensure_ascii=False, default=json_default) if type(outcome.data) in [dict, list] else str(outcome.data)
                 tool_results.append({'tool_use_id': tid, 'content': datastr})
             next_prompts.add(outcome.next_prompt)
         if len(next_prompts) == 0 or exit_reason:
@@ -98,7 +98,7 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
     if exit_reason: handler.turn_end_callback(response, tool_calls, tool_results, turn, '', exit_reason)
     return exit_reason or {'result': 'MAX_TURNS_EXCEEDED'}
 
-def _clean_content(text):
+def _clean_content(text, shrink_code=True):
     if not text: return ''
     def _shrink_code(m):
         lines = m.group(0).split('\n')
@@ -107,14 +107,15 @@ def _clean_content(text):
         if len(body) <= 6: return m.group(0)
         preview = '\n'.join(body[:5])
         return f'```{lang}\n{preview}\n  ... ({len(body)} lines)\n```'
-    text = re.sub(r'```[\s\S]*?```', _shrink_code, text)
+    if shrink_code:
+        text = re.sub(r'```[\s\S]*?```', _shrink_code, text)
     for p in [r'<file_content>[\s\S]*?</file_content>', r'<tool_(?:use|call)>[\s\S]*?</tool_(?:use|call)>', r'(\r?\n){3,}']:
         text = re.sub(p, '\n\n' if '\\n' in p else '', text)
     return text.strip()
 
 def _compact_tool_args(name, args):
     a = {k: v for k, v in args.items() if k != '_index'}
-    for k in ('path',): 
+    for k in ('path',):
         if k in a: a[k] = os.path.basename(a[k])
     if name == 'update_working_checkpoint': s = a.get('key_info', ''); return (s[:60]+'...') if len(s)>60 else s
     if name == 'ask_user':
