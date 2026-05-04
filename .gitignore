@@ -130,7 +130,13 @@ memory/L4_raw_sessions/*
 !memory/github_contribution_sop.md
 !memory/verify_sop.md
 
-# --- Reflect (only upstream modules) ---
+# --- SOP: Subagent v2 (upstream new) ---
+!memory/subagent_sop.md
+
+# --- SOP: Supervisor (upstream new) ---
+!memory/supervisor_sop.md
+
+# --- Reflect (ignore new files, whitelist existing) ---
 reflect/*
 !reflect/autonomous.py
 !reflect/scheduler.py

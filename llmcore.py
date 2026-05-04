@@ -37,7 +37,7 @@ def compress_history_tags(messages, keep_recent=10, max_len=800, force=False):
     if compress_history_tags._cd % 5 != 0: return messages
     _before = sum(len(json.dumps(m, ensure_ascii=False)) for m in messages)
     _pats = {tag: re.compile(rf'(<{tag}>)([\s\S]*?)(</{tag}>)') for tag in ('thinking', 'think', 'tool_use', 'tool_result')}
-    _hist_pat = re.compile(r'<(history|key_info)>[\s\S]*?</\1>')
+    _hist_pat = re.compile(r'<(history|key_info|earlier_context)>[\s\S]*?</\1>')
     def _trunc_str(s): return s[:max_len//2] + '\n...[Truncated]...\n' + s[-max_len//2:] if isinstance(s, str) and len(s) > max_len else s
     def _trunc(text):
         text = _hist_pat.sub(lambda m: f'<{m.group(1)}>[...]</{m.group(1)}>', text)
@@ -481,6 +481,7 @@ def _msgs_claude2oai(messages):
             if text_parts: m["content"] = text_parts
             else: m["content"] = ""
             if tool_calls: m["tool_calls"] = tool_calls
+            if not text_parts and not tool_calls and reasoning: m["content"] = "."
             result.append(m)
         elif role == "user":
             text_parts = []
@@ -517,8 +518,8 @@ class BaseSession:
         self.name = cfg.get('name', self.model)
         proxy = cfg.get('proxy')
         self.proxies = {"http": proxy, "https": proxy} if proxy else None
-        self.verify = cfg.get('verify', True)
         self.max_retries = max(0, int(cfg.get('max_retries', 4)))
+        self.verify = cfg.get('verify', True)
         self.stream = cfg.get('stream', True)
         default_ct, default_rt = (5, 30) if self.stream else (10, 240)
         self.connect_timeout = max(1, int(cfg.get('timeout', default_ct)))
@@ -677,6 +678,7 @@ class NativeClaudeSession(BaseSession):
         try:
             while True: yield next(gen)
         except StopIteration as e: content_blocks = e.value or []
+        if content_blocks and (_injected := _ensure_text_block(content_blocks)): yield _injected
         if content_blocks and not (len(content_blocks) == 1 and content_blocks[0].get("text", "").startswith("!!!Error:")):
             self.history.append({"role": "assistant", "content": content_blocks})
         text_parts = [b["text"] for b in content_blocks if b.get("type") == "text"]
@@ -736,15 +738,11 @@ class ToolClient:
     def chat(self, messages, tools=None):
         full_prompt = self._build_protocol_prompt(messages, tools)
         print("Full prompt length:", len(full_prompt), 'chars')
-        prompt_log = full_prompt
         gen = self.backend.ask(full_prompt)
-        _write_llm_log('Prompt', prompt_log)
-        raw_text = ''; summarytag = '[NextWillSummary]'
+        _write_llm_log('Prompt', full_prompt)
+        raw_text = ''
         for chunk in gen:
-            raw_text += chunk
-            if chunk != summarytag: yield chunk
-        if raw_text.endswith(summarytag):
-            self.last_tools = ''; raw_text = raw_text[:-len(summarytag)]
+            raw_text += chunk; yield chunk
         _write_llm_log('Response', raw_text)
         return self._parse_mixed_response(raw_text)
 
@@ -827,8 +825,7 @@ Follow these steps to think and act:
                 except: pass
             if not tool_calls:
                 for e in errors:
-                    print(f"[Warn] {e}")
-                    tool_calls.append(MockToolCall('bad_json', {'msg': e}))
+                    print(f"[Warn] {e}"); tool_calls.append(MockToolCall('bad_json', {'msg': e}))
         return MockResponse(thinking, remaining_text.strip(), tool_calls, text)
 
 def _parse_text_tool_calls(content):
@@ -852,6 +849,16 @@ def _parse_text_tool_calls(content):
         except: pass
     if tcs: content = re.sub(_xp, "", content, flags=re.DOTALL).strip()
     return tcs, content
+
+def _ensure_text_block(blocks):
+    """If response has thinking but no text block, inject a synthetic summary from thinking's first line."""
+    if any(b.get("type") == "text" for b in blocks): return None
+    th = next((b.get("thinking", "") for b in blocks if b.get("type") == "thinking"), "")
+    if not th: return None
+    line = th.strip().split('\n', 1)[0]
+    txt = "<summary>" + (line[:60] + '...' if len(line) > 60 else line) + "</summary>"
+    blocks.insert(1, {"type": "text", "text": txt})
+    return txt
 
 def _write_llm_log(label, content):
     log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp/model_responses')
@@ -958,6 +965,7 @@ class NativeToolClient:
         self.backend.system = combined
     def chat(self, messages, tools=None):
         if tools: self.backend.tools = tools
+        if not self.backend.history: self._pending_tool_ids = []
         combined_content = []; resp = None; tool_results = []
         for msg in messages:
             c = msg.get('content', '')
@@ -985,4 +993,3 @@ class NativeToolClient:
         if resp: _write_llm_log('Response', resp.raw)
         if resp and hasattr(resp, 'tool_calls') and resp.tool_calls: self._pending_tool_ids = [tc.id for tc in resp.tool_calls]
         return resp
-
