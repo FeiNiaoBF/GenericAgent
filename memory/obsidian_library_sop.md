@@ -1,5 +1,5 @@
 # [L3 SOP] obsidian_library_sop — 图书馆·读书心流SOP
-> 版本: v1.2 | 最后更新: 2026-05-02 | 变更: P0修复→MOC路径02.Domains/→03.Library/Maps/;MOCs/→Maps/;§6去重引用vault_knowledge§10
+> 版本: v1.4 | 最后更新: 2026-05-04 | 变更: v1.3→新增§9技术主题笔记创建; v1.4→§5新增批量修改避坑(file_patch→Python)
 > Vault 路径: `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
 > 架构文档: `Codex Vitae知识库架构.md` (v2.1, Vault根) — 写笔记前必读
 
@@ -150,6 +150,7 @@ python ../memory/vault_classifier.py --stats-only
 - ⚠️ **模板变量**：`{{date:YYYY-MM-DD}}` 导致 `yaml.safe_load` 崩溃 → 解析时 try/except 跳过
 - ⚠️ **冒号在值中**：`title: The PARA Method: The Simple...` 需要引号包围 → `title: "The PARA Method: The Simple..."` 
 - ⚠️ **Daily文件**：`00.Chronicles/Daily/` 下的日记第一次扫描容易漏status，需要单独处理补 `completed`
+- ⚠️ **批量修改**：file_patch 对 vault 文件的空格/编码匹配不稳定（多次失败）→ 批量操作(>2文件)直接用 Python `code_run` 读写，避免逐文件 patch
 
 ## 6. 红牌规则
 
@@ -280,5 +281,74 @@ tags:
   ├─ Step 4: 学习中验证概念 → 写入学习笔记"唧の顿悟"区
   └─ Step 5: 收尾 → VKB提取检查 → 笔记归档
 ```
+
+---
+
+## 9. 技术主题笔记 (Tech Topic Notes)
+
+> 新增于 2026-05-03 | 经验来源：TypeScript async/await 教程笔记创建
+
+### 9.1 适用场景
+
+独立的技术知识点教程（非课程体系），用户问"给我写个 XX 教程"类需求。与 §8 课程笔记不同——不依赖 quest 驱动，是自学/分享型独立笔记。
+
+### 9.2 分类路径
+
+```
+03.Library/Notes/计算机/{语言或框架}/{主题}.md
+```
+
+- 子目录按语言分类（如 `TypeScript/`、`Python/`、`Shell/`）
+- 中文文件名格式：`{主概念} - {副标题}.md`
+- 示例：`异步编程 - async await 详解.md`
+
+### 9.3 Properties 模板
+
+```yaml
+---
+type: note
+status: budding
+domain: "[[02.Domains/编程]]"
+subject: CS
+topic: {一句话主题}
+created: {YYYY-MM-DD}
+updated: {YYYY-MM-DD}
+tags:
+  - {语言名小写}
+  - {技术关键词}
+  - tech/development
+---
+```
+
+- `type: note` — 长篇学习笔记（非 `resource`/`quest`），用自己话写的教程
+- `status: budding` — 结构完善但可进一步打磨；成熟后改 `evergreen`
+- `domain` — 固定 `[[02.Domains/编程]]`
+- `tags` — 至少语言名（小写）+ 关联技术关键词 + `tech/development`
+
+### 9.4 写作风格
+
+**教程风（通俗易懂，从零讲起）**：
+- 从"为什么需要"开始讲动机，而非直接丢定义
+- 三代进化式叙述（问题 → 改善 → 最优解），体现演进逻辑
+- 代码示例逐步演进，每个代码块配一句白话解释
+- 关键技巧用表格速查（如并行/串行选择表、常见坑速查表）
+- 结尾附学习路线，用 `[[wikilink]]` 预留后续主题链接
+- 背后原理给简版，不深入但给入口
+
+### 9.5 与 §8 课程笔记的区别
+
+| 维度 | §8 课程笔记 | §9 技术主题笔记 |
+|------|-----------|---------------|
+| 驱动 | 课程（quest） | 独立知识点 |
+| 位置 | `01.Quests/Active/` | `03.Library/Notes/` |
+| 类型 | `quest` + `note`（双笔记） | `note`（单笔记） |
+| 数量 | 每课两份（大纲+学习笔记） | 每主题一份 |
+| 进度追踪 | `progress` 字段 | 无（`status` 表示成熟度） |
+
+### 9.6 注意事项
+
+- **先建目录**：语言子目录可能不存在，应先 `os.makedirs` 创建再写入文件
+- **笔记 vs 断言**：长篇解释留在 03，短断言卡片在 `05.Knowledge/`（后者除非用户明确要求否则不创建）
+- **文件路径**：Vault 根路径 `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`，已记录在 SOP 头部
 
 
