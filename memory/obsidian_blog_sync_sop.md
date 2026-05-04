@@ -1,5 +1,4 @@
 # [L3 SOP] obsidian_blog_sync_sop — Obsidian→Blog发布SOP
-> 版本: v1.0 | 最后更新: 2026-04-28
 
 ## 1. Tag→Blog目录映射规则
 

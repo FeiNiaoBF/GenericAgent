@@ -1,5 +1,4 @@
 # guizang_ppt_sop · 杂志风PPT生成
-> 版本: v1.0 | 最后更新: 2026-04-28
 
 ## 前置资源
 skill根: ../memory/guizang-ppt-skill/

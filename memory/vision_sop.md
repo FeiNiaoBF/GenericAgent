@@ -1,5 +1,4 @@
 # Vision API SOP
-> 版本: v1.1 | 最后更新: 2026-05-02
 
 ## `<contract>`
 ```

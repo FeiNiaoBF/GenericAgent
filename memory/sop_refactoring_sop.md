@@ -1,5 +1,4 @@
 # sop_refactoring_sop · SOP重构/去重/版本升级 标准流程
-> 版本: v1.0 | 最后更新: 2026-04-28
 
 > **来源经验**：chi_format_sop v1.0 去TG化重构 → 重命名为chi_format_sop.md
 >
