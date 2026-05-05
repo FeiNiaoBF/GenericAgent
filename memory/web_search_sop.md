@@ -1,5 +1,10 @@
 # WEB 搜索 SOP · 唧的 Google 高效搜索
 
+## 执行摘要（≥1步执行前必读）
+1. 铁律检查：Google唯一 → Bing后备 → 新标签页打开 → 至少一个操作符
+2. 构造查询：`site:`/`intitle:`/`"引号"`/`-排除`组合，禁止纯关键词裸搜
+3. 结果验证：交叉确认来源 + GitHub代码搜索用REST API(间隔≥6s) → 🛑 过验证门禁
+
 ## 0. 铁律（每次搜索前强制执行）
 
 1. **搜索引擎**：Google（唯一）→ Bing 国际版（后备）→ 🚫终止
@@ -101,3 +106,12 @@ def quick_search(keywords, site=None, after_date=None, title_only=False,
 - 无认证 ~10 req/min，间隔 >= 6s
 - `stars:>=50` 过滤噪声
 - 结果交叉验证（点进 repo URL 确认 stars/描述一致）
+
+## 🛑 验证门禁
+| 检查项 | PASS条件 | FAIL处理 | 状态 |
+|--------|---------|---------|------|
+| 铁律遵守 | Google优先 + 新标签页 + ≥1操作符 | 改查询重搜 | |
+| 结果交叉验证 | ≥2个独立来源一致 / API search确认stars | 标注未验证 | |
+| 间隔守规 | GitHub API调用间隔≥6s | 等待后重试 | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

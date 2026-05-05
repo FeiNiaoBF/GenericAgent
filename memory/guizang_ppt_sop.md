@@ -9,6 +9,11 @@ skill根: ../memory/guizang-ppt-skill/
 - references/components.md: 组件手册
 - assets/template.html: 单文件模板(拷贝到工作目录再改)
 
+## 执行摘要（≥1步执行前必读）
+1. 选主题(5套预定义，禁自定义hex) → 选布局(10种骨架) → 拷贝template.html
+2. 填充内容 → 类名预检 → 主题节奏检查 → P0自检6项(衬线/非衬线/无emoji/height:Nvh/无align-self:end)
+3. 生成HTML → 用户双击预览 → 🛑 过验证门禁
+
 ## 关键前置(顺序不可错)
 
 ### 0. 需求澄清
@@ -49,3 +54,15 @@ skill根: ../memory/guizang-ppt-skill/
 4. 无emoji(用Lucide图标)
 5. 图片用height:Nvh非aspect-ratio
 6. 无align-self:end(图片堆底)
+
+## 🛑 验证门禁（执行前/后强制检查）
+
+| 检查项 | 状态 |
+|--------|------|
+| 4页+非目录（每页1核心信息）？ | |
+| 1-7-7法则(每页≤7行×7词)？ | |
+| 图片用height:Nvh非aspect-ratio？ | |
+| 无emoji(用Lucide图标)？ | |
+| 无align-self:end？ | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

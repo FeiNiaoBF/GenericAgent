@@ -1,5 +1,10 @@
 # 自主行动 SOP
 
+## 执行摘要（≥1步执行前必读）
+1. 启动：`update_working_checkpoint`注册任务 + `set_todo()`获取TODO
+2. 执行：`from autonomous_operation_sop.helper import *` → 逐任务完成
+3. 收尾：`complete_task()` → 标记TODO为`[x]` → 🛑 过验证门禁
+
 ⚠️ **路径警告**：autonomous_reports 在 temp/ 下，用`./autonomous_reports/`访问，**不是**`../memory/autonomous_reports/`或`../autonomous_reports/`！TODO在cwd下。
 报告存于 `./autonomous_reports/`，文件名 `RXX_简短描述.md`（XX从 history.txt 推断自增）。
 
@@ -43,3 +48,12 @@ print(get_todo())       # 查看待办
 
 ## 等待用户审查
 - 用户归来后审查报告，决定批准、修改或拒绝方案
+
+## 🛑 验证门禁
+| 检查项 | PASS条件 | FAIL处理 | 状态 |
+|--------|---------|---------|------|
+| 工作检查点已注册 | `update_working_checkpoint`已调用 | 补调 + 重读SOP | |
+| TODO已同步 | `set_todo()`获取路径 + 标记`[x]` | 手动同步TODO | |
+| 报告已归档 | `autonomous_reports/`下有对应编号文件 | 补调`complete_task()` | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

@@ -4,6 +4,9 @@
 >
 > **复用工具**：`file_read`(关键词对比) | `code_run+Python`(跨文件diff) | `file_patch`(精确替换) | L2→`global_mem.txt patch` | L1→`global_mem_insight.txt patch`
 
+## 执行摘要（≥1步执行前必读）
+① 读旧SOP全文→② patch修改内容+更新版本号→③ 校验交叉引用+编号无断链→④ 同步L2(global_mem)+L1(insight)→⑤ 🛑 过验证门禁
+
 ---
 
 ## 一、触发场景
@@ -85,3 +88,16 @@ git commit -m "类型(sop名): 行动概述
 | 记忆只改L3不改L2/L1 | 改完后先搜 `global_mem.txt` 中本SOP名，看描述是否仍匹配 |
 | 多层级引用导致查找困难 | 最多一级引用（A→B），不搞 A→B→C→D 链 |
 | 角色卡与SOP同时修改 | 优先改角色卡（源），再改SOP（引用者），避免反向传播 |
+
+## 🛑 验证门禁（执行前/后强制检查）
+
+| 检查项 | 状态 |
+|--------|------|
+| 全文已读(非局部分析)？ | |
+| 版本号已更新？ | |
+| 交叉引用(sop名/路径)闭环？ | |
+| L2(global_mem)+L1(insight)已同步？ | |
+| 编号无断链(删除节后全审查)？ | |
+| 角色卡优先改(源)，SOP后改(引用者)？ | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

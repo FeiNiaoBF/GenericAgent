@@ -3,6 +3,11 @@
 > 核心哲学: **图即论证** — 每个视觉选择承载语义, 遮字识图
 > 级别: Simple(3-15元素)→直接Canvas+视觉模式 | Technical(15-50+)→Frame分组+Multi-Zoom(概览→证据→细节)
 
+## 执行摘要（≥1步执行前必读）
+1. 判断复杂度 → Simple(3-15元素)直接Canvas | Technical(15-50+)用Frame分组+Multi-Zoom
+2. 从视觉模式映射表选 pattern → `from excalidraw_draw import Canvas; c = Canvas("标题")`
+3. 遮字识图验证：遮住文字看形状/颜色能否独立说明结构 → 🛑 过验证门禁
+
 ## 视觉模式映射表(完整参考见excalidraw_draw.py docstring)
 - 时间演进: `pattern_timeline()` 椭圆节点+线主幹
 - 中心辐射: `pattern_fan_out()` 椭圆中心+矩形分支
@@ -51,3 +56,15 @@ c.save(os.path.join(vault, "99.System", "Excalidraw", "文件名.excalidraw"))
 
 ## Known Issues
 - `_add_bound_text` Eager ID修复(2026-04-27): label在Obsidian中不渲染, 根因boundElements.id延迟生成→修复为eager ID生成
+
+## 🛑 验证门禁（必须执行，否则流程未完成）
+
+| # | 验证动作 | 工具 | 预期结果 | PASS/FAIL |
+|---|----------|------|----------|-----------|
+| 1 | 元素计数 | web_scan | Canvas内元素数符合预期(Simple 3-15 / Technical 15-50+) | |
+| 2 | Frame分组 | web_scan | 每个Frame内含绑定元素，层级关系正确 | |
+| 3 | 遮字识图 | 肉眼 | 遮住文字后形状/颜色/布局仍能独立传达结构 | |
+| 4 | 坐标无NaN | web_execute_js | 所有元素x/y为有效数值，无undefined | |
+| 5 | 导出验证 | 肉眼 | Obsidian渲染正常，无缺失/错位 | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

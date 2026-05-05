@@ -1,4 +1,10 @@
 # GitHub Contribution SOP
+
+## 执行摘要（≥1步执行前必读）
+1. 前置准备：读CONTRIBUTING.md → Fork+Clone → 找测试命令
+2. 分支开发：`git cb feat/xxx` → commit → 测试通过 → push
+3. 提PR+跟进：`gh pr create` → CI绿+review → `gh pr checks`轮询 → 🛑 过验证门禁
+
 **触发**：需要给开源项目提 PR（修 bug / 加功能 / 改文档）| **禁用**：仅读代码、不需要提交变更时
 **核心原则**：一个 PR 做一件事，测试通过才推，尊重项目规范
 
@@ -97,3 +103,12 @@ code_run('bash', 'gh pr status')
 code_run('bash', 'gh pr checks PR_NUMBER')
 code_run('bash', 'gh pr view PR_NUMBER --comments')
 ```
+
+## 🛑 验证门禁
+| 检查项 | PASS条件 | FAIL处理 | 状态 |
+|--------|---------|---------|------|
+| 规范已读 | CONTRIBUTING.md/PR_TEMPLATE已确认 | 补充阅读再开发 | |
+| 测试通过 | 项目测试命令全绿 | 修代码直到pass | |
+| CI全绿 | `gh pr checks`全部✅ | 看log修问题 | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

@@ -1,5 +1,10 @@
 # [L3 SOP] obsidian_blog_sync_sop — Obsidian→Blog发布SOP
 
+## 执行摘要（≥1步执行前必读）
+1. 确认笔记 status:published + tags含blog/xxx → 映射目标目录(content/blog/等)
+2. 清理Obsidian-only语法(dataview双链等) → 双链替换/删除 → --preview预览
+3. hugo server验证无报错 → 提交发布 → 🛑 过验证门禁
+
 ## 1. Tag→Blog目录映射规则
 
 | Obsidian tags | status条件 | Blog目标目录 | 文件名规则 |
@@ -67,3 +72,14 @@ draft: false
 - ❌ 笔记内含Obsidian-only语法（如 ````dataview`）→ 发布前需清理
 - ✅ 发布前用 `--preview` 预览一次
 - ✅ 双链 `[[链接]]` 需手动替换为Hugo链接格式或删除
+
+## 🛑 验证门禁（执行前/后强制检查）
+
+| 检查项 | 状态 |
+|--------|------|
+| 已--preview预览(无异常)？ | |
+| Obsidian-only语法已清理(dataview等)？ | |
+| 双链已替换为Hugo格式或删除？ | |
+| frontmatter字段完整？ | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

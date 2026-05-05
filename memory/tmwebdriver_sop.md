@@ -2,6 +2,11 @@
 > 直接用 web_scan/web_execute_js 工具。文件仅记录特性和坑。
 > 底层: `../TMWebDriver.py` 通过Chrome扩展接管用户浏览器(保留登录态/Cookie)
 
+## 执行摘要（≥1步执行前必读）
+1. 直接用 `web_scan` / `web_execute_js` 工具（已注入），无需手动调 TMWebDriver
+2. 导航：`web_execute_js` + `location.href='url'`；新tab优先CDP点击
+3. 敏感操作（文件上传等）JS isTrusted=false → 首选CDP桥接 → 🛑 过验证门禁
+
 ## 通用特性
 - ⚠ `await` 需**显式`return`** 才能拿到返回值
 - ✅ web_scan 自动穿透同源 iframe
@@ -66,3 +71,14 @@ batch链式: `$0.frameTree.childFrames` 匹配url，`$1.executionContextId` 传e
 ② WS 18766端口?→死则手动起 `from TMWebDriver import TMWebDriver; TMWebDriver()`
 ③ 扩展已装?→读Chrome Secure Preferences→extensions.settings搜tmwd_cdp_bridge
 ④ 以上正常→请求用户
+
+## 🛑 验证门禁（必须执行，否则流程未完成）
+
+| # | 验证动作 | 工具 | 预期结果 | PASS/FAIL |
+|---|----------|------|----------|-----------|
+| 1 | 浏览器可连 | web_scan | 列出标签页，可读取页面内容 | |
+| 2 | JS可执行 | web_execute_js | `document.title` 返回非空标题 | |
+| 3 | 导航成功 | web_execute_js + web_scan | `location.href='url'` 后页面加载，内容匹配 | |
+| 4 | CDP就绪 | web_execute_js | `Page.captureScreenshot` 返回base64图像 | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

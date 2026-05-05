@@ -2,6 +2,9 @@
 > Vault: `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
 > 架构文档: `Codex Vitae知识库架构.md` (v2.1)
 
+## 执行摘要（≥1步执行前必读）
+① 确认书类型(技术/科幻/哲学等)→② 读取对应模板创建笔记→③ 填充断言+底部Dataview+双链至MOC → 🛑 步骤③后必须过验证门禁
+
 ## 1. 适用场景
 主人要读书/整理Book笔记/需要读书笔记模板时激活。
 
@@ -36,6 +39,16 @@
 ## 4. Type 分类规则
 委托 `../memory/vault_classifier.py` 自动分类。类型定义见该脚本注释。
 CLI：`python ../memory/vault_classifier.py`（全量）| `--dry-run`（预览）| `--file "关键词"`（单文件）
+
+### 阶段D补充：MOC 模板强制规则
+- 写任何 MOC 必须从 `99.System/Templates/MOC.md` 模板起步。
+- 模板覆盖4类 MOC：
+  - **Category MOC**（如 CS MOC）：启用 `子MOC` 节，用 Dataview 收集子节点
+  - **Subject MOC**（如 Economics MOC）：启用 `核心笔记`+`知识断言`，按领域分组
+  - **Tech/Tool MOC**：启用 `核心笔记`+`外部资源`，Dataview 按 category 过滤
+  - **Resource MOC**：轻量，仅 `外部资源`+Dataview 链接列表
+- 硬性要求：`Ctrl+E` 提示行、`核心笔记`节（有笔记时）、至少1个 Dataview 查询、统计 footer。
+- 🚫 禁手写表格列举笔记（Dataview 替代）；禁缺少 Ctrl+E 阅读模式提示。
 
 ## 5. YAML 坑点
 - Tags 用空格缩进列表格式（别用 `[a, b]`）
@@ -80,3 +93,15 @@ frontmatter：`type: note | status: budding | created: YYYY-MM-DD`
 3. **断言散落** → 必须双链 + 底部Dataview
 4. **模板缺失** → 参考 `Templates/Book.md` 和 `Templates/Blog.md`
 5. **MOC孤立** → 至少引用2本书才建MOC
+
+## 🛑 验证门禁（执行前/后强制检查）
+
+| 检查项 | 状态 |
+|--------|------|
+| 笔记类型(Type)正确？ | |
+| 模板字段完整(断言+Dataview)？ | |
+| 双链出度≥1(关联MOC)？ | |
+| MOC引用≥2本书？ | |
+| 路径基D:\Documents_Learn\Personal\Obsidian\Codex Vitae？ | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

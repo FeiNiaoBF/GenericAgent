@@ -1,4 +1,10 @@
 # Git SOP — 通用提交规范与故障恢复
+
+## 执行摘要（≥1步执行前必读）
+1. 提交四步法：`git st`→`git a`逐文件→确定type/scope→`git cm`
+2. Push前验证：`git status -s`确认干净 + 禁提交密钥文件
+3. 合并后清理：`git status -s`→`git add -A`→确认clean → 🛑 过验证门禁
+
 > 触发: 任何Git操作 | 前置: 确认全局别名可用(`git aliases`列出)
 
 ## 1. Conventional Commits（祈使语气·≤72字符）
@@ -96,3 +102,12 @@ diff temp_ours.py <theirs-file> | grep '^<'  # 提取独有行
 | 文件 | 风险 | 缓解 |
 |------|------|------|
 | `frontends/tgapp.py` | 上游纯MDV2替代本地三层降级 | TG中文特殊字符异常时补回fallback分支 |
+
+## 🛑 验证门禁
+| 检查项 | PASS条件 | FAIL处理 | 状态 |
+|--------|---------|---------|------|
+| 无密钥泄漏 | `git diff --staged`无.env/credentials | 撤销暂存 + 加gitignore | |
+| status干净 | `git status -s`仅预期变更 | 清理未跟踪文件或checkout | |
+| merge后已清理 | merge后`git status -s`确认clean | `git add -A && git commit` | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

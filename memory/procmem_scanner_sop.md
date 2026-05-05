@@ -3,6 +3,9 @@
 ## 1. 快速开始
 内存特征搜索工具，支持 Hex (CE 风格) 和 字符串匹配。特别提供 LLM 模式，方便大模型分析内存上下文。
 
+## 执行摘要（≥1步执行前必读）
+① 选模式(Hex/Str/LLM)→② 定位目标进程PID→③ 执行扫描特征码→④ 分析上下文 → 🛑 过验证门禁
+
 **Python 调用方式:**
 ```python
 import sys
@@ -34,3 +37,14 @@ python ../memory/procmem_scanner.py <PID> "pattern" --llm
 
 ## 4. CE式差集扫描定位动态字段
 定位微信等自绘UI中随操作变化的内存字段（如当前会话标题）。核心：一次全量scan + 多次ReadProcessMemory筛选。
+
+## 🛑 验证门禁（执行前/后强制检查）
+
+| 检查项 | 状态 |
+|--------|------|
+| 目标进程PID正确？ | |
+| 权限(PROCESS_VM_READ)具备？ | |
+| 特征码唯一(减少误报)？ | |
+| 扫描结果已分析上下文？ | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

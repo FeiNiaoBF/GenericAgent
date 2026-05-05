@@ -1,5 +1,8 @@
 # Subagent 调用 SOP
 
+## 执行摘要（≥1步执行前必读）
+① 建task目录+写input.txt→② `python agentmain.py --task {name} --bg`→③ sleep后poll output.json→④ 读结果 → 🛑 过验证门禁。优先用--bg后台模式
+
 ## 文件IO协议
 
 - 目录：`temp/{task_name}/`（cwd在temp/时即`./{task_name}/`）
@@ -63,3 +66,15 @@
 
 ## 已知限制 (2026-04-29验证)
 - agentmain.py **无SOP加载接口**：subagent无法通过`--sop`参数指定SOP，只能依赖global_mem_insight.txt导航。Map模式并行测试因此阻塞（subagent无法接收skill SOP指令）。未来若需启用，需先给agentmain.py添加SOP加载能力。
+
+## 🛑 验证门禁（执行前/后强制检查）
+
+| 检查项 | 状态 |
+|--------|------|
+| task目录+input.txt已建？ | |
+| --bg模式启用(非阻塞)？ | |
+| PID已记录可poll？ | |
+| output.json存在且有效？ | |
+| 已知限制: subagent无SOP加载接口 | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

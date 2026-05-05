@@ -3,6 +3,11 @@
 若 web_scan 和 web_execute_js 已测试可用，无需执行此 SOP。
 仅供初始安装时，code_run 可用但 web 工具尚未配置的场景。
 
+## 执行摘要（≥1步执行前必读）
+1. 仅首次安装时执行；若 `web_scan` 已可用 → 跳过本 SOP
+2. 打开 `chrome://extensions` → 加载 `../assets/tmwd_cdp_bridge/` 扩展
+3. 用 `start "" "https://www.baidu.com"` 打开正常页面 → `web_scan` 验证 → 🛑 过验证门禁
+
 ## 目标
 在仅具备系统级权限（code_run）时，建立 Web 交互能力（web_scan / web_execute_js）。
 
@@ -23,3 +28,14 @@
 ⚠ web_scan 显示「没有可用标签页」不一定是扩展没装好，可能是浏览器未打开或只有 blank 页。
 此时禁止乱试，先用 `start "" "https://www.baidu.com"` 打开一个正常页面，再 `web_scan` 确认。
 若仍不可用，无法自动探测默认浏览器是哪个、插件装在了哪个浏览器、或是否已安装——此时请求用户协助。
+
+## 🛑 验证门禁（必须执行，否则流程未完成）
+
+| # | 验证动作 | 工具 | 预期结果 | PASS/FAIL |
+|---|----------|------|----------|-----------|
+| 1 | 浏览器页面打开 | `start "" "https://www.baidu.com"` | 浏览器有新标签页加载正常网页 | |
+| 2 | web_scan可读 | web_scan | 返回页面HTML/文本内容，非"没有可用标签页" | |
+| 3 | web_execute_js可用 | web_execute_js | `document.title` 返回页面标题，非空/非error | |
+| 4 | 扩展连接 | web_execute_js | CDP命令可执行（如截图），无超时 | |
+
+最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`
