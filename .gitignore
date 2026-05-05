@@ -159,6 +159,9 @@ config/boot_config.json
 # --- SOP: Daily News ---
 !memory/daily_news_sop.md
 
+# --- SOP: Signal Source ---
+!memory/signal_source_sop.md
+
 # --- SOP: Guizang PPT ---
 !memory/guizang_ppt_sop.md
 !memory/guizang-ppt-skill/
