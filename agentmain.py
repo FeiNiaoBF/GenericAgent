@@ -6,11 +6,9 @@ if sys.stderr is None: sys.stderr = open(os.devnull, "w")
 elif hasattr(sys.stderr, 'reconfigure'): sys.stderr.reconfigure(errors='replace')
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from llmcore import reload_mykeys, LLMSession, ToolClient, ClaudeSession, MixinSession, NativeToolClient, NativeClaudeSession, NativeOAISession
+from llmcore import reload_mykeys, LLMSession, ToolClient, ClaudeSession, MixinSession, NativeToolClient, NativeClaudeSession, NativeOAISession, resolve_client
 from agent_loop import agent_runner_loop
 from ga import GenericAgentHandler, smart_format, get_global_memory, format_error, consume_file
-import logging
-logger = logging.getLogger(__name__)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 def load_tool_schema(suffix=''):
@@ -50,9 +48,8 @@ class GenericAgent:
         self.task_queue = queue.Queue() 
         self.is_running = False; self.stop_sig = False
         self.llm_no = 0;  self.inc_out = False; self.verbose = True
-        self.disable_code_shrink = False
         self.peer_hint = True
-        self._turn_end_hooks = {}
+        self.log_path = os.path.join(script_dir, f'temp/model_responses/model_responses_{int(time.time()*1e6)%1000000:06d}.txt')
         self.load_llm_sessions()
 
     def load_llm_sessions(self):
@@ -64,13 +61,9 @@ class GenericAgent:
         for k, cfg in mykeys.items():
             if not any(x in k for x in ['api', 'config', 'cookie']): continue
             try:
-                if 'native' in k and 'claude' in k: llm_sessions += [NativeToolClient(NativeClaudeSession(cfg=cfg))]
-                elif 'native' in k and 'oai' in k: llm_sessions += [NativeToolClient(NativeOAISession(cfg=cfg))]
-                elif 'claude' in k: llm_sessions += [ToolClient(ClaudeSession(cfg=cfg))]
-                elif 'oai' in k: llm_sessions += [ToolClient(LLMSession(cfg=cfg))]
-                elif 'mixin' in k: llm_sessions += [{'mixin_cfg': cfg}]
-            except Exception as e:
-                logger.warning(f"Failed to load session for key '{k}': {e}")
+                if 'mixin' in k: llm_sessions += [{'mixin_cfg': cfg}]
+                elif c := resolve_client(k): llm_sessions += [c]
+            except: pass
         for i, s in enumerate(llm_sessions):
             if isinstance(s, dict) and 'mixin_cfg' in s:
                 try:
@@ -113,47 +106,13 @@ class GenericAgent:
         self.task_queue.put({"query": query, "source": source, "images": images or [], "output": display_queue})
         return display_queue
 
-    def register_turn_end_hook(self, key, hook):
-        """Register a turn-end callback. Called by ga.py after each turn with ctx=locals()."""
-        self._turn_end_hooks[key] = hook
-
-    def unregister_turn_end_hook(self, key):
-        """Remove a turn-end callback."""
-        self._turn_end_hooks.pop(key, None)
-
-    def _fire_turn_end_hooks(self, ctx: dict) -> None:
-        """Iterate all registered turn-end hooks with context (called by ga.py)."""
-        for hook in list(self._turn_end_hooks.values()):
-            try:
-                hook(ctx)
-            except Exception as e:
-                logger.warning(f"Turn-end hook failed: {e}")
-
-    # /session command: whitelist-only attributes + path traversal protection
-    _SESSION_WHITELIST = {
-        'temperature', 'max_tokens', 'model', 'system', 'stream',
-        'reasoning_effort', 'thinking_type', 'thinking_budget_tokens',
-        'connect_timeout', 'read_timeout', 'max_retries', 'service_tier',
-        'top_p', 'frequency_penalty', 'presence_penalty', 'name',
-    }
-
+    # i know it is dangerous, but raw_query is dangerous enough it doesn't enlarge
     def _handle_slash_cmd(self, raw_query, display_queue):
         if not raw_query.startswith('/'): return raw_query
         if _sm := re.match(r'/session\.(\w+)=(.*)', raw_query.strip()):
             k, v = _sm.group(1), _sm.group(2)
-            if k not in self._SESSION_WHITELIST:
-                logger.warning(f"/session: rejected non-whitelisted attr '{k}'")
-                display_queue.put({'done': f"⛔ session.{k}: not whitelisted", 'source': 'system'})
-                return None
             vfile = os.path.join(script_dir, 'temp', v)
-            if os.path.isfile(vfile):
-                real_temp = os.path.realpath(os.path.join(script_dir, 'temp'))
-                if os.path.realpath(vfile).startswith(real_temp + os.sep):
-                    v = open(vfile, encoding='utf-8').read().strip()
-                else:
-                    logger.warning(f"/session: path traversal blocked: {v}")
-                    display_queue.put({'done': f"⛔ session.{k}: path traversal blocked", 'source': 'system'})
-                    return None
+            if os.path.isfile(vfile): v = open(vfile, encoding='utf-8').read().strip()
             try: v = json.loads(v)  # cover number parsing
             except (json.JSONDecodeError, ValueError): pass
             setattr(self.llmclient.backend, k, v)
@@ -177,14 +136,13 @@ class GenericAgent:
             sys_prompt = get_system_prompt() + getattr(self.llmclient.backend, 'extra_sys_prompt', '')
             if self.peer_hint: sys_prompt += f"\n[Peer] 用户提及其他会话/后台任务状态时: temp/model_responses/ (只找近期修改的文件尾部)\n"
             handler = GenericAgentHandler(self, self.history, os.path.join(script_dir, 'temp'))
-            handler._disable_code_shrink = self.disable_code_shrink
             if self.handler and 'key_info' in self.handler.working: 
                 ki = re.sub(r'\n\[SYSTEM\] 此为.*?工作记忆[。\n]*', '', self.handler.working['key_info'])  # 去旧
                 handler.working['key_info'] = ki
                 handler.working['passed_sessions'] = ps = self.handler.working.get('passed_sessions', 0) + 1
                 if ps > 0: handler.working['key_info'] += f'\n[SYSTEM] 此为 {ps} 个对话前设置的key_info，若已在新任务，先更新或清除工作记忆。\n'
-            self.handler = handler
-            # although new handler, the **full** history is in llmclient, so it is full history!
+            self.handler = handler  # although new handler, the **full** history is in llmclient, so it is full history!
+            self.llmclient.log_path = self.log_path
             gen = agent_runner_loop(self.llmclient, sys_prompt, raw_query, 
                                 handler, TOOLS_SCHEMA, max_turns=70, verbose=self.verbose)
             try:
