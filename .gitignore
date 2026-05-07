@@ -140,6 +140,7 @@ memory/L4_raw_sessions/*
 reflect/*
 !reflect/autonomous.py
 !reflect/scheduler.py
+!reflect/agent_team_worker.py
 
 
 # ============================================================
@@ -228,6 +229,9 @@ sche_tasks/*
 !sche_tasks/health_water.json
 !sche_tasks/task_reminder_*.json
 
+# --- Upstream additions ---
+.claude/
+
 
 # ============================================================
 # PART D: NOTES
@@ -236,3 +240,4 @@ sche_tasks/*
 # - LEGACY entries for upstream merge compat; safe to ignore
 #   "NOT FOUND" warnings in sanity_check
 # - Run `python scripts/sanity_check.py` before commits
+

@@ -127,7 +127,7 @@ class GeneraticAgent:
     def run(self):
         while True:
             task = self.task_queue.get()
-            raw_query, source, images, display_queue = task["query"], task["source"], task.get("images") or [], task["output"]
+            raw_query, source, display_queue = task["query"], task["source"], task["output"]
             raw_query = self._handle_slash_cmd(raw_query, display_queue)
             if raw_query is None:
                 self.task_queue.task_done(); continue
@@ -165,13 +165,10 @@ class GeneraticAgent:
                 print(f"Backend Error: {format_error(e)}")
                 display_queue.put({'done': full_resp + f'\n```\n{format_error(e)}\n```', 'source': source})
             finally:
-                if self.stop_sig:
-                    print('User aborted the task.')
-                    #with self.task_queue.mutex: self.task_queue.queue.clear()
+                if self.stop_sig: print('User aborted the task.')
                 self.is_running = self.stop_sig = False
                 self.task_queue.task_done()
                 if self.handler is not None: self.handler.code_stop_signal.append(1)
-
     
 if __name__ == '__main__':
     import argparse
@@ -211,7 +208,7 @@ if __name__ == '__main__':
         with open(infile, encoding='utf-8') as f: raw = f.read()
         while True:
             dq = agent.put_task(raw, source='task')
-            while 'done' not in (item := dq.get(timeout=120)): 
+            while 'done' not in (item := dq.get(timeout=300)): 
                 if 'next' in item and random.random() < 0.95:  # 概率写一次中间结果
                     with open(f'{d}/output{nround}.txt', 'w', encoding='utf-8') as f: f.write(item.get('next', ''))
             with open(f'{d}/output{nround}.txt', 'w', encoding='utf-8') as f: f.write(item['done'] + '\n\n[ROUND END]\n')
@@ -240,7 +237,7 @@ if __name__ == '__main__':
             print(f'[Reflect] triggered: {task[:80]}')
             dq = agent.put_task(task, source='reflect')
             try:
-                while 'done' not in (item := dq.get(timeout=120)): pass
+                while 'done' not in (item := dq.get(timeout=180)): pass
                 result = item['done']
                 print(result)
             except Exception as e:

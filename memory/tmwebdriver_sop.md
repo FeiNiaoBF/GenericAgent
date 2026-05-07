@@ -33,13 +33,27 @@ web_execute_js script='{"cmd": "cdp", "tabId": N, "method": "...", "params": {..
 web_execute_js script='{"cmd": "batch", "commands": [...]}'
 web_execute_js script='{"cmd": "management", "method": "list|reload|disable|enable", "extId": "..."}'
 ```
-⭐batch: `{cmd:'batch', commands:[...]}` → `{ok:true, results:[...]}`
-- `$N.path` 引用第N个结果字段(0-indexed)
-- ⚠前序失败时后续`$N`引用静默undefined→检查results每项ok
-- 典型文件上传: getDocument(depth:1)→querySelector→setFileInputFiles
-- 瞬态input: 缩短发现→setFileInputFiles时间窗，优先同batch完成
-- ⚠tabId: CDP默认sender.tab.id，跨tab需显式或batch内先tabs查
-⭐跨tab操作无需前台: 指定tabId即可操作后台标签
+通信方式：⭐JSON字符串直传(首选) | TID DOM方式(TID元素+MutationObserver，web_scan/execute_js底层依赖)
+单命令：`{cmd:'tabs'}` | `{cmd:'cookies'}` | `{cmd:'cdp', tabId:N, method:'...', params:{...}}` | `{cmd:'management', method:'list|reload|disable|enable', extId:'...'}`
+- management：list返回所有扩展信息；reload/disable/enable需传extId
+- contentSettings：`{cmd:'contentSettings', type:'automaticDownloads', pattern:'https://*/*', setting:'allow'}`
+  - 绕过Chrome"下载多个文件"对话框（该对话框会阻塞整个浏览器JS执行）
+  - type可选：automaticDownloads/popups/notifications等；setting：allow/block/ask
+  - ⚠CDP的Browser.setDownloadBehavior在扩展中不可用（chrome.debugger仅tab级），此为替代方案
+- ⭐batch混合：`{cmd:'batch', commands:[{cmd:'cookies'},{cmd:'tabs'},{cmd:'cdp',...},...]}`
+  - 返回`{ok:true, results:[...]}`，一次请求多命令，CDP懒attach复用session
+  - 子命令会自动继承外层batch的tabId（如cookies命令可正确获取当前页面URL）
+  - `$N.path`引用第N个结果字段(0-indexed)，如`"nodeId":"$2.root.nodeId"`
+  - ⚠batch前序命令失败时，后续`$N`引用会静默变成undefined；要检查results数组中每项的ok状态
+  - 典型文件上传：getDocument(**depth:1**) → querySelector(`input[type=file]`) → setFileInputFiles
+  - 思想：
+    - 同一链路内保持nodeId来源一致，不混用querySelector路径与performSearch路径
+    - 上传后前端框架可能不感知，必要时JS补发`input`/`change`事件
+    - 上传前检查`input.accept`；多input时用accept/父容器语义区分
+    - 等待元素优先用`DOM.performSearch('input[type=file]')`做轻量轮询
+    - 瞬态input的核心是**缩短发现→setFileInputFiles时间窗**：优先同batch完成；再不行用DOM事件监听；猴子补丁仅作兜底思路
+  - ⚠tabId：CDP默认sender.tab.id(当前注入页)，跨tab需显式tabId或先batch内tabs查
+- ⭐跨tab无需前台：指定tabId即可操作后台标签页
 
 ## CDP点击
 三事件序列: mouseMoved→mousePressed→mouseReleased(间隔50-100ms)
