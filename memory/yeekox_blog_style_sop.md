@@ -1,4 +1,4 @@
-# [L3 SOP] yeekox_blog_style_sop — YeelightBlog 写作规范
+# [L3 SOP] yeekox_blog_style_sop — YeelightBlog 写作规范 (v1.0)
 > 基于 16 篇博文分析 + Google blog best practices
 > 通用格式 → [`chi_format_sop`](../memory/chi_format_sop.md)
 

@@ -1,4 +1,4 @@
-# [L3 SOP] obsidian_library_sop — 图书馆·读书心流SOP
+# [L3 SOP] obsidian_library_sop — 图书馆·读书心流SOP (v1.0)
 > Vault: `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
 > 架构文档: `Codex Vitae知识库架构.md` (v2.1)
 
@@ -40,15 +40,12 @@
 委托 `../memory/vault_classifier.py` 自动分类。类型定义见该脚本注释。
 CLI：`python ../memory/vault_classifier.py`（全量）| `--dry-run`（预览）| `--file "关键词"`（单文件）
 
-### 阶段D补充：MOC 模板强制规则
-- 写任何 MOC 必须从 `99.System/Templates/MOC.md` 模板起步。
-- 模板覆盖4类 MOC：
-  - **Category MOC**（如 CS MOC）：启用 `子MOC` 节，用 Dataview 收集子节点
-  - **Subject MOC**（如 Economics MOC）：启用 `核心笔记`+`知识断言`，按领域分组
-  - **Tech/Tool MOC**：启用 `核心笔记`+`外部资源`，Dataview 按 category 过滤
-  - **Resource MOC**：轻量，仅 `外部资源`+Dataview 链接列表
-- 硬性要求：`Ctrl+E` 提示行、`核心笔记`节（有笔记时）、至少1个 Dataview 查询、统计 footer。
-- 🚫 禁手写表格列举笔记（Dataview 替代）；禁缺少 Ctrl+E 阅读模式提示。
+### 阶段D补充：MOC 模板强制规则 (v3.0)
+- 写任何 MOC 必须从 `99.System/Templates/MOC.md` (v3.0 统一模板) 起步，不再区分4类型。
+- v3.0 按需启用标准区块：🗺️地图边界(scope+核心问题) → 📚精选导航(≥3篇) → 🧠知识断言(Dataview) → 📊动态索引(Dataview contains(moc)) → 🔗概念关系 → 🌱待探索 → 🏷️子MOC
+- Note/Knowledge 模板已内置 `moc` YAML 字段，写笔记时填入所属 MOC 即可被 Dataview contains(moc) 自动索引。
+- 硬性要求：`Ctrl+E` 提示行、精选导航节、至少1个 Dataview contains(moc) 查询、scope 地图边界、≥2 个核心问题。
+- 🚫 禁手写表格列举笔记（Dataview 替代）；禁缺 scope；禁缺核心问题(≥2)；禁分4类型MOC(统一v3.0)。
 
 ## 5. YAML 坑点
 - Tags 用空格缩进列表格式（别用 `[a, b]`）

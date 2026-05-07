@@ -1,4 +1,4 @@
-# 🎓 英语学习 SOP — 唧助教
+# 🎓 英语学习 SOP — 唧助教 (v1.0)
 
 > 目的：唧辅助主人进行英语学习，覆盖日常浸泡/阅读/词汇/输出
 > 依赖：Obsidian vault at `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`

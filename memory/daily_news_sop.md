@@ -1,4 +1,4 @@
-# daily_news_sop · 唧的每日早安新闻简报（新闻模块）
+# daily_news_sop · 唧的每日早安新闻简报（新闻模块） (v1.0)
 
 ## 执行摘要（≥1步执行前必读）
 1. `python ../memory/daily_news_fetch.py --json` → 取 15 条（国际/国内/财经各5）
@@ -18,7 +18,7 @@
 
 ## 1. 触发方式
 - **定时任务**：`../sche_tasks/daily_news.json`（**08:00** 每天）
-- **手动触发**：主人说"唧早安"/"唧新闻"/"今天有什么新闻"
+- **手动触发**：主人说"唧早安"/"唧新闻"/"今天有什么新闻"/"/today"
 - **Vault路径**：`D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
 - **日记路径**：`{vault}/00.Chronicles/Daily/{YYYY-MM-DD}.md`
 

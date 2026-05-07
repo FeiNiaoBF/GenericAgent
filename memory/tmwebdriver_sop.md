@@ -1,4 +1,4 @@
-# TMWebDriver SOP
+# TMWebDriver SOP (v1.0)
 > 直接用 web_scan/web_execute_js 工具。文件仅记录特性和坑。
 > 底层: `../TMWebDriver.py` 通过Chrome扩展接管用户浏览器(保留登录态/Cookie)
 

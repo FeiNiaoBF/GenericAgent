@@ -1,4 +1,4 @@
-# 每日任务 SOP
+# 每日任务 SOP (v1.0)
 
 ## 执行摘要（≥1步执行前必读）
 1. 先读`{vault}/99.System/Templates/Daily.md`模板，确认最新结构后再创建日记

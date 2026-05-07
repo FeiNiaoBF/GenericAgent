@@ -1,4 +1,4 @@
-# Excalidraw 画图 SOP — 精简参考
+# Excalidraw 画图 SOP — 精简参考 (v1.0)
 
 > 核心哲学: **图即论证** — 每个视觉选择承载语义, 遮字识图
 > 级别: Simple(3-15元素)→直接Canvas+视觉模式 | Technical(15-50+)→Frame分组+Multi-Zoom(概览→证据→细节)

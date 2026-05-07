@@ -1,4 +1,4 @@
-# 自主行动 SOP
+# 自主行动 SOP (v1.0)
 
 ## 执行摘要（≥1步执行前必读）
 1. 启动：`update_working_checkpoint`注册任务 + `set_todo()`获取TODO

@@ -1,4 +1,4 @@
-# Subagent 调用 SOP
+# Subagent 调用 SOP (v1.0)
 
 ## 执行摘要（≥1步执行前必读）
 ① 建task目录+写input.txt→② `python agentmain.py --task {name} --bg`→③ sleep后poll output.json→④ 读结果 → 🛑 过验证门禁。优先用--bg后台模式

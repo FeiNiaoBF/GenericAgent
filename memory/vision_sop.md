@@ -1,4 +1,4 @@
-# Vision API SOP
+# Vision API SOP (v1.0)
 
 ## 执行摘要（≥1步执行前必读）
 1. 分级决策：窗口标题可读→不截图 | 本地OCR→不调API | 局部截图→不截整窗口

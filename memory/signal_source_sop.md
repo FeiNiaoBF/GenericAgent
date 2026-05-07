@@ -1,4 +1,4 @@
-# signal_source_sop · 消息源管理 SOP
+# signal_source_sop · 消息源管理 SOP (v1.0)
 
 ## 执行摘要（≥1步执行前必读）
 1. `python ../memory/{source}_daily_fetch.py` → 获取消息源数据

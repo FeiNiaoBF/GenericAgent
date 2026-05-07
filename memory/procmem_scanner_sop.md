@@ -1,4 +1,4 @@
-# Memory Scanner SOP
+# Memory Scanner SOP (v1.0)
 
 ## 1. 快速开始
 内存特征搜索工具，支持 Hex (CE 风格) 和 字符串匹配。特别提供 LLM 模式，方便大模型分析内存上下文。

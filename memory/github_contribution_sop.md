@@ -1,4 +1,4 @@
-# GitHub Contribution SOP
+# GitHub Contribution SOP (v1.0)
 
 ## 执行摘要（≥1步执行前必读）
 1. 前置准备：读CONTRIBUTING.md → Fork+Clone → 找测试命令

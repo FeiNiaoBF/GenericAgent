@@ -1,4 +1,4 @@
-# [L3 SOP] obsidian_blog_sync_sop — Obsidian→Blog发布SOP
+# [L3 SOP] obsidian_blog_sync_sop — Obsidian→Blog发布SOP (v1.0)
 
 ## 执行摘要（≥1步执行前必读）
 1. 确认笔记 status:published + tags含blog/xxx → 映射目标目录(content/blog/等)
