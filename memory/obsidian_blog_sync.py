@@ -8,11 +8,15 @@ Obsidian → Hugo Blog 同步脚本
 """
 import os
 import re
-import yaml
 import shutil
 import argparse
 from datetime import datetime
 from pathlib import Path
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 # === 配置 ===
 VAULT = r"D:\Documents_Learn\Personal\Obsidian\Codex Vitae"
@@ -32,6 +36,8 @@ def parse_frontmatter(content):
     """解析Obsidian frontmatter"""
     m = re.match(r'^---\s*\n(.*?)\n---\s*\n(.*)', content, re.DOTALL)
     if not m:
+        return None, content
+    if yaml is None:
         return None, content
     try:
         fm = yaml.safe_load(m.group(1))

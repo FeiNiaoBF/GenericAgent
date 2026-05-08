@@ -355,13 +355,11 @@ def _extract_ask_user_event(ctx):
         return None
 
 def _register_ask_user_hook():
-    if not hasattr(agent, "_turn_end_hooks"):
-        agent._turn_end_hooks = {}
     def _hook(ctx):
         event = _extract_ask_user_event(ctx)
         if event:
             _ask_menu_events.put(event)
-    agent._turn_end_hooks[_ASK_USER_HOOK_KEY] = _hook
+    agent.register_turn_end_hook(_ASK_USER_HOOK_KEY, _hook)
 
 def _drain_latest_ask_user_event():
     latest = None

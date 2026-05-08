@@ -90,14 +90,11 @@ memory/*
 !memory/git_sop.md
 
 # --- LEGACY (upstream merge compat; merged into newer SOPs) ---
-!memory/memory_cleanup_sop.md
 !memory/web_setup_sop.md
 !memory/scheduled_task_sop.md
-!memory/fork_sync_sop.md
 
 # --- SOP: Vision ---
 !memory/vision_sop.md
-!memory/vision_api.template.py
 
 # --- Tool: ljqCtrl ---
 !memory/ljqCtrl.py
@@ -131,7 +128,6 @@ memory/L4_raw_sessions/*
 !memory/verify_sop.md
 
 # --- SOP: Subagent v2 (upstream new) ---
-!memory/subagent_sop.md
 
 # --- SOP: Supervisor (upstream new) ---
 !memory/supervisor_sop.md
@@ -150,12 +146,10 @@ reflect/*
 # --- Core: Global Memory (SENSITIVE - use .example templates) ---
 # global_mem.txt and global_mem_insight.txt are EXCLUDED
 # Copy from .example files and fill in your local paths
-!memory/global_mem.example.txt
-!memory/global_mem_insight.example.txt
 config/boot_config.json
 
-# --- SOP: TG Chinese Format ---
-!memory/tg_chi_format_sop.md
+# --- SOP: Chi Format ---
+!memory/chi_format_sop.md
 
 # --- SOP: Daily News ---
 !memory/daily_news_sop.md
@@ -215,13 +209,60 @@ config/boot_config.json
 # --- Tool: Capture window ---
 !memory/capture_window.py
 
-# --- Scripts (fork) ---
-!scripts/
-!scripts/sanity_check.py
+# --- SOP: Chii Compress ---
+!memory/chii_compress_sop.md
 
-# --- Tests (fork) ---
-!tests/
-!tests/*
+# --- SOP: Chii Journal ---
+!memory/chii_master_journal.md
+
+# --- SOP: CS Learning ---
+!memory/cs_learning_sop.md
+
+# --- SOP: GCal ---
+!memory/gcal_sop.md
+
+# --- SOP: Gongji Exam ---
+!memory/gongji_exam_sop.md
+
+# --- SOP: Project Doc ---
+!memory/project_doc_sop.md
+
+# --- SOP: TG Send File ---
+!memory/tg_send_file_sop.md
+
+# --- SOP: TG Sticker ---
+!memory/tg_sticker_sop.md
+
+# --- SOP: Vault Knowledge ---
+!memory/vault_knowledge_sop.md
+
+# --- SOP: Codebase Traversal ---
+!memory/codebase_traversal_sop.md
+
+# --- SOP: Codex Collaboration ---
+!memory/codex_collaboration_sop.md
+
+# --- SOP Index ---
+!memory/sop_index.md
+
+# --- Tool: Audit L1 ---
+!memory/audit_l1.py
+
+# --- Tool: Daily News Fetch ---
+!memory/daily_news_fetch.py
+!memory/hn_daily_fetch.py
+
+# --- Tool: Diary Append ---
+!memory/diary_append.py
+
+# --- Tool: Memory Cleanup ---
+!memory/memory_cleanup.py
+
+# --- Tool: Vault Tools ---
+!memory/vault_tools.py
+
+# --- Tool: Verify Note ---
+!memory/verify_note.py
 
 # --- sche_tasks: only active schedules, NO done/ logs ---
 sche_tasks/*

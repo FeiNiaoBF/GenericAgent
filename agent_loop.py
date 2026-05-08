@@ -1,6 +1,8 @@
 import json, re, os
 from dataclasses import dataclass
 from typing import Any, Optional
+# Hook list for plugins (e.g., langfuse_tracing registers here)
+_task_hooks = []  # Called with (event_type, data); events: task_start, task_end, turn_start, turn_end
 @dataclass
 class StepOutcome:
     data: Any
@@ -12,6 +14,9 @@ def try_call_generator(func, *args, **kwargs):
     return ret
 
 class BaseHandler:
+    _tool_before_hooks = []
+    _tool_after_hooks = []
+
     def tool_before_callback(self, tool_name, args, response): pass
     def tool_after_callback(self, tool_name, args, response, ret): pass
     def turn_end_callback(self, response, tool_calls, tool_results, turn, next_prompt, exit_reason): return next_prompt
@@ -19,9 +24,15 @@ class BaseHandler:
         method_name = f"do_{tool_name}"
         if hasattr(self, method_name):
             args['_index'] = index
+            for hook in self._tool_before_hooks:
+                try: hook(tool_name, args, response, index)
+                except Exception: pass
             prer = yield from try_call_generator(self.tool_before_callback, tool_name, args, response)
             ret = yield from try_call_generator(getattr(self, method_name), args, response)
             _ = yield from try_call_generator(self.tool_after_callback, tool_name, args, response, ret)
+            for hook in self._tool_after_hooks:
+                try: hook(tool_name, args, response, ret, index)
+                except Exception: pass
             return ret
         elif tool_name == 'bad_json': return StepOutcome(None, next_prompt=args.get('msg', 'bad_json'), should_exit=False)
         else:
@@ -45,8 +56,10 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
         {"role": "user", "content": initial_user_content if initial_user_content is not None else user_input}
     ]
     turn = 0;  handler.max_turns = max_turns
+    for hook in _task_hooks: hook('task_start', {'user_input': user_input})
     while turn < handler.max_turns:
         turn += 1; turnstr = f'LLM Running (Turn {turn}) ...'
+        for hook in _task_hooks: hook('turn_start', {'turn': turn})
         if handler.parent.task_dir: turnstr = f'Turn {turn} ...'
         if verbose: turnstr = f'**{turnstr}**'
         yield f"\n\n{turnstr}\n\n"
@@ -57,7 +70,7 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
             yield '\n\n'
         else:
             response = exhaust(response_gen)
-            cleaned = _clean_content(response.content, shrink_code=not getattr(handler.parent, 'disable_code_shrink', False))
+            cleaned = _clean_content(response.content, shrink_code=not handler._disable_code_shrink)
             if cleaned: yield cleaned + '\n'
 
         if not response.tool_calls: tool_calls = [{'tool_name': 'no_tool', 'args': {}}]
@@ -91,11 +104,12 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
                 tool_results.append({'tool_use_id': tid, 'content': datastr})
             next_prompts.add(outcome.next_prompt)
         if len(next_prompts) == 0 or exit_reason:
-            if len(handler._done_hooks) == 0 or exit_reason.get('result', '') == 'EXITED': break
-            next_prompts.add(handler._done_hooks.pop(0))
+            break
         next_prompt = handler.turn_end_callback(response, tool_calls, tool_results, turn, '\n'.join(next_prompts), exit_reason)
+        for hook in _task_hooks: hook('turn_end', {'turn': turn, 'exit_reason': exit_reason})
         messages = [{"role": "user", "content": next_prompt, "tool_results": tool_results}]   # just new message, history is kept in *Session
     if exit_reason: handler.turn_end_callback(response, tool_calls, tool_results, turn, '', exit_reason)
+    for hook in _task_hooks: hook('task_end', exit_reason)
     return exit_reason or {'result': 'MAX_TURNS_EXCEEDED'}
 
 def _clean_content(text, shrink_code=True):
