@@ -1,7 +1,0 @@
-{
-  "schedule": "11:00",
-  "repeat": "daily",
-  "enabled": true,
-  "max_delay_hours": 2,
-  "prompt": "## 🔔 唧式定时提醒 · 每日11:00 (☀️ 上午 · 中段)\n\n### 🎯 你的任务\n1. **读取今日日记**: `D:\\Documents_Learn\\Personal\\Obsidian\\Codex Vitae/00.Chronicles/Daily/{YYYY-MM-DD}.md`\n   - 日记格式: 分 上午/下午/晚间 三时段\n2. **提取当天任务**: 找到11:00所在时段的任务清单\n3. **Google Calendar操作** (重要):\n   ```python\n   from memory.gcal_helper import add_gcal_event\n   add_gcal_event(\n       title=\"☀️ 上午 · 中段任务提醒\",\n       description=\"唧の自动提醒\\n\\n[具体任务]\",\n       date_str=\"YYYY-MM-DD\",\n       time_str=\"11:00\",\n       duration_min=30\n   )\n   ```\n   - 如果浏览器可用 -> 直接创建日历事件\n   - 如果浏览器不可用 -> 记录\"GCAL_SKIPPED\"到日志\n4. **推送提醒**: 通过可用渠道（TG Bot/回复）发送唧式提醒给主人\n\n### 📋 提醒格式\n```\n🐾 [label]任务提醒 ✨\n\n主人～该做今天这个时段的事情啦！\n\n📋 今日任务\n- [任务1]\n- [任务2]\n- ...\n\n💪 加油哦！\n```\n\n### 📝 报告\n执行完后写入 `../sche_tasks/done/` 报告文件"
-}

@@ -60,6 +60,8 @@ class WeComApp(AgentChatMixin):
 
     def __init__(self, agent):
         self.agent = agent
+        if not hasattr(agent, '_turn_end_hooks'):
+            agent._turn_end_hooks = {}
         super().__init__(agent, {})
         self._allowed = ALLOWED
         self.client = None
@@ -70,11 +72,11 @@ class WeComApp(AgentChatMixin):
     # ── hook management ──────────────────────────────────────────────
     def _register_hook(self, key: str, fn: TurnHookFn) -> None:
         """Register a turn-end callback on the agent."""
-        self.agent.register_turn_end_hook(key, fn)
+        self.agent._turn_end_hooks[key] = fn
 
     def _unregister_hook(self, key: str) -> None:
         """Remove a turn-end callback."""
-        self.agent.unregister_turn_end_hook(key)
+        self.agent._turn_end_hooks.pop(key, None)
 
     # ── frame accept: dedup → auth → register ───────────────────────
     def _accept(self, frame):
@@ -154,7 +156,7 @@ class WeComApp(AgentChatMixin):
         done_event = threading.Event()
         result = {}
         loop = asyncio.get_running_loop()
-        hook_key = f"wecom_{chat_id}"  # namespace: wecom_ + chat_id
+        hook_key = f"wecom_{chat_id}"  # namespace: wecom_ + chat_id, matches _turn_end_hooks convention
 
         def _on_turn(ctx):
             """Turn-end callback injected into agent. ctx = locals() from ga.py."""

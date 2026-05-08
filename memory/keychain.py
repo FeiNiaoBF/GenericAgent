@@ -1,13 +1,4 @@
-"""
-keychain.py - 本地加密键值存储 (XOR+SHA256)
-API: keys.set("name", "value") / keys.set("name", file="path")
-     keys.name.use() → 返回SecretStr(禁止print原始值!)
-     keys.ls() → 列出所有key
-设计: XOR加密, 密钥=sha256("{user}@ga_keychain"), 存储~/ga_keychain.enc
-      SecretStr对象repr只展示前缀+后缀
-⚠️ 禁止print(keys.xxx.use()), 禁止日志输出原始值
-   解密失败自动备份.enc.bak并清空重建
-"""
+"""Keychain: save key to a file, then keys.set("name", file="path"); keys.name.use() to retrieve (use but no print)."""
 import json, os, hashlib, pathlib, getpass
 
 _PATH = pathlib.Path.home() / "ga_keychain.enc"

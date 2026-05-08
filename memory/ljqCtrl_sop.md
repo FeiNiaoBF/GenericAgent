@@ -1,11 +1,6 @@
-# ljqCtrl 使用与坐标转换 SOP (v1.0)
+# ljqCtrl 使用与坐标转换 SOP
 
 > **must call update working ckp**：`ljqCtrl一律使用物理坐标｜禁pyautogui｜操作前先gw激活窗口`
-
-## 执行摘要（≥1步执行前必读）
-1. `sys.path.append("../memory"); import ljqCtrl` → 获取 dpi_scale
-2. 逻辑坐标 `/ ljqCtrl.dpi_scale` = 物理坐标 → `ljqCtrl.Click(px, py)` / `SetCursorPos`
-3. 操作前 `gw.getWindowsWithTitle(...)[0].activate()` 激活窗口 → 🛑 过验证门禁
 
 ## 0. API 快速参考 (Signatures)
 - `ljqCtrl.dpi_scale`: float (缩放系数 = 逻辑宽度 / 物理宽度)
@@ -49,14 +44,3 @@ ljqCtrl.Click(px, py)
 - **⚠️ 窗口坐标转换陷阱**：使用 `win32gui.GetWindowRect(hwnd)` 获取的矩形包含标题栏和边框，而截图内容是客户区。点击截图内元素时，必须用 `win32gui.ClientToScreen(hwnd, (0, 0))` 获取客户区原点的屏幕坐标，再加上截图内坐标。禁止直接用 GetWindowRect 左上角 + 截图坐标。
 - **⚠️ win32 DPI 坐标陷阱**：未调用 `SetProcessDPIAware()` 时，`GetWindowRect/ClientToScreen/GetClientRect` 等拿到的窗口/客户区坐标通常是**逻辑坐标**；若后续截图或 `ljqCtrl` 使用的是物理像素，必须统一做 `坐标 / ljqCtrl.dpi_scale`。等价方案：先 `SetProcessDPIAware()`，之后全流程直接使用 raw 物理坐标，禁止逻辑/物理坐标混用。
 - **文本输入**：ljqCtrl 无 TypeText/SendKeys。向输入框键入文本：先点击/三击选中字段，再 `pyperclip.copy('文本'); ljqCtrl.Press('ctrl+v')`。
-
-## 🛑 验证门禁（必须执行，否则流程未完成）
-
-| # | 验证动作 | 工具 | 预期结果 | PASS/FAIL |
-|---|----------|------|----------|-----------|
-| 1 | 模块导入 | code_run(python) | `import ljqCtrl` 无报错，`dpi_scale` > 0 | |
-| 2 | 窗口激活 | code_run(python) | `gw.getWindowsWithTitle(...)[0].activate()` 成功 | |
-| 3 | 坐标转换 | code_run(python) | 逻辑坐标 / dpi_scale 输出整数物理坐标 | |
-| 4 | 点击验证 | 肉眼 | 鼠标移动/点击到达目标位置，无偏移 | |
-
-最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

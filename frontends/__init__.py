@@ -1,1 +1,0 @@
-# frontends - GenericAgent frontend integrations package

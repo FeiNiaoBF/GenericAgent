@@ -2,9 +2,6 @@ import os, json, re, time, requests, sys, threading, urllib3, base64, importlib,
 from datetime import datetime
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 _RESP_CACHE_KEY = str(uuid.uuid4())
-# Hook lists for extensibility (plugins register callbacks here)
-_log_hooks = []          # Called in _write_llm_log(label, content)
-_sse_usage_hooks = []    # Called by SSE parsers with (raw_lines, usage_info)
 
 def _load_mykeys():
     global _mykey_path
@@ -92,9 +89,9 @@ print = safeprint
 
 def trim_messages_history(history, context_win):
     compress_history_tags(history)
-    cost = sum(len(json.dumps(m, ensure_ascii=False)) for m in history)
+    cost = sum(len(json.dumps(m, ensure_ascii=False)) for m in history) 
     print(f'[Debug] Current context: {cost} chars, {len(history)} messages.')
-    if cost > context_win * 3:
+    if cost > context_win * 3: 
         compress_history_tags(history, keep_recent=4, force=True)   # trim breaks cache, so compress more btw
         target = context_win * 3 * 0.6
         while len(history) > 5 and cost > target:
@@ -122,7 +119,6 @@ def _parse_claude_sse(resp_lines):
     """Parse Anthropic SSE stream. Yields text chunks, returns list[content_block]."""
     content_blocks = []; current_block = None; tool_json_buf = ""
     stop_reason = None; got_message_stop = False; warn = None
-    sse_usage = {"input_tokens": 0, "output_tokens": 0}
     for line in resp_lines:
         if not line: continue
         line = line.decode('utf-8') if isinstance(line, bytes) else line
@@ -136,7 +132,6 @@ def _parse_claude_sse(resp_lines):
         evt_type = evt.get("type", "")
         if evt_type == "message_start":
             usage = evt.get("message", {}).get("usage", {})
-            sse_usage["input_tokens"] = usage.get("input_tokens", 0)
             _record_usage(usage, "messages")
         elif evt_type == "content_block_start":
             block = evt.get("content_block", {})
@@ -169,7 +164,6 @@ def _parse_claude_sse(resp_lines):
             stop_reason = delta.get("stop_reason", stop_reason)
             out_usage = evt.get("usage", {})
             out_tokens = out_usage.get("output_tokens", 0)
-            sse_usage["output_tokens"] = out_tokens
             if out_tokens: print(f"[Output] tokens={out_tokens} stop_reason={stop_reason}")
         elif evt_type == "message_stop": got_message_stop = True
         elif evt_type == "error":
@@ -187,10 +181,6 @@ def _parse_claude_sse(resp_lines):
     if warn:
         print(f"[WARN] {warn.strip()}")
         content_blocks.append({"type": "text", "text": warn}); yield warn
-    # Call SSE usage hooks
-    for hook in _sse_usage_hooks:
-        try: hook(resp_lines, dict(sse_usage))
-        except Exception: pass
     return content_blocks
 
 def _try_parse_tool_args(raw):
@@ -215,7 +205,6 @@ def _parse_openai_sse(resp_lines, api_mode="chat_completions"):
     """
     content_text = ""
     if api_mode == "responses":
-        sse_usage = {"input_tokens": 0, "output_tokens": 0}
         seen_delta = False; fc_buf = {}; current_fc_idx = None
         for line in resp_lines:
             if not line: continue
@@ -251,10 +240,7 @@ def _parse_openai_sse(resp_lines, api_mode="chat_completions"):
                 break
             elif etype == "response.completed":
                 usage = evt.get("response", {}).get("usage", {})
-                if usage:
-                    _record_usage(usage, api_mode)
-                    sse_usage["input_tokens"] += usage.get("input_tokens", 0)
-                    sse_usage["output_tokens"] += usage.get("output_tokens", 0)
+                _record_usage(usage, api_mode)
                 break
         blocks = []
         if content_text: blocks.append({"type": "text", "text": content_text})
@@ -265,12 +251,8 @@ def _parse_openai_sse(resp_lines, api_mode="chat_completions"):
                 bid = fc["id"] or ''
                 if len(inps) > 1: bid = f"{bid}_{i}" if bid else f"split_{i}"
                 blocks.append({"type": "tool_use", "id": bid, "name": fc["name"], "input": inp})
-        for hook in _sse_usage_hooks:
-            try: hook(resp_lines, dict(sse_usage))
-            except Exception: pass
         return blocks
     else:
-        sse_usage = {"input_tokens": 0, "output_tokens": 0}
         tc_buf = {}  # index -> {id, name, args}
         reasoning_text = ""
         for line in resp_lines:
@@ -297,10 +279,7 @@ def _parse_openai_sse(resp_lines, api_mode="chat_completions"):
                 if tc.get("function", {}).get("arguments"): tc_buf[idx]["args"] += tc["function"]["arguments"]
                 if tc.get("id") and not tc_buf[idx]["id"]: tc_buf[idx]["id"] = tc["id"]
             usage = evt.get("usage")
-            if usage:
-                _record_usage(usage, api_mode)
-                sse_usage["input_tokens"] += usage.get("input_tokens", 0)
-                sse_usage["output_tokens"] += usage.get("output_tokens", 0) or usage.get("completion_tokens", 0)
+            if usage: _record_usage(usage, api_mode)
         blocks = []
         if reasoning_text: blocks.append({"type": "thinking", "thinking": reasoning_text})
         if content_text: blocks.append({"type": "text", "text": content_text})
@@ -311,9 +290,6 @@ def _parse_openai_sse(resp_lines, api_mode="chat_completions"):
                 bid = tc["id"] or ''
                 if len(inps) > 1: bid = f"{bid}_{i}" if bid else f"split_{i}"
                 blocks.append({"type": "tool_use", "id": bid, "name": tc["name"], "input": inp})
-        for hook in _sse_usage_hooks:
-            try: hook(resp_lines, dict(sse_usage))
-            except Exception: pass
         return blocks
 
 def _record_usage(usage, api_mode):
@@ -329,10 +305,9 @@ def _record_usage(usage, api_mode):
     elif api_mode == 'messages':
         ci, cr, inp = usage.get("cache_creation_input_tokens", 0), usage.get("cache_read_input_tokens", 0), usage.get("input_tokens", 0)
         print(f"[Cache] input={inp} creation={ci} read={cr}")
-
+    
 def _parse_openai_json(data, api_mode="chat_completions"):
     blocks = []
-    sse_usage = {"input_tokens": 0, "output_tokens": 0}
     if api_mode == "responses":
         _record_usage(data.get("usage") or {}, api_mode)
         for item in (data.get("output") or []):
@@ -383,7 +358,7 @@ def _stream_with_retry(sess, url, headers, payload, parse_fn):
     for attempt in range(sess.max_retries + 1):
         streamed = False
         try:
-            with requests.post(url, headers=headers, json=payload, stream=sess.stream,
+            with requests.post(url, headers=headers, json=payload, stream=sess.stream, 
                                timeout=(sess.connect_timeout, sess.read_timeout), proxies=sess.proxies, verify=sess.verify) as r:
                 if r.status_code >= 400:
                     if r.status_code in _RETRYABLE and attempt < sess.max_retries:
@@ -418,7 +393,7 @@ def _openai_stream(sess, messages):
     headers = {"Authorization": f"Bearer {sess.api_key}", "Content-Type": "application/json", "Accept": "text/event-stream"}
     if api_mode == "responses":
         url = auto_make_url(sess.api_base, "responses")
-        payload = {"model": model, "input": _to_responses_input(messages), "stream": sess.stream,
+        payload = {"model": model, "input": _to_responses_input(messages), "stream": sess.stream, 
                    "prompt_cache_key": _RESP_CACHE_KEY, "instructions": sess.system or "You are an Omnipotent Executor."}
         if sess.reasoning_effort: payload["reasoning"] = {"effort": sess.reasoning_effort}
         if sess.max_tokens: payload["max_output_tokens"] = sess.max_tokens
@@ -436,7 +411,7 @@ def _openai_stream(sess, messages):
     if sess.service_tier: payload["service_tier"] = sess.service_tier
     parse_fn = (lambda r: _parse_openai_sse(r.iter_lines(), api_mode)) if sess.stream else (lambda r: _parse_openai_json(r.json(), api_mode))
     return (yield from _stream_with_retry(sess, url, headers, payload, parse_fn))
-
+        
 def _prepare_oai_tools(tools, api_mode="chat_completions"):
     if api_mode == "responses":
         resp_tools = []
@@ -737,8 +712,8 @@ def openai_tools_to_claude(tools):
     return result
 
 class MockFunction:
-    def __init__(self, name, arguments): self.name, self.arguments = name, arguments
-
+    def __init__(self, name, arguments): self.name, self.arguments = name, arguments  
+         
 class MockToolCall:
     def __init__(self, name, args, id=''):
         arg_str = json.dumps(args, ensure_ascii=False) if isinstance(args, (dict, list)) else (args or '{}')
@@ -746,10 +721,10 @@ class MockToolCall:
 
 class MockResponse:
     def __init__(self, thinking, content, tool_calls, raw, stop_reason='end_turn'):
-        self.thinking = thinking; self.content = content
+        self.thinking = thinking; self.content = content          
         self.tool_calls = tool_calls; self.raw = raw
         self.stop_reason = 'tool_use' if tool_calls else stop_reason
-    def __repr__(self):
+    def __repr__(self):    
         return f"<MockResponse thinking={bool(self.thinking)}, content='{self.content}', tools={bool(self.tool_calls)}>"
 
 class ToolClient:
@@ -823,7 +798,7 @@ Follow these steps to think and act:
             user += str(m['content']) + "\n"
             self.total_cd_tokens += len(user) // 3
         if self.total_cd_tokens > 9000: self.last_tools = ''
-        user += "=== ASSISTANT ===\n"
+        user += "=== ASSISTANT ===\n" 
         return system + user
 
     def _parse_mixed_response(self, text):
@@ -895,7 +870,6 @@ def _ensure_text_block(blocks):
     blocks.insert(1, {"type": "text", "text": txt})
     return txt
 
-
 def _write_llm_log(label, content, log_path=None):
     if not log_path:
         log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'temp/model_responses/model_responses_{os.getpid()}.txt')
@@ -920,7 +894,7 @@ class MixinSession:
     def __init__(self, all_sessions, cfg):
         self._retries, self._base_delay = cfg.get('max_retries', 3), cfg.get('base_delay', 1.5)
         self._spring_sec = cfg.get('spring_back', 300)
-        self._sessions = [all_sessions[i].backend if isinstance(i, int) else
+        self._sessions = [all_sessions[i].backend if isinstance(i, int) else 
                           next(s.backend for s in all_sessions if type(s) is not dict and s.backend.name == i) for i in cfg.get('llm_nos', [])]
         is_native = lambda s: 'Native' in s.__class__.__name__
         groups = {is_native(s) for s in self._sessions}
@@ -1006,7 +980,7 @@ class NativeToolClient:
         combined_content = []; resp = None; tool_results = []
         for msg in messages:
             c = msg.get('content', '')
-            if msg['role'] == 'system':
+            if msg['role'] == 'system': 
                 self.set_system(c); continue
             if isinstance(c, str): combined_content.append({"type": "text", "text": c})
             elif isinstance(c, list): combined_content.extend(c)
@@ -1024,7 +998,7 @@ class NativeToolClient:
         _write_llm_log('Prompt', json.dumps(merged, ensure_ascii=False, indent=2), self.log_path)
         gen = self.backend.ask(merged)
         try:
-            while True:
+            while True: 
                 chunk = next(gen); yield chunk
         except StopIteration as e: resp = e.value
         if resp: _write_llm_log('Response', resp.raw, self.log_path)

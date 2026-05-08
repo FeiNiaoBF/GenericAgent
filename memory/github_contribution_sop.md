@@ -1,17 +1,29 @@
-# GitHub Contribution SOP (v1.0)
-
-## 执行摘要（≥1步执行前必读）
-1. 前置准备：读CONTRIBUTING.md → Fork+Clone → 找测试命令
-2. 分支开发：`git cb feat/xxx` → commit → 测试通过 → push
-3. 提PR+跟进：`gh pr create` → CI绿+review → `gh pr checks`轮询 → 🛑 过验证门禁
-
+# GitHub Contribution SOP
 **触发**：需要给开源项目提 PR（修 bug / 加功能 / 改文档）| **禁用**：仅读代码、不需要提交变更时
 **核心原则**：一个 PR 做一件事，测试通过才推，尊重项目规范
 
 ## 前置准备（每个新项目首次执行）
-1. **读项目规范**：`CONTRIBUTING.md` / `.github/PULL_REQUEST_TEMPLATE.md` / `.github/ISSUE_TEMPLATE/` → 没有则按本SOP默认流程
-2. **找测试命令**：`package.json`(Node) / `Makefile` / `pyproject.toml`(Python) → 记下命令，跑不了测试的PR=未验证
-3. **Fork+Clone**：`gh repo fork OWNER/REPO --clone && cd REPO && git remote -v`
+1. **读项目规范**（必须，不可跳过）
+   ```
+   file_read('CONTRIBUTING.md')  # 贡献指南
+   file_read('.github/PULL_REQUEST_TEMPLATE.md')  # PR 模板
+   file_read('.github/ISSUE_TEMPLATE/')  # Issue 模板
+   ```
+   没有就读 README 的 Contributing 部分。如果都没有，按本 SOP 默认流程。
+
+2. **了解项目结构和测试方式**
+   ```
+   # 找测试命令
+   file_read('package.json')  # Node: scripts.test
+   file_read('Makefile')      # 或 Makefile
+   file_read('pyproject.toml') # Python: [tool.pytest] 等
+   ```
+   记下测试命令备用。跑不了测试的 PR = 未验证的 PR。
+
+3. **Fork + Clone**
+   ```
+   code_run('bash', 'gh repo fork OWNER/REPO --clone && cd REPO && git remote -v')
+   ```
 
 ## 工作流程（每个 PR）
 
@@ -103,12 +115,3 @@ code_run('bash', 'gh pr status')
 code_run('bash', 'gh pr checks PR_NUMBER')
 code_run('bash', 'gh pr view PR_NUMBER --comments')
 ```
-
-## 🛑 验证门禁
-| 检查项 | PASS条件 | FAIL处理 | 状态 |
-|--------|---------|---------|------|
-| 规范已读 | CONTRIBUTING.md/PR_TEMPLATE已确认 | 补充阅读再开发 | |
-| 测试通过 | 项目测试命令全绿 | 修代码直到pass | |
-| CI全绿 | `gh pr checks`全部✅ | 看log修问题 | |
-
-最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

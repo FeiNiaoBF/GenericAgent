@@ -10,9 +10,6 @@ HELP_COMMANDS = (
     ("/continue [n]", "恢复第 n 个会话"),
     ("/llm", "查看当前模型列表"),
     ("/llm [n]", "切换到第 n 个模型"),
-    ("/sticker", "发送一个随机贴纸"),
-    ("/sticker [emoji]", "发送匹配emoji的贴纸"),
-    ("/stickerset [name]", "导入公开贴纸包（如 /stickerset UtyaDuck）"),
 )
 TELEGRAM_MENU_COMMANDS = (
     ("help", "显示帮助"),
@@ -45,13 +42,9 @@ HISTORY_RE = re.compile(r"<history>\s*(.*?)\s*</history>", re.DOTALL)
 SUMMARY_RE = re.compile(r"<summary>\s*(.*?)\s*</summary>", re.DOTALL)
 
 
-_TOOL_TRACE_RE = re.compile(r"^\s*(?:🛠️|⚙️|🔧)\s*\w+\(.*?\).*\n?", re.MULTILINE)
-
 def clean_reply(text):
     for pat in TAG_PATS:
         text = re.sub(pat, "", text or "", flags=re.DOTALL)
-    # Strip tool call traces like 🛠️ file_read({"path": ""})
-    text = _TOOL_TRACE_RE.sub("", text)
     return re.sub(r"\n{3,}", "\n\n", text).strip() or "..."
 
 
@@ -226,8 +219,7 @@ def allowed_label(allowed):
 def ensure_single_instance(port, label):
     try:
         lock_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        lock_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        lock_sock.bind(("0.0.0.0", port))
+        lock_sock.bind(("127.0.0.1", port))
         return lock_sock
     except OSError:
         print(f"[{label}] Another instance is already running, skipping...")

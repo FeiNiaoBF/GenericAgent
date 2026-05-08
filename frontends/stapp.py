@@ -81,13 +81,14 @@ def render_sidebar():
                 except Exception: pass
             threading.Thread(target=_do, daemon=True).start()
         agent._pet_req = _pet_req
+        if not hasattr(agent, '_turn_end_hooks'): agent._turn_end_hooks = {}
         def _pet_hook(ctx):
             parts = [f"Turn {ctx.get('turn','?')}"]
             if ctx.get('summary'): parts.append(ctx['summary'])
             if ctx.get('exit_reason'): parts.append('DONE')
             _pet_req(f'msg={quote(chr(10).join(parts))}')
             if ctx.get('exit_reason'): _pet_req('state=idle')
-        agent.register_turn_end_hook('pet', _pet_hook)
+        agent._turn_end_hooks['pet'] = _pet_hook
         st.toast("Desktop pet started")
     
     if LANG == 'zh':

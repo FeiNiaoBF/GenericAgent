@@ -1,13 +1,7 @@
-"""
-adb_ui.py - Android UI结构解析
-API: ui(keyword=None, clickable_only=False, raw=False) → 节点列表
-     tap(x, y) → 点击坐标
-设计: u2优先(auto uiautomator2), 失败降级原生dump
-      自动跳过termux噪音, 弹窗检测用clickable_only=True+raw=True
-已知包名: 美团外卖=com.sankuai.meituan.takeoutnew 淘宝=com.taobao.taobao
-⚠️ 需开启USB调试+adb命令+java(原生dump需要)
-   u2不受idle限制, 适合动画密集app
-"""
+# adb_ui.py - 一键dump+解析Android UI (u2优先，原生fallback)
+# u2 (uiautomator2) 不受idle限制，适合动画密集app（美团等）
+# 弹窗检测: ui(clickable_only=True, raw=True) 找全屏FrameLayout+底部小ImageView(关闭X)
+# 已知包名: 美团外卖=com.sankuai.meituan.takeoutnew 淘宝=com.taobao.taobao
 import subprocess, xml.etree.ElementTree as ET, os, re, shutil
 
 ADB = shutil.which("adb") or "adb"

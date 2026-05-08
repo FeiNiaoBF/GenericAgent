@@ -601,7 +601,8 @@ def handle_message(data):
         card = _TaskCard(receive_id, rid_type)
         card.start()
         on_final = lambda raw: _send_generated_files(receive_id, raw, receive_id_type=rid_type)
-        agent.register_turn_end_hook(hook_key, _make_task_hook(card, done_event, on_final))
+        if not hasattr(agent, '_turn_end_hooks'): agent._turn_end_hooks = {}
+        agent._turn_end_hooks[hook_key] = _make_task_hook(card, done_event, on_final)
         try:
             agent.put_task(user_input, source="feishu", images=image_paths)
             start = time.time()
@@ -618,7 +619,7 @@ def handle_message(data):
             traceback.print_exc()
             card.fail(f"错误: {e}")
         finally:
-            agent.unregister_turn_end_hook(hook_key)
+            agent._turn_end_hooks.pop(hook_key, None)
             user_tasks.pop(open_id, None)
 
     threading.Thread(target=run_agent, daemon=True).start()
