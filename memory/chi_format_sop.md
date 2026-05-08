@@ -68,7 +68,7 @@
 8. `_` 被解析斜体 → 路径/变量用行内代码包裹
 
 ## 六、平台适配
-- **Telegram (MarkdownV2)**: 表格→ASCII代码块；`---`→空行分隔；禁HTML
+- **Telegram (HTML)**: parse_mode=HTML；表格→ASCII代码块；`---`→空行分隔；`<blockquote>`必须封闭`</blockquote>`（裸标签会被预处理为`<_quote_>`,详见[tg_html渲染管线](../memory/tg_html_rendering_sop.md)）；Markdown标记（`**`/`*`）不适用
 - **飞书**: 表格≤5行
 - **[FILE:path]** 向用户展示文件
 - 链接规范: SOP交叉引用用 `[FILE:../memory/目标文件.md]`，单条消息≤3个链接 | 外部链接用 `[text](url)`

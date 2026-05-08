@@ -185,10 +185,10 @@ def reset_conversation(agent, message='🆕 已开启新对话，当前上下文
 
 def format_list(sessions, limit=20):
     if not sessions: return '❌ 没有可恢复的历史会话'
-    lines = ['**可恢复会话**（输入 `/continue N` 恢复第 N 个）：', '']
+    lines = ['可恢复会话（输入 /continue N 恢复第 N 个）：', '']
     for i, (_, mtime, first, n) in enumerate(sessions[:limit], 1):
-        preview = _escape_md((first or '（无法预览）').replace('\n', ' ')[:60])
-        lines.append(f'{i}. `{_rel_time(mtime)}` · **{n} 轮** · {preview}')
+        preview = (first or '（无法预览）').replace('\n', ' ')[:60]
+        lines.append(f'{i}. {_rel_time(mtime)} · {n} 轮 · {preview}')
     return '\n'.join(lines)
 
 def restore(agent, path):

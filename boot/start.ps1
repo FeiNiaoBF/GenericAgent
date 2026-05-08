@@ -310,7 +310,7 @@ $failList = if ($startedFail.Count -gt 0) { $startedFail -join ', ' } else { '' 
 $pythonExe = Join-Path $PSScriptRoot '..\.venv\Scripts\python.exe'
 if (-not (Test-Path $pythonExe)) { $pythonExe = 'python' }
 $notifyScript = Join-Path $PSScriptRoot 'notify_boot.py'
-& $pythonExe $notifyScript -Ok $okList -Fail $failList *> $null
+& $pythonExe $notifyScript -Ok $okList -Fail $failList *>> $bootLog
 
 # 开机自启提示 (不再静默安装)
 $vbsPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\GenericAgent.vbs"

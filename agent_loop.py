@@ -70,7 +70,7 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
             if tool_name == 'no_tool': pass
             else: 
                 if verbose: yield f"🛠️ Tool: `{tool_name}`  📥 args:\n````text\n{get_pretty_json(args)}\n````\n"
-                else: yield f"🛠️ {tool_name}({_compact_tool_args(tool_name, args)})\n\n\n"
+                else: pass  # tool call display suppressed for clean output
             handler.current_turn = turn
             gen = handler.dispatch(tool_name, args, response, index=ii)
             try:

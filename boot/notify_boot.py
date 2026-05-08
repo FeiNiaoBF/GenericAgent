@@ -97,7 +97,9 @@ def main():
     # --- 发送到 TG ---
     token = read_mykey_token()
     config = read_boot_config()
-    tg_chat_id = config.get('notify_chat_id', '') or os.environ.get('GA_NOTIFY_CHAT_ID', '')
+    tg_chat_id = config.get('notify_chat_id', '') \
+                 or (config.get('bots', {}).get('tg', {}).get('notify_chat_id', '')) \
+                 or os.environ.get('GA_NOTIFY_CHAT_ID', '')
 
     if token and tg_chat_id:
         result = send_tg_message(token, tg_chat_id, text)
