@@ -9,13 +9,22 @@
 
 ## 1. Conventional Commits（祈使语气·≤72字符）
 `<type>[!][scope]: <description>` — type: feat/fix/docs/style/refactor/perf/test/build/ci/chore/revert
-`!`紧贴type=Breaking Change | body解释what/why | footer `Closes #123`
+`!`紧贴type=Breaking Change | body解释what/why | footer: `BREAKING CHANGE: <描述>`
+> 示例: `feat!: remove deprecated endpoint` 或 footer行 `BREAKING CHANGE: extends key behavior changed`
 
 ## 2. 提交四步法
 ① `git st` + `git diff [--staged]` 分析变更
+   - staged有内容→`git diff --staged`；未暂存→`git diff`
+   - 状态确认: `git status --porcelain` 精确输出
 ② `git a <files>` 逐文件暂存(一个commit一件事) — 禁: .env/credentials/*.pem/*.key
+   - Pattern: `git a "*.test.*"` / `git a src/components/*`
+   - Interactive: `git a -p`（逐hunk选择暂存，适合混合变更拆分）
 ③ 分析diff→确定type/scope/description
+   - Type: 变更性质？feat(新功能)/fix(修bug)/docs/style/refactor/perf/test/build/ci/chore/revert
+   - Scope: 影响哪个模块/目录？(可选)
+   - Description: 祈使语气现在时, ≤72字符, 如 "add user auth endpoint"
 ④ `git cm "<type>[scope]: <desc>"` | 多行用heredoc → `git ps`(新分支`git psu`)
+   - 多行示例: `git cm -m "$(cat <<'EOF'` + `<type>[scope]: <desc>` + 空行 + `<body>` + 空行 + `<footer>` + `EOF` + `)"`
 commit失败(hooks)→修复后新建commit，不amend
 
 ## 3. 安全红线
@@ -68,6 +77,8 @@ remote: `origin`=上游(lsdefine/GenericAgent), `yeelight`=当前fork
 3. `git merge --no-commit --no-ff origin/main`干跑检测冲突
 4. 对冲突文件列双方差异+合并建议→报告→等确认
 5. `git merge --abort`清理
+
+> **ff-only变体**：当main完全落后dev（无分叉）时，`git merge dev --ff-only`也可接受，fast-forward合并保持线性历史。默认仍推荐`--no-ff`保留merge commit记录。
 
 ### 标准顺序（用户确认后）
 ```
