@@ -21,6 +21,7 @@
 | SOP | 用途 | 触发词 |
 |-----|------|--------|
 | `memory_management_sop.md` | 四级记忆架构+写入原则+层级同步+验证+清理 | 写记忆前、动L1/L2、记新事实、validate |
+| `memory_cleanup_sop.md` | 记忆整理/去重/压缩/GC | 记忆太多、整理记忆、cleanup |
 | `sop_refactoring_sop.md` | SOP去重/合并/版本升级6步流程 | 发现重叠SOP、SOP版本升级 |
 
 ---
@@ -30,14 +31,11 @@
 
 | SOP | 用途 | 触发词 |
 |-----|------|--------|
-| `chi_character_card.md` | 唧の人格定义、世界观、互动风格 | 忘记身份、人格漂移、角色重置 |
-| `chii_compress_sop.md` | 唧式四级压缩(温柔→烁光) | 对话风格切换、token紧张 |
-| `chi_format_sop.md` | FILE引用、代码块、表格格式规范 | 格式错误、主人指出格式问题 |
-| `chii_master_journal.md` | 唧の足迹日记 | 每日收尾记录 |
-
----
-
-### 📆 RHYTHM · 日常节奏
+| `sys_prompt.txt` (GA主力) | 唧の核心人格+三重身份+说话规则+行动原则 | 忘记身份、人格漂移、角色重置 |
+| `chi_character_card.md` (旧档) | SillyTavern/外部平台用完整角色卡 | 酒馆、Chub、外部平台 |
+| `chi_format_sop.md` | 唧の格式规范(粗体重音/斜体内心/段落≤3句) | 格式、排版、format |
+| `chii_compress_sop.md` | 唧式压缩术(4级:温柔→伶俐→干练→烁光) | 压缩、简洁、compress |
+| `chii_master_journal.md` | 唧の主日记/成长记录 | 日记、journal、成长 |
 > 定时任务、每日流程、备考
 
 | SOP | 用途 | 触发词 |
@@ -45,6 +43,7 @@
 | `daily_task_sop.md` | 每日开场检查、清点、收尾 | 每天启动、早晨 |
 | `daily_news_sop.md` | 每日新闻简报 | 新闻、今日消息 |
 | `autonomous_operation_sop.md` | 自主定时任务调度 | 定时任务、cron |
+| `scheduled_task_sop.md` | 定时任务配置+任务JSON规范 | 定时、scheduled、schedule |
 | `gongji_exam_sop.md` | 公基备考(唧式陪练4Phase) | 公基、备考、刷题、时政
 
 ---
@@ -59,6 +58,13 @@
 | `web_search_sop.md` | Google搜索规范 | 搜索、Google、查资料 |
 | `vision_sop.md` | OCR/截图/视觉识别(cotract+guardrails) | 截图、识别、OCR |
 | `git_sop.md` 🆕 | Git操作规范 | commit、push、branch |
+| `gcal_sop.md` | Google Calendar API操作 | 日历、gcal、日程 |
+| `tg_send_file_sop.md` | TG文件发送/上传 | TG发送、上传文件、send |
+| `procmem_scanner_sop.md` | 进程内存扫描(CE风格Hex/字符串) | 内存扫描、cheat engine |
+| `web_setup_sop.md` | WebDriver环境初始化+配置 | webdriver安装、环境搭建 |
+| `subagent.md` | 子Agent启动/通信/监督 | 子agent、subagent、代理 |
+| `start.ps1` | boot启动主控（CLI启动GA+前端+GUI） | 启动GA、boot、start |
+| `launcher.ps1` | 桌面GUI启动入口（lnk目标） | 桌面启动、launcher |
 
 ---
 
@@ -106,6 +112,10 @@
 | `plan_sop.md` | 任务规划框架 | 做计划、规划、方案 |
 | `verify_sop.md` | 任务完成验证+复查 | 验证、复查、check |
 | `user_profile_sop.md` | 主人画像（数据文件） | 主人偏好、画像 |
+| `project_doc_sop.md` | 项目文档生成规范 | 文档、README、项目说明 |
+| `codebase_traversal_sop.md` | 代码库遍历/索引/结构分析 | 遍历代码、代码结构、codebase |
+| `supervisor_sop.md` | 任务监督/自检/纠偏流程 | 监督、检查、自检、audit |
+| `codex_collaboration_sop.md` | Codex协作战术手册(边界/诊断/复现) | Codex协作、边界、诊断 |
 
 ---
 

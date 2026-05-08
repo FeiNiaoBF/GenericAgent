@@ -4,7 +4,8 @@ GenericAgent Boot 统一启动器 — 从 config/boot_config.json 读取配置�
 用法:
   cd boot; .\start.ps1                     -> 按配置启动已启用的bot
   cd boot; .\start.ps1 -Bots "tg,fs"       -> 启动指定bot并保存配置
-  cd boot; .\start.ps1 -Restart            -> 重启(停所有→按配置启动)
+  cd boot; .\start.ps1 -Restart            -> 重启(优雅停止→启动)
+  cd boot; .\start.ps1 -Stop               -> 优雅停止所有bot
   cd boot; .\start.ps1 -Status             -> 查看运行状态 
   cd boot; .\start.ps1 -SetupAutoStart     -> 安装开机自启动
   cd boot; .\start.ps1 -RemoveAutoStart    -> 移除开机自启动
@@ -12,6 +13,7 @@ GenericAgent Boot 统一启动器 — 从 config/boot_config.json 读取配置�
 param(
     [string]$Bots = "",
     [switch]$Restart,
+    [switch]$Stop,
     [switch]$Status,
     [switch]$SetupAutoStart,
     [switch]$RemoveAutoStart
@@ -21,6 +23,8 @@ $BootDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ProjectRoot = Resolve-Path (Join-Path $BootDir '..')
 $ConfigPath = Join-Path $ProjectRoot "config\boot_config.json"
 $LogPath = Join-Path $ProjectRoot "logs\boot.log"
+$LogDir = Split-Path $LogPath
+if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Path $LogDir -Force | Out-Null }
 
 # ---------- helper ----------
 function Write-Log { param([string]$msg)
@@ -53,12 +57,26 @@ function Get-RunningPids { param([string]$scriptName)
         Select-Object -ExpandProperty Id
 }
 
-function Stop-Bot { param([string]$scriptPath, [string]$botLabel)
+function Stop-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botKey = "")
     $pids = Get-RunningPids $scriptPath
     if ($pids.Count -eq 0) { Write-Log "  [$botLabel] 未运行" }
     else {
-        foreach ($pidVal in $pids) {
-            try { Stop-Process -Id $pidVal -Force; Write-Log "  [$botLabel] 已停止 PID=$pidVal" }
+        # Signal graceful shutdown
+        if ($botKey) {
+            $shutdownFile = Join-Path $ProjectRoot "temp\.shutdown_$botKey"
+            Set-Content -Path $shutdownFile -Value "shutdown" -Force
+            Write-Log "  [$botLabel] 发送关闭信号..."
+            $waited = 0
+            while ($waited -lt 8) {
+                Start-Sleep -Seconds 1
+                $waited++
+                $remaining = Get-RunningPids $scriptPath
+                if ($remaining.Count -eq 0) { Write-Log "  [$botLabel] 已优雅退出"; return }
+            }
+            Write-Log "  [$botLabel] 优雅关闭超时, 强制停止"
+        }
+        foreach ($pidVal in (Get-RunningPids $scriptPath)) {
+            try { Stop-Process -Id $pidVal -Force; Write-Log "  [$botLabel] 强制停止 PID=$pidVal" }
             catch { Write-Log "  [$botLabel] 停止失败 PID=$pidVal : $_" }
         }
     }
@@ -141,7 +159,14 @@ function Resolve-Pythonw {
 # ---------- load / write config ----------
 function Get-Config {
     if (-not (Test-Path $ConfigPath)) {
-        Write-Log "配置不存在: $ConfigPath, 无法启动"
+        $examplePath = Join-Path $ProjectRoot "config\boot_config.example.json"
+        if (Test-Path $examplePath) {
+            Copy-Item $examplePath $ConfigPath -Force
+            Write-Log "配置不存在, 已从 example 创建: $ConfigPath"
+            Write-Log "请编辑 $ConfigPath 填入实际配置后再启动"
+            exit 0
+        }
+        Write-Log "配置不存在: $ConfigPath (也无 example 模板), 无法启动"
         exit 1
     }
     $cfg = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -212,9 +237,22 @@ if ($Restart) {
     foreach ($key in $cfg.bots.PSObject.Properties.Name) {
         $bot = $cfg.bots.$key
         $scriptPath = Join-Path $ProjectRoot $bot.entry
-        Stop-Bot $scriptPath $bot.name
+        Stop-Bot $scriptPath $bot.name $key
     }
+    Start-Sleep -Seconds 1
     Write-Log "--- 重启模式: 启动bot ---"
+}
+
+# --- Stop: graceful stop all ---
+if ($Stop) {
+    Write-Log "--- 停止模式: 优雅停止所有bot ---"
+    foreach ($key in $cfg.bots.PSObject.Properties.Name) {
+        $bot = $cfg.bots.$key
+        $scriptPath = Join-Path $ProjectRoot $bot.entry
+        Stop-Bot $scriptPath $bot.name $key
+    }
+    Write-Log "--- 停止完成 ---"
+    exit 0
 }
 
 # --- determine which bots to start ---

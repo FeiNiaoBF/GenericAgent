@@ -1,0 +1,48 @@
+{
+  "pythonw": ".venv\\Scripts\\pythonw.exe",
+  "bots": {
+    "gui": {
+      "name": "GUI",
+      "entry": "boot\\run_gui.pyw",
+      "enabled": true
+    },
+    "tg": {
+      "name": "Telegram",
+      "entry": "boot\\run_tg.py",
+      "enabled": true,
+      "notify_chat_id": "8195469192"
+    },
+    "fs": {
+      "name": "飞书",
+      "entry": "frontends\\fsapp.py",
+      "enabled": true,
+      "notify_chat_id": "ou_d0ef9bf103adbc4cc259eb9f163fadaa",
+      "notify_chat_type": "open_id"
+    },
+    "dingtalk": {
+      "name": "钉钉",
+      "entry": "frontends\\dingtalkapp.py",
+      "enabled": false
+    },
+    "qq": {
+      "name": "QQ",
+      "entry": "frontends\\qqapp.py",
+      "enabled": false
+    },
+    "wechat": {
+      "name": "微信",
+      "entry": "frontends\\wechatapp.py",
+      "enabled": false
+    },
+    "launch": {
+      "name": "GA Core",
+      "entry": "launch.pyw",
+      "enabled": true
+    },
+    "hub": {
+      "name": "Hub",
+      "entry": "hub.pyw",
+      "enabled": true
+    }
+  }
+}

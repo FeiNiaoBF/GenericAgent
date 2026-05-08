@@ -1,12 +1,11 @@
 ﻿<#
 .SYNOPSIS
-    GA 桌面启动器 — 每次点击随机切换ちぃ图标，先停止后启动
+    GA 桌面启动器 — 每次点击随机切换ちぃ图标，一键重启
 .DESCRIPTION
     双击桌面"启动GA.lnk"即运行此脚本。
     1. 随机选取 icons/ 下一个 .ico 立即更新快捷方式图标
-    2. 调用 stop.ps1 优雅停止所有bot
-    3. 等待3秒后调用 start.ps1 启动
-    4. 完成后再次随机选图标预设下次点击显示
+    2. 调用 start.ps1 -Restart 优雅重启所有bot
+    3. 完成后再次随机选图标预设下次点击显示
 #>
 param(
     [string]$IconFolder = "$PSScriptRoot\icons"
@@ -84,26 +83,28 @@ if ($pick) {
     }
 }
 
-# --- 第2步：停止所有bot ---
-Write-Log "停止 GA..."
+# --- 第2步：重启bot（优雅停止→启动） ---
+Write-Log "重启 GA..."
 Write-Host ""
-Write-Host "🛑 === 停止 GA 中... ===" -ForegroundColor Yellow
-$stopScript = Join-Path $BootDir "stop.ps1"
-& $stopScript 2>&1 | ForEach-Object { Write-Host $_ }
-Write-Log "stop.ps1 退出码: $LASTEXITCODE"
-
-# --- 第3步：等待 + 启动 ---
-Write-Log "等待 3 秒..."
-Write-Host ""
-Write-Host "⏳ 等待 3 秒后启动..." -ForegroundColor DarkGray
-Start-Sleep -Seconds 3
-
-Write-Log "启动 GA..."
-Write-Host ""
-Write-Host "🚀 === 启动 GA 中... ===" -ForegroundColor Green
+Write-Host "🔄 === 重启 GA 中... ===" -ForegroundColor Green
 $startScript = Join-Path $BootDir "start.ps1"
-& $startScript 2>&1 | ForEach-Object { Write-Host $_ }
-Write-Log "start.ps1 退出码: $LASTEXITCODE"
+& $startScript -Restart 2>&1 | ForEach-Object { Write-Host $_ }
+Write-Log "start.ps1 -Restart 退出码: $LASTEXITCODE"
+
+# --- 第3步：启动 GUI ---
+$GuiScript = Join-Path $BootDir "run_gui.pyw"
+$VenvDir = Join-Path (Split-Path $BootDir) ".venv"
+$Pythonw = Join-Path (Join-Path $VenvDir "Scripts") "pythonw.exe"
+if (Test-Path $Pythonw) {
+    Write-Log "启动 GUI..."
+    Write-Host ""
+    Write-Host "🖥️  启动 GUI..." -ForegroundColor Cyan
+    Start-Process -FilePath $Pythonw -ArgumentList "`"$GuiScript`""
+    Write-Log "GUI 已启动"
+} else {
+    Write-Log "pythonw.exe 未找到: $Pythonw" -Level "WARN"
+    Write-Host "⚠️  pythonw 未找到，跳过 GUI 启动" -ForegroundColor Yellow
+}
 
 # --- 第4步：预设下次点击的随机图标 ---
 $nextPick = Get-RandomIcon -Folder $IconFolder
