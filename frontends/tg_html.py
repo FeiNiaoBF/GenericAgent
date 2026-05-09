@@ -17,6 +17,7 @@ _LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)\n]+)\)")
 _TABLE_SEPARATOR_CELL_RE = re.compile(r"^:?-{3,}:?$")
 _TABLE_CELL_MAX_WIDTH = 40
 _TURN_MARKER_RE = re.compile(r"^\*{0,2}LLM Running \(Turn \d+\) \.\.\.\*{0,2}\s*$", re.MULTILINE)
+_CODE_FENCE_LINE_RE = re.compile(r"^\s*(`{3,})(.*)$")
 _INTERNAL_QUOTE_RE = re.compile(r"<_quote_>([\s\S]*?)</_quote_>", re.DOTALL)
 _FILE_MARKER_RE = re.compile(r"\[FILE:([^\]]+)\]")
 _SUMMARY_CAPTURE_RE = re.compile(r"<summary>\s*(.*?)\s*</summary>", re.IGNORECASE | re.DOTALL)
@@ -44,7 +45,29 @@ def tg_html_escape(text):
 
 
 def _strip_turn_markers(text):
-    return _TURN_MARKER_RE.sub("", text or "")
+    if not text:
+        return ""
+
+    cleaned_lines = []
+    code_fence_len = 0
+    for line in text.splitlines(keepends=True):
+        is_turn_marker = code_fence_len == 0 and bool(
+            _TURN_MARKER_RE.fullmatch((line or "").strip())
+        )
+        if not is_turn_marker:
+            cleaned_lines.append(line)
+
+        match = _CODE_FENCE_LINE_RE.match(line or "")
+        if not match:
+            continue
+        fence_len = len(match.group(1))
+        if code_fence_len:
+            if fence_len >= code_fence_len:
+                code_fence_len = 0
+        else:
+            code_fence_len = fence_len
+
+    return "".join(cleaned_lines)
 
 
 def _render_file_markers(text):

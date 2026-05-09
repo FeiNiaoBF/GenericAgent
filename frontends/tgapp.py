@@ -43,6 +43,7 @@ from chatapp_common import (
     require_runtime,
 )
 from continue_cmd import handle_frontend_command, reset_conversation
+from plan_cmd import handle_frontend_command as handle_plan_frontend
 from llmcore import mykeys
 from frontends.persona_pool import get_phrase, load_phrase_pool
 from frontends.tg_html import (
@@ -62,6 +63,8 @@ _CHII = load_phrase_pool()
 
 _RETRY_AFTER_MARGIN_SECONDS = 1.0
 _QUEUE_WAIT_SECONDS = 1
+_STREAM_UPDATE_INTERVAL_SECONDS = 2.0
+_STREAM_MIN_UPDATE_CHARS = 400
 _ASK_MENU_MAX_SIZE = 200
 _ASK_USER_HOOK_KEY = "telegram_ask_user_menu"
 _ASK_CALLBACK_PREFIX = "ask:"
@@ -78,6 +81,8 @@ _SUMMARY_MAX_RETAINED = 3
 _SUMMARY_SIMILARITY_THRESHOLD = 0.88
 _SUMMARY_RECENT_WINDOW = 5
 _ENABLE_TG_SUMMARIES = False
+_TURN_MARKER_RE = re.compile(r"^\*{0,2}LLM Running \(Turn (\d+)\) \.\.\.\*{0,2}\s*$")
+_CODE_FENCE_RE = re.compile(r"^\s*(`{3,})(.*)$")
 _STICKER_EXTENSIONS = {".tgs", ".webm", ".webp"}
 _NOTIFY_STICKERS = {
     "wake": {"set_name": "ChiChiStickers_by_ohchii_bot", "emoji": "😊"},
@@ -269,6 +274,27 @@ def _summary_similarity(left, right):
     if shorter and shorter in longer and len(shorter) / max(1, len(longer)) >= 0.72:
         return len(shorter) / max(1, len(longer))
     return SequenceMatcher(a=left, b=right).ratio()
+
+
+def _line_complete(line):
+    return (line or "").endswith(("\n", "\r"))
+
+
+def _turn_marker_number(line):
+    match = _TURN_MARKER_RE.fullmatch((line or "").strip())
+    return int(match.group(1)) if match else None
+
+
+def _maybe_partial_turn_marker(line):
+    text = (line or "").strip().lstrip("*")
+    if not text:
+        return False
+    marker_head = "LLM Running (Turn "
+    return marker_head.startswith(text) or text.startswith(marker_head)
+
+
+def _maybe_partial_code_fence(line):
+    return bool(re.match(r"^\s*`{1,}[^`\r\n]*$", line or ""))
 
 
 async def _send_files(root_msg, files):
@@ -473,6 +499,9 @@ class _TelegramReplySession:
         self.live_msg = None
         self.raw_text = ""
         self.retry_until = 0.0
+        self.active_preview_segment = ""
+        self.last_stream_update_at = 0.0
+        self.last_stream_raw_len = 0
         self.summary_buffer = ""
         self.can_use_summary_draft = hasattr(self.root_msg, "reply_text_draft")
         self.summary_retained_count = 0
@@ -501,6 +530,9 @@ class _TelegramReplySession:
         wait_seconds = self._retry_after_seconds(exc) + _RETRY_AFTER_MARGIN_SECONDS
         self.retry_until = max(self.retry_until, self._now() + wait_seconds)
 
+    def _is_retrying(self):
+        return self._now() < self.retry_until
+
     async def _wait_for_retry(self):
         remaining = self.retry_until - self._now()
         if remaining > 0:
@@ -514,6 +546,9 @@ class _TelegramReplySession:
             except RetryAfter as exc:
                 self._set_retry_after(exc)
 
+    def _plain_text_fallback(self):
+        return render_for_telegram_plain_text(self.raw_text) or "..."
+
     async def _reply_html_once(self, html_text):
         try:
             return await self.root_msg.reply_text(html_text, parse_mode=ParseMode.HTML)
@@ -521,8 +556,7 @@ class _TelegramReplySession:
             self._set_retry_after(exc)
             raise
         except Exception:
-            fallback_text = render_for_telegram_plain_text(self.raw_text) or "..."
-            return await self.root_msg.reply_text(fallback_text)
+            return await self.root_msg.reply_text(self._plain_text_fallback())
 
     async def _edit_html_once(self, msg, html_text):
         try:
@@ -533,8 +567,7 @@ class _TelegramReplySession:
         except Exception as exc:
             if _is_not_modified_error(exc):
                 return msg
-            fallback_text = render_for_telegram_plain_text(self.raw_text) or "..."
-            updated = await msg.edit_text(fallback_text)
+            updated = await msg.edit_text(self._plain_text_fallback())
         return updated if hasattr(updated, "edit_text") else msg
 
     async def _edit_summary_message_once(self, msg, html_text):
@@ -558,6 +591,14 @@ class _TelegramReplySession:
 
     def _make_draft_id(self):
         return max(1, int(uuid.uuid4().int % (2**31 - 1)))
+
+    def _summary_html(self, summary, strip_blockquotes=False):
+        safe_summary = summary.replace("<_quote_>", "").replace("</_quote_>", "")
+        if strip_blockquotes:
+            safe_summary = safe_summary.replace("<blockquote>", "").replace(
+                "</blockquote>", ""
+            )
+        return render_for_telegram_html(f"<_quote_>{safe_summary}</_quote_>")
 
     async def _send_summary_once(self, html_text):
         if self.can_use_summary_draft:
@@ -637,12 +678,7 @@ class _TelegramReplySession:
                 self.sent_summaries.add(key)
                 if len(key) <= len(self.last_summary_key):
                     continue
-                safe_summary = summary.replace("<_quote_>", "").replace(
-                    "</_quote_>", ""
-                )
-                html_summary = render_for_telegram_html(
-                    f"<_quote_>{safe_summary}</_quote_>"
-                )
+                html_summary = self._summary_html(summary)
                 if not html_summary:
                     continue
                 await self._retry_call(self._replace_last_summary_once, html_summary)
@@ -660,13 +696,7 @@ class _TelegramReplySession:
                 self.sent_summaries.add(key)
                 continue
             self.sent_summaries.add(key)
-            safe_summary = summary.replace("<_quote_>", "").replace("</_quote_>", "")
-            safe_summary = safe_summary.replace("<blockquote>", "").replace(
-                "</blockquote>", ""
-            )
-            html_summary = render_for_telegram_html(
-                f"<_quote_>{safe_summary}</_quote_>"
-            )
+            html_summary = self._summary_html(summary, strip_blockquotes=True)
             if not html_summary:
                 continue
             await self._wait_for_summary_slot()
@@ -699,23 +729,50 @@ class _TelegramReplySession:
         self.summary_buffer = ""
         await self._emit_summary_list(summaries)
 
-    async def prime(self):
-        placeholder = escape_html(_chii("thinking"))
-        self.live_msg = await self._retry_call(self._reply_html_once, placeholder)
+    def _current_preview_segment(self):
+        html_body = render_for_telegram_html(self.raw_text)
+        if not html_body:
+            return ""
+        segments = split_html_text(html_body, TELEGRAM_HTML_LIMIT)
+        return segments[-1] if segments else ""
 
-    async def add_chunk(self, chunk):
-        if chunk:
-            self.raw_text += chunk
-
-    async def finalize(self, full_text=None, send_files=True, explicit_files=None):
-        if full_text is not None:
-            self.raw_text = full_text
-
-        files = (
-            explicit_files
-            if explicit_files is not None
-            else _files_from_text(self.raw_text)
+    def _should_stream_preview_update(self, preview_segment):
+        if not preview_segment or preview_segment == self.active_preview_segment:
+            return False
+        if self.last_stream_update_at <= 0:
+            return True
+        elapsed = self._now() - self.last_stream_update_at
+        raw_delta = len(self.raw_text) - self.last_stream_raw_len
+        return (
+            elapsed >= _STREAM_UPDATE_INTERVAL_SECONDS
+            or raw_delta >= _STREAM_MIN_UPDATE_CHARS
         )
+
+    def _mark_stream_preview_update(self, preview_segment):
+        self.active_preview_segment = preview_segment
+        self.last_stream_update_at = self._now()
+        self.last_stream_raw_len = len(self.raw_text)
+
+    async def _upsert_live_html(self, html_text, wait_retry=True):
+        if self.live_msg is None:
+            handler = self._reply_html_once
+            args = (html_text,)
+        else:
+            handler = self._edit_html_once
+            args = (self.live_msg, html_text)
+
+        if wait_retry:
+            self.live_msg = await self._retry_call(handler, *args)
+        else:
+            self.live_msg = await handler(*args)
+        return self.live_msg
+
+    def _resolved_output_files(self, explicit_files=None):
+        if explicit_files is not None:
+            return explicit_files
+        return _files_from_text(self.raw_text)
+
+    def _render_output_segments(self, files):
         html_body = render_for_telegram_html(self.raw_text)
         if not html_body and files:
             html_body = escape_html(_chii("file"))
@@ -723,16 +780,42 @@ class _TelegramReplySession:
             html_body = escape_html(_chii("empty"))
 
         segments = split_html_text(html_body, TELEGRAM_HTML_LIMIT)
-        if not segments:
-            segments = [escape_html(_chii("empty"))]
+        return segments or [escape_html(_chii("empty"))]
+
+    async def _maybe_stream_preview(self):
+        if self._is_retrying():
+            return
+        preview_segment = self._current_preview_segment()
+        if not self._should_stream_preview_update(preview_segment):
+            return
+        try:
+            await self._upsert_live_html(preview_segment, wait_retry=False)
+        except RetryAfter:
+            return
+        self._mark_stream_preview_update(preview_segment)
+
+    async def prime(self):
+        placeholder = escape_html(_chii("thinking"))
+        await self._upsert_live_html(placeholder)
+        self.active_preview_segment = placeholder
+
+    async def add_chunk(self, chunk):
+        if chunk:
+            self.raw_text += chunk
+            await self._maybe_stream_preview()
+
+    async def finalize(self, full_text=None, send_files=True, explicit_files=None):
+        if full_text is not None:
+            self.raw_text = full_text
+
+        files = self._resolved_output_files(explicit_files)
+        segments = self._render_output_segments(files)
 
         first = segments[0]
-        if self.live_msg is None:
-            self.live_msg = await self._retry_call(self._reply_html_once, first)
-        else:
-            self.live_msg = await self._retry_call(
-                self._edit_html_once, self.live_msg, first
-            )
+        await self._upsert_live_html(first)
+        self.active_preview_segment = first
+        self.last_stream_update_at = self._now()
+        self.last_stream_raw_len = len(self.raw_text)
 
         for segment in segments[1:]:
             await self._retry_call(self._reply_html_once, segment)
@@ -746,6 +829,7 @@ class _TelegramReplySession:
             await self._retry_call(self._reply_html_once, html_notice)
             return
         await self._retry_call(self._edit_html_once, self.live_msg, html_notice)
+        self.active_preview_segment = html_notice
 
 
 async def _dispatch_pending_ask_user_events(msg):
@@ -756,9 +840,158 @@ async def _dispatch_pending_ask_user_events(msg):
         await _send_ask_user_menu(msg, event)
 
 
+class _TelegramTurnStreamCoordinator:
+    def __init__(self, root_msg):
+        self.root_msg = root_msg
+        self.session = None
+        self.pending_line = ""
+        self.code_fence_len = 0
+        self.last_turn = 0
+
+    async def prime(self):
+        await self._ensure_session()
+
+    async def add_chunk(self, chunk):
+        if not chunk:
+            return
+        text = self.pending_line + chunk
+        self.pending_line = ""
+        for line in text.splitlines(keepends=True):
+            if _line_complete(line):
+                await self._process_line(line)
+            elif _maybe_partial_turn_marker(line) or _maybe_partial_code_fence(line):
+                self.pending_line = line
+            else:
+                await self._process_line(line)
+
+    async def finalize(self, done_text="", send_files=True, explicit_files=None):
+        await self._flush_pending_line()
+        current_done_text = self._completed_session_text(done_text)
+        files = self._resolved_done_files(done_text, current_done_text, explicit_files)
+
+        if self.session is None:
+            if not current_done_text:
+                if send_files and files:
+                    await _send_files(self.root_msg, files)
+                return
+            await self._ensure_session()
+            await self._finalize_session(
+                current_done_text, send_files=send_files, explicit_files=files
+            )
+            return
+
+        if not self.session.raw_text.strip() and current_done_text:
+            await self._finalize_session(
+                current_done_text, send_files=send_files, explicit_files=files
+            )
+            return
+
+        await self._finalize_session(
+            current_done_text or None,
+            send_files=False,
+            explicit_files=files,
+            summary_text=current_done_text or self.session.raw_text,
+        )
+        if send_files:
+            await _send_files(self.root_msg, files)
+
+    async def finish_with_notice(self, notice):
+        await self._flush_pending_line()
+        await self._ensure_session()
+        await self.session.finish_with_notice(notice)
+
+    async def _ensure_session(self):
+        if self.session is None:
+            self.session = _TelegramReplySession(self.root_msg)
+            await self.session.prime()
+
+    def _resolved_done_files(self, done_text, current_done_text, explicit_files=None):
+        if explicit_files is not None:
+            return explicit_files
+        return _files_from_text(done_text or current_done_text)
+
+    async def _emit_full_text_summaries(self, text):
+        if not (_ENABLE_TG_SUMMARIES and text and self.session is not None):
+            return
+        await self.session.emit_summaries_from_full_text(text)
+
+    async def _finalize_session(
+        self,
+        full_text=None,
+        send_files=False,
+        explicit_files=None,
+        summary_text=None,
+    ):
+        await self._emit_full_text_summaries(
+            summary_text if summary_text is not None else full_text
+        )
+        await self.session.finalize(
+            full_text,
+            send_files=send_files,
+            explicit_files=explicit_files,
+        )
+
+    async def _start_turn(self, marker):
+        if self.session is not None and self.session.raw_text.strip():
+            await self._finalize_session(
+                send_files=False,
+                summary_text=self.session.raw_text,
+            )
+            self.session = None
+        await self._ensure_session()
+        await self.session.add_chunk(marker)
+
+    async def _add_to_current(self, text):
+        if not text:
+            return
+        await self._ensure_session()
+        if _ENABLE_TG_SUMMARIES:
+            await self.session.emit_summaries(text)
+        await self.session.add_chunk(text)
+
+    async def _process_line(self, line):
+        turn_no = _turn_marker_number(line)
+        if self.code_fence_len == 0 and turn_no == self.last_turn + 1:
+            self.last_turn = turn_no
+            await self._start_turn(line)
+            return
+        await self._add_to_current(line)
+        match = _CODE_FENCE_RE.match(line or "")
+        if match:
+            fence_len = len(match.group(1))
+            if self.code_fence_len:
+                if fence_len >= self.code_fence_len:
+                    self.code_fence_len = 0
+            else:
+                self.code_fence_len = fence_len
+
+    async def _flush_pending_line(self):
+        if not self.pending_line:
+            return
+        line = self.pending_line
+        self.pending_line = ""
+        await self._add_to_current(line)
+
+    def _completed_session_text(self, done_text):
+        done = done_text or ""
+        if not done:
+            return self.session.raw_text if self.session is not None else ""
+        if self.last_turn > 0:
+            marker = f"LLM Running (Turn {self.last_turn}) ..."
+            pos = done.rfind(marker)
+            if pos != -1:
+                return done[pos:]
+        current = self.session.raw_text if self.session is not None else ""
+        if current:
+            pos = done.rfind(current)
+            if pos != -1:
+                return done[pos:]
+        return done
+
+
 async def _stream(dq, msg):
-    session = _TelegramReplySession(msg)
-    await session.prime()
+    stream = _TelegramTurnStreamCoordinator(msg)
+    await stream.prime()
     try:
         while True:
             try:
@@ -777,30 +1010,26 @@ async def _stream(dq, msg):
             for item in items:
                 chunk = item.get("next", "")
                 if chunk:
-                    if _ENABLE_TG_SUMMARIES:
-                        await session.emit_summaries(chunk)
-                    await session.add_chunk(chunk)
+                    await stream.add_chunk(chunk)
                 await _dispatch_pending_ask_user_events(msg)
                 if "done" in item:
                     done_item = item
                     break
 
             if done_item is not None:
-                if _ENABLE_TG_SUMMARIES:
-                    await session.emit_summaries_from_full_text(done_item.get("done", ""))
                 explicit_files = _files_from_done_item(done_item)
-                await session.finalize(
+                await stream.finalize(
                     done_item.get("done", ""), explicit_files=explicit_files
                 )
                 await _dispatch_pending_ask_user_events(msg)
                 break
     except asyncio.CancelledError:
-        await session.finish_with_notice(_chii("stop"))
+        await stream.finish_with_notice(_chii("stop"))
     except RetryAfter as exc:
         print(f"[TG stream retry_after] {type(exc).__name__}: {exc}", flush=True)
     except Exception as exc:
         print(f"[TG stream error] {type(exc).__name__}: {exc}", flush=True)
-        await session.finish_with_notice(_chii("error"))
+        await stream.finish_with_notice(_chii("error"))
 
 
 def _normalized_command(text):
@@ -1007,6 +1236,10 @@ async def handle_command(update, ctx):
         if cmd != "/continue":
             await _cancel_stream_task(ctx)
         return await _reply_html(update.message, handle_frontend_command(agent, cmd))
+
+    if op == "/plan":
+        await _cancel_stream_task(ctx)
+        return await _reply_html(update.message, handle_plan_frontend(agent, cmd))
 
     return await _reply_html(update.message, HELP_TEXT)
 

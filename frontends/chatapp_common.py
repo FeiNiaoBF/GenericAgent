@@ -10,6 +10,7 @@ HELP_COMMANDS = (
     ("/continue [n]", "恢复第 n 个会话"),
     ("/llm", "查看当前模型列表"),
     ("/llm [n]", "切换到第 n 个模型"),
+    ("/plan [目标]", "进入 Plan 计划模式"),
 )
 TELEGRAM_MENU_COMMANDS = (
     ("help", "显示帮助"),
@@ -19,6 +20,7 @@ TELEGRAM_MENU_COMMANDS = (
     ("restore", "恢复上次对话历史"),
     ("continue", "列出可恢复会话；/continue n 恢复第 n 个"),
     ("llm", "查看模型列表；/llm n 切换到指定模型"),
+    ("plan", "进入 Plan 计划模式；/plan 目标 描述任务"),
 )
 
 
@@ -300,6 +302,8 @@ class AgentChatMixin:
             return await self.send_text(chat_id, _handle_continue_frontend(self.agent, cmd), **ctx)
         if op == "/new":
             return await self.send_text(chat_id, _reset_conversation(self.agent), **ctx)
+        if op == "/plan":
+            return await self.send_text(chat_id, _handle_plan_command(self.agent, cmd), **ctx)
         return await self.send_text(chat_id, HELP_TEXT, **ctx)
 
     async def run_agent(self, chat_id, text, **ctx):
@@ -333,4 +337,5 @@ class AgentChatMixin:
 
 from agentmain import GeneraticAgent as _GA
 from continue_cmd import handle_frontend_command as _handle_continue_frontend, install as _install_continue, reset_conversation as _reset_conversation
+from plan_cmd import handle_frontend_command as _handle_plan_command
 _install_continue(_GA)

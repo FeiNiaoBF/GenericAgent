@@ -27,6 +27,8 @@ from dataclasses import dataclass, field
 from itertools import count
 from typing import Any, Callable, Optional
 
+from plan_cmd import handle_frontend_command as _handle_plan_command
+
 try:
     from rich.markdown import Markdown
     from rich.panel import Panel
@@ -290,6 +292,7 @@ class GenericAgentTUI(App[None]):
             "llm": self._cmd_llm,
             "branch": self._cmd_branch,
             "rewind": self._cmd_rewind,
+            "plan": self._cmd_plan,
             "quit": lambda _args: self.exit(),
             "exit": lambda _args: self.exit(),
         }
@@ -407,6 +410,14 @@ class GenericAgentTUI(App[None]):
         new_session.task_seq = old_session.task_seq
         n = len(new_session.agent.llmclient.backend.history)
         self._system(f"Branched from #{old_session.agent_id} → #{new_session.agent_id} ({n} messages inherited).")
+
+    def _cmd_plan(self, args: list[str]) -> None:
+        cmd = "/plan" + (" " + " ".join(args) if args else "")
+        try:
+            reply = _handle_plan_command(self.current.agent, cmd)
+            self._system(reply)
+        except Exception as e:
+            self._system(f"/plan error: {e}")
 
     def _cmd_rewind(self, args: list[str]) -> None:
         session = self.current
