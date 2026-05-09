@@ -148,7 +148,7 @@ def parse_local_command(raw: str) -> tuple[str, list[str]] | None:
     name, *rest = text.split(maxsplit=1)
     cmd = name[1:].lower()
     args = rest[0].split() if rest else []
-    if cmd in {"help", "status", "new", "switch", "sessions", "stop", "llm", "branch", "rewind", "quit", "exit"}:
+    if cmd in {"help", "status", "new", "switch", "sessions", "stop", "llm", "branch", "rewind", "clear", "close", "quit", "exit"}:
         return cmd, args
     return None
 
@@ -201,7 +201,7 @@ class GenericAgentTUI(App[None]):
             with Vertical(id="main"):
                 yield Static("", id="status")
                 yield RichLog(id="log", wrap=True, highlight=True, markup=True)
-        yield Input(placeholder="Message, or /help  /new  /branch  /rewind  /switch  /stop  /llm  /resume", id="prompt")
+        yield Input(placeholder="Message, or /help  /new  /branch  /rewind  /switch  /clear  /close  /stop  /llm  /resume", id="prompt")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -293,6 +293,8 @@ class GenericAgentTUI(App[None]):
             "branch": self._cmd_branch,
             "rewind": self._cmd_rewind,
             "plan": self._cmd_plan,
+            "clear": self._cmd_clear,
+            "close": self._cmd_close,
             "quit": lambda _args: self.exit(),
             "exit": lambda _args: self.exit(),
         }
@@ -381,6 +383,8 @@ class GenericAgentTUI(App[None]):
             "/sessions - list sessions\n"
             "/status - show current/all status\n"
             "/stop - abort current session task\n"
+            "/clear - clear chat display (keeps LLM history)\n"
+            "/close - close current session (cannot close last)\n"
             "/llm - list models for current session\n"
             "/llm <n> - switch model for current session\n"
             "/quit - exit TUI\n\n"
@@ -478,6 +482,16 @@ class GenericAgentTUI(App[None]):
         try: session.agent.history.append(f"[USER]: /rewind {n}")
         except Exception: pass
         self._system(f"Rewound {n} turn(s). Removed {removed} history entries.")
+
+    def _cmd_clear(self, args: list[str]) -> None:
+        self.current.messages.clear(); self._refresh_all()
+
+    def _cmd_close(self, args: list[str]) -> None:
+        if len(self.sessions) <= 1:
+            self._system("Cannot close the last session."); return
+        del self.sessions[self.current_id]
+        self.current_id = next(iter(self.sessions))
+        self._refresh_all()
 
     def _cmd_switch(self, args: list[str]) -> None:
         if not args:
