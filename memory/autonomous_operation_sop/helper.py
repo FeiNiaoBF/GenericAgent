@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+import sys, io
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 """
 autonomous_task.py - 自主行动任务管理API
 放置: memory/autonomous_operation_sop/

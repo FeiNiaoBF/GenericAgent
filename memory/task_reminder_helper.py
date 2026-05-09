@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+import sys, io
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 """
 task_reminder_helper.py — 唧の定时任务提醒生成器
 用法: from memory.task_reminder_helper import create_task_reminders

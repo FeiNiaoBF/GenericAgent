@@ -63,9 +63,23 @@ scope边界: 每条 Knowledge 必含 `scope` 字段 — `科普`(对大众的通
 
 ## 5. MOC 规范 (v3.0)
 > 定位: 人工精选导航 + 自动动态索引 + 知识断言入口 + 待探索队列
-> 模板: [FILE:Codex Vitae/99.System/Templates/MOC.md] — v3.0 统一四层中枢
 
-### YAML 必填
+### ⚠️ 两种MOC模板（★创建前必读，禁止混淆）
+
+| | 顶层MOC（领域领航） | 主题MOC（知识聚合） |
+|---|---------|---------|
+| **模板** | `99.System/Templates/01-05Cat·LLM版.md` | `99.System/Templates/MOC.md` (v3.0) |
+| **定位** | 领域级领航(5大分部+子MOC指向) | 单一知识主题(笔记聚合) |
+| **指向** | 指向子MOC `[[子MOC名]]` | 指向笔记 `[[笔记名]]` + Dataview |
+| **字段** | 无moc字段 | `moc: "[[所属顶层MOC]]"` |
+| **区块** | domain/subjects/顶层关系/增长引擎/7区地图 | v3.0按需(地图边界/精选导航/知识断言/动态索引等) |
+| **何时建** | 新学科领域首次建MOC | 领域内某主题≥3篇笔记需聚合时 |
+
+**决策树**: 新学科/领域级→顶层MOC(01-05Cat模板,不填moc) | 领域内某主题→主题MOC(MOC.md v3.0,moc必填)
+
+**🚫 禁手**: 主题MOC禁用顶层MOC模板 | 顶层MOC禁用v3.0模板 | 不区分就建MOC
+
+### 主题MOC YAML 必填
 ```yaml
 type: moc
 status: seedling/budding/evergreen
@@ -98,8 +112,14 @@ scope: ""          # 地图边界：本MOC覆盖的知识范围说明
 `vault_classifier inspect --moc` 检查 moc字段/scope/静态表/孤儿(moc字段缺失或不在总览表)
 附加检查: `grep -r "moc:" 03.Library/Notes/ 05.Knowledge/ | grep -v "moc: \"\"" ` 验证笔记断言已挂载MOC
 
+### MOC 创建后同步清单 (★闭环必做)
+建完MOC后必须同步，否则知识孤岛：
+1. **顶层MOC**: 新增 `- [[主题MOC名]]` 精选导航项
+2. **Quests三件套** (若有对应Quest): Dashboard→进度更新 | 备考→updated日期 | 备考地图→updated日期
+3. **MOC总览**: 新增行到静态表格
+
 ### MOC 红牌
-🚫 禁只Dataview无手动精选(≥3篇) | 🚫 子MOC必填moc字段 | 🚫 总览必有静态表格fallback | 🚫 笔记≥10→budding, ≥20→evergreen | 🚫 新建MOC必更新总览 | 🚫 禁手写表格列举笔记(Dataview替代) | 🚫 禁空scope | 🚫 禁少核心问题(≥2个)
+🚫 禁只Dataview无手动精选(≥3篇) | 🚫 子MOC必填moc字段 | 🚫 总览必有静态表格fallback | 🚫 笔记≥10→budding, ≥20→evergreen | 🚫 新建MOC必更新总览 | 🚫 禁手写表格列举笔记(Dataview替代) | 🚫 禁空scope | 🚫 禁少核心问题(≥2个) | 🚫 禁不区分顶层/主题MOC就选模板 | 🚫 禁建完MOC不同步顶层MOC+Quests
 
 ## 6. 知识域索引
 | 域 | 路径 |

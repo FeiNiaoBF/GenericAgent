@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+import sys, io
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 """excalidraw_draw.py — Excalidraw 自动绘图模块
 用法: from excalidraw_draw import Canvas, Rect, Text, Arrow, Ellipse, Diamond
 
