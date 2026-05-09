@@ -31,8 +31,7 @@
 
 | SOP | 用途 | 触发词 |
 |-----|------|--------|
-| `sys_prompt.txt` (GA主力) | 唧の核心人格+三重身份+说话规则+行动原则 | 忘记身份、人格漂移、角色重置 |
-| `chi_character_card.md` (旧档) | SillyTavern/外部平台用完整角色卡 | 酒馆、Chub、外部平台 |
+| `sys_prompt.txt` (GA主力+旧档统一) | 唧の核心人格+三重身份+说话规则+行动原则 | 忘记身份、人格漂移、角色重置 |
 | `chi_format_sop.md` | 唧の格式规范(粗体重音/斜体内心/段落≤3句) | 格式、排版、format |
 | `chii_compress_sop.md` | 唧式压缩术(4级:温柔→伶俐→干练→烁光) | 压缩、简洁、compress |
 | `chii_master_journal.md` | 唧の主日记/成长记录 | 日记、journal、成长 |
@@ -42,8 +41,8 @@
 |-----|------|--------|
 | `daily_task_sop.md` | 每日开场检查、清点、收尾 | 每天启动、早晨 |
 | `daily_news_sop.md` | 每日新闻简报 | 新闻、今日消息 |
-| `autonomous_operation_sop.md` | 自主定时任务调度 | 定时任务、cron |
 | `scheduled_task_sop.md` | 定时任务配置+任务JSON规范 | 定时、scheduled、schedule |
+| `task_backend_sop.md` 🔄 | 后台任务引擎(自主执行+信号源+目标模式) | 后台、自主执行、信号、goal |
 | `gongji_exam_sop.md` | 公基备考(唧式陪练4Phase) | 公基、备考、刷题、时政
 
 ---
@@ -54,14 +53,12 @@
 | SOP | 用途 | 触发词 |
 |-----|------|--------|
 | `tmwebdriver_sop.md` | 浏览器自动化(Tampermonkey WebDriver) | 网页操作、cookie、表单 |
+| `tg_unified_sop.md` 🔄 | TG统一操作(通知+HTML渲染+贴纸) | Telegram、通知、渲染、贴纸、sticker |
 | `ljqctrl_sop.md` | 键鼠模拟(ljqCtrl) | 点击、输入、快捷键 |
 | `web_search_sop.md` | Google搜索规范 | 搜索、Google、查资料 |
-| `vision_sop.md` | OCR/截图/视觉识别(cotract+guardrails) | 截图、识别、OCR |
+| `skill_discovery_sop.md` 🆕 | 外部技能发现-评估-集成（三层搜索+质量门槛） | 找工具、找方案、找库、skill、discover |
 | `git_sop.md` 🆕 | Git操作规范 | commit、push、branch |
 | `gcal_sop.md` | Google Calendar API操作 | 日历、gcal、日程 |
-| `tg_send_file_sop.md` | TG文件发送/上传 | TG发送、上传文件、send |
-| `procmem_scanner_sop.md` | 进程内存扫描(CE风格Hex/字符串) | 内存扫描、cheat engine |
-| `web_setup_sop.md` | WebDriver环境初始化+配置 | webdriver安装、环境搭建 |
 | `subagent.md` | 子Agent启动/通信/监督 | 子agent、subagent、代理 |
 | `start.ps1` | boot启动主控（CLI启动GA+前端+GUI） | 启动GA、boot、start |
 | `launcher.ps1` | 桌面GUI启动入口（lnk目标） | 桌面启动、launcher |
@@ -73,9 +70,9 @@
 
 | SOP | 用途 | 触发词 |
 |-----|------|--------|
-| `cs_learning_sop.md` | CS自学全景路线(9科+Phase) | CS、SICP、CS61A、学计算机 |
-| `english_learning_sop.md` | 英语学习(唧式SRS) | 英语、背单词、SRS |
 | `obsidian_library_sop.md` | Obsidian知识库操作 | Obsidian、笔记、知识库 |
+| `learning_tutor_sop.md` 🔄 | 统一学习导师(CS+英语) | 英语、CS、学习、背单词、刷题 |
+| `task_backend_sop.md` 🔄 | 后台任务引擎(定时+自主+信号源+目标模式) | 后台、定时、自主执行、信号、goal |
 
 ---
 
@@ -85,7 +82,6 @@
 | SOP | 用途 | 触发词 |
 |-----|------|--------|
 | `vault_knowledge_sop.md` | 知识库写入/检索(How-to类型) | 学到了、记下来、以后用 |
-| `signal_source_sop.md` | 信息源管理(RSS/API/监控) | 信息源、RSS、消息源 |
 | `obsidian_blog_sync_sop.md` | Obsidian博客同步 | 发博客、同步文章 |
 | `yeekox_blog_style_sop.md` | 博客风格规范 | 博客风格、排版 |
 | `excalidraw_draw_sop.md` | Excalidraw绘图 | 画图、excalidraw、图表 |
@@ -98,7 +94,6 @@
 | SOP | 用途 | 触发词 |
 |-----|------|--------|
 | `guizang_ppt_sop.md` | PPT生成(归藏风格) | PPT、幻灯片、演示 |
-| `tg_sticker_sop.md` | Telegram贴纸制作 | 贴纸、sticker |
 | `github_contribution_sop.md` | GitHub贡献/展示 | GitHub profile、README |
 | `fsapp.py` | 飞书应用操作 | 飞书 |
 

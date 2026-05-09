@@ -159,3 +159,26 @@ git commit -m "类型(sop名): 行动概述
 | 批量操作后全量重扫(100%达标)？ | |
 
 最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`
+
+---
+
+## 进度跟踪 (2026-05-09 SOP优化)
+
+### Step1: 删除冗余 ✅
+- ✅ 删除 `chi_character_card.md` (备份至 `../backup/`)
+- ✅ 删除 `web_setup_sop.md` (备份至 `../backup/`)
+- ✅ 修引用链: `sys_prompt.txt` + `global_mem_insight.txt` 已更新
+- ✅ 更新 `sop_index.md`: 移除旧条目 + 更新描述
+
+### Step2: 合并9→3组 + 内化3个 ⬜
+- ⬜ TG三合一: `telegram_notification_sop` + `tg_send_file_sop` + `tg_html_rendering_sop` → `tg_unified_sop.md`
+- ⬜ 学习合一: `english_learning_sop` + `cs_learning_sop` → `learning_tutor_sop.md`
+- ⬜ 后台合一: `autonomous_operation_sop` + `task_backend_sop` → `task_backend_sop.md`
+- ⬜ 内化: `procmem_scanner_sop` → `tmwebdriver`
+- ⬜ 内化: `vision_ocr_sop` → `tmwebdriver`
+- ⬜ 内化: `goal_mode_sop` → `plan_sop`
+
+### Step3: 同步记忆 + Git ⬜
+- ⬜ 同步 L2(global_mem.txt) + L1(global_mem_insight.txt)
+- ⬜ 更新 sop_index.md 最终版
+- ⬜ Git commit 闭环

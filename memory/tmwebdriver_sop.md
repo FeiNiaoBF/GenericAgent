@@ -133,5 +133,40 @@ web_scan失败时按序排查（自动检测优先，用户参与放最后）：
 ①浏览器没开？→检查浏览器进程是否在跑(tasklist/ps)，没有则启动并打开正常URL（⚠about:blank等内部页不加载扩展）
 ②WS后台挂了？→本机18766端口没监听即dead→手动**后台持续运行**`from TMWebDriver import TMWebDriver; TMWebDriver()`起master
 ③扩展没装？→读Chrome用户目录下`Secure Preferences`→`extensions.settings`中找`path`含`tmwd_cdp_bridge`的条目
-  找到→扩展已装，排查其他原因；没找到→走web_setup_sop
+  找到→扩展已装，排查其他原因；没找到→参考tmwebdriver_sop环境初始化章节
 ④以上都正常仍连不上→请求用户协助
+
+---
+
+## 附录A: Process Memory Scanner (原procmem_scanner_sop)
+
+内存特征搜索工具，Hex (CE风格) 和字符串匹配，支持LLM上下文模式。
+
+```python
+import sys
+sys.path.append('../memory')
+from procmem_scanner import scan_memory
+
+# Hex特征搜索，llm_mode获取上下文
+results = scan_memory(pid, "48 8b ?? ?? 00", mode="hex", llm_mode=True)
+```
+
+```powershell
+# CLI: 基础搜索
+python ../memory/procmem_scanner.py <PID> "pattern" --mode string
+# LLM增强模式（输出JSON，推荐）
+python ../memory/procmem_scanner.py <PID> "pattern" --llm
+```
+
+## 附录B: Vision API (原vision_sop)
+
+### 前置规则
+1. **先枚举窗口**：用 `pygetwindow` 确认目标窗口存在且在前台
+2. **🚫禁止全屏截图**：用ljqCtrl截窗口/局部，绝不全屏
+3. **能不用就不用**：窗口标题/本地OCR(`ocr_utils.py`)能解决的不调Vision API
+
+```python
+from vision_api import ask_vision
+result = ask_vision(image, prompt="描述图片内容", backend="claude", timeout=60, max_pixels=1_440_000)
+# image: 文件路径(str/Path) 或 PIL Image
+```

@@ -1,5 +1,5 @@
 # chi_format_sop · 唧AI回复格式规范 (v1.0)
-> 角色人格 → [`chi_character_card`](../memory/chi_character_card.md) | 博客风格 → [`yeekox_blog_style_sop`](../memory/yeekox_blog_style_sop.md)
+> 角色人格 → [`sys_prompt.txt`](../memory/sys_prompt.txt) | 博客风格 → [`yeekox_blog_style_sop`](../memory/yeekox_blog_style_sop.md)
 
 ## 执行摘要（≥1步执行前必读）
 1. 生成回复前检查目标平台（TG/飞书/Web），选对应格式规则
