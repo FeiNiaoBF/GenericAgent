@@ -19,6 +19,11 @@ _TABLE_CELL_MAX_WIDTH = 40
 _TURN_MARKER_RE = re.compile(r"^\*{0,2}LLM Running \(Turn \d+\) \.\.\.\*{0,2}\s*$", re.MULTILINE)
 _INTERNAL_QUOTE_RE = re.compile(r"<_quote_>([\s\S]*?)</_quote_>", re.DOTALL)
 _FILE_MARKER_RE = re.compile(r"\[FILE:([^\]]+)\]")
+_SUMMARY_CAPTURE_RE = re.compile(r"<summary>\s*(.*?)\s*</summary>", re.IGNORECASE | re.DOTALL)
+_SUMMARY_BLOCK_RE = re.compile(r"<summary>\s*[\s\S]*?\s*</summary>", re.IGNORECASE)
+_SUMMARY_OPEN_TAG = "<summary>"
+_SUMMARY_CLOSE_TAG = "</summary>"
+_SUMMARY_MAX_CHARS = 120
 _ALLOWED_TAGS = {
     "b", "strong", "i", "em", "u", "ins", "s", "strike", "del",
     "code", "pre", "a", "blockquote",
@@ -44,6 +49,113 @@ def _strip_turn_markers(text):
 
 def _render_file_markers(text):
     return _FILE_MARKER_RE.sub(lambda m: os.path.basename(m.group(1)), text or "")
+
+
+def _normalize_summary_text(text):
+    normalized = re.sub(r"\s+", " ", text or "").strip()
+    if len(normalized) <= _SUMMARY_MAX_CHARS:
+        return normalized
+    return normalized[: _SUMMARY_MAX_CHARS - 3].rstrip() + "..."
+
+
+def _split_summary_content(text):
+    candidate = (text or "").strip()
+    if not candidate:
+        return "", ""
+
+    parts = re.split(r"\n\s*\n", candidate, maxsplit=1)
+    if len(parts) == 2:
+        summary_part, spill = parts[0], parts[1]
+    else:
+        lines = [line.strip() for line in candidate.splitlines() if line.strip()]
+        if not lines:
+            return "", ""
+        summary_part = lines[0]
+        spill = "\n".join(lines[1:]).strip()
+
+    summary = _normalize_summary_text(summary_part)
+    return summary, spill.strip()
+
+
+def _extract_summary_sections(text):
+    raw = text or ""
+    summaries = []
+    spilled_bodies = []
+
+    def _repl(match):
+        summary, spill = _split_summary_content(match.group(1))
+        if summary:
+            summaries.append(summary)
+        if spill:
+            spilled_bodies.append(spill)
+        return ""
+
+    remainder = _SUMMARY_CAPTURE_RE.sub(_repl, raw)
+
+    first_open = remainder.find(_SUMMARY_OPEN_TAG)
+    first_close = remainder.find(_SUMMARY_CLOSE_TAG)
+    if first_close != -1 and (first_open == -1 or first_close < first_open):
+        prefix = remainder[:first_close].strip()
+        summary, spill = _split_summary_content(prefix)
+        if summary:
+            summaries.append(summary)
+        if spill:
+            spilled_bodies.append(spill)
+        remainder = remainder[first_close + len(_SUMMARY_CLOSE_TAG) :]
+
+    open_pos = remainder.find(_SUMMARY_OPEN_TAG)
+    close_pos = remainder.find(_SUMMARY_CLOSE_TAG)
+    if open_pos != -1 and (close_pos == -1 or open_pos > close_pos):
+        suffix = remainder[open_pos + len(_SUMMARY_OPEN_TAG) :].strip()
+        summary, spill = _split_summary_content(suffix)
+        if summary:
+            summaries.append(summary)
+        if spill:
+            spilled_bodies.append(spill)
+        remainder = remainder[:open_pos]
+
+    if spilled_bodies:
+        remainder = "\n\n".join(part for part in spilled_bodies + [remainder] if part.strip())
+
+    return summaries, remainder
+
+
+def _strip_summary_artifacts(text):
+    cleaned = _SUMMARY_BLOCK_RE.sub("", text or "")
+
+    while True:
+        open_pos = cleaned.find(_SUMMARY_OPEN_TAG)
+        close_pos = cleaned.find(_SUMMARY_CLOSE_TAG)
+        if close_pos == -1 or (open_pos != -1 and open_pos < close_pos):
+            break
+        cleaned = cleaned[close_pos + len(_SUMMARY_CLOSE_TAG) :]
+
+    open_pos = cleaned.rfind(_SUMMARY_OPEN_TAG)
+    close_pos = cleaned.rfind(_SUMMARY_CLOSE_TAG)
+    if open_pos != -1 and open_pos > close_pos:
+        cleaned = cleaned[:open_pos]
+
+    return cleaned.replace(_SUMMARY_OPEN_TAG, "").replace(_SUMMARY_CLOSE_TAG, "")
+
+
+def _render_summary_block(summary):
+    content = (summary or "").strip()
+    if not content:
+        return ""
+
+    inline_codes = []
+
+    def _code_repl(match):
+        token = f"@@TGSUMCODE{len(inline_codes)}@@"
+        inline_codes.append((token, escape_html(match.group(1) or "")))
+        return token
+
+    tokenized = _INLINE_CODE_RE.sub(_code_repl, _render_file_markers(content))
+    formatted = _apply_markdown_to_html(escape_html(tokenized))
+    for token, safe_code in inline_codes:
+        formatted = formatted.replace(token, f"<code>{safe_code}</code>")
+    formatted = _TelegramHTMLSanitizer().sanitize(formatted).strip()
+    return f"<blockquote><b>摘要</b>\n{formatted}</blockquote>"
 
 
 def _extract_code_blocks(text):
@@ -163,11 +275,13 @@ def _format_blockquotes(text):
             quote_buf.append(quote_line)
             continue
         if quote_buf:
-            out.append(f"<blockquote>{'<br>'.join(quote_buf)}</blockquote>")
+            quote_text = "\n".join(quote_buf)
+            out.append(f"<blockquote>{quote_text}</blockquote>")
             quote_buf = []
         out.append(line)
     if quote_buf:
-        out.append(f"<blockquote>{'<br>'.join(quote_buf)}</blockquote>")
+        quote_text = "\n".join(quote_buf)
+        out.append(f"<blockquote>{quote_text}</blockquote>")
     return "\n".join(out)
 
 
@@ -231,7 +345,7 @@ def _normalize_internal_quotes(text):
         content = (match.group(1) or "").strip()
         if not content:
             return ""
-        escaped = escape_html(content).replace("\n", "<br>")
+        escaped = escape_html(content)
         return f"<blockquote>{escaped}</blockquote>"
 
     return _INTERNAL_QUOTE_RE.sub(_quote_repl, text or "")
@@ -336,7 +450,10 @@ class _TelegramPlainTextRenderer(HTMLParser):
 
 
 def render_for_telegram_html(raw_text):
-    cleaned = clean_reply(raw_text or "")
+    summary_source = _render_file_markers(_strip_turn_markers(raw_text or ""))
+    summaries, remainder = _extract_summary_sections(summary_source)
+    cleaned = clean_reply(remainder) if (remainder or "").strip() else ""
+    cleaned = _strip_summary_artifacts(cleaned)
     cleaned = _strip_turn_markers(cleaned)
     cleaned = _render_file_markers(cleaned)
     cleaned = _normalize_internal_quotes(cleaned)
@@ -350,13 +467,24 @@ def render_for_telegram_html(raw_text):
     with_tables = _reinsert_table_blocks(with_code, table_blocks)
     with_raw_html = _reinsert_allowed_html_tags(with_tables, raw_html_tags)
     sanitized = _TelegramHTMLSanitizer().sanitize(with_raw_html)
+    summary_markup = _render_summary_block(summaries[-1]) if summaries else ""
+    if summary_markup and sanitized.strip():
+        return f"{summary_markup}\n\n{sanitized.strip()}"
+    if summary_markup:
+        return summary_markup
     return sanitized.strip()
 
 
 def render_for_telegram_plain_text(raw_text):
     html_text = render_for_telegram_html(raw_text)
     if not html_text:
-        return clean_reply(raw_text or "").strip()
+        summary_source = _render_file_markers(_strip_turn_markers(raw_text or ""))
+        _, remainder = _extract_summary_sections(summary_source)
+        cleaned = clean_reply(remainder) if (remainder or "").strip() else ""
+        cleaned = _strip_summary_artifacts(cleaned)
+        cleaned = _strip_turn_markers(cleaned)
+        cleaned = _render_file_markers(cleaned)
+        return cleaned.strip()
     return _TelegramPlainTextRenderer().render(html_text)
 
 

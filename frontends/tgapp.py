@@ -77,6 +77,7 @@ _SUMMARY_MIN_INTERVAL_SECONDS = 1.2
 _SUMMARY_MAX_RETAINED = 3
 _SUMMARY_SIMILARITY_THRESHOLD = 0.88
 _SUMMARY_RECENT_WINDOW = 5
+_ENABLE_TG_SUMMARIES = False
 _STICKER_EXTENSIONS = {".tgs", ".webm", ".webp"}
 _NOTIFY_STICKERS = {
     "wake": {"set_name": "ChiChiStickers_by_ohchii_bot", "emoji": "😊"},
@@ -87,10 +88,33 @@ _NOTIFY_MEDIA = {
     "sleep": os.path.join(_PROJECT_ROOT, "boot", "icons", "chi (14).png"),
 }
 _NOTIFY_STICKER_CACHE = {}
+_TG_EXTRA_SYSTEM_PROMPT = """
+[Telegram Frontend Rules]
+You are replying through Telegram.
+1. `<summary>` will be rendered by the Telegram frontend as a compact summary block above the main answer.
+2. Keep `<summary>` to exactly one short line, no bullets, no blank lines, no code, ideally <= 18 Chinese chars or <= 12 English words.
+3. After `</summary>`, start the main answer immediately. Do not repeat the same summary sentence again in the body.
+4. Do not output incomplete summary tags. Never emit bare `<summary>` or `</summary>`.
+5. Telegram body must optimize for mobile readability: short paragraphs, flat bullets only when needed, avoid wide markdown tables unless essential, avoid repeated restatement.
+6. Prefer concise final answers over step-by-step progress narration unless the user explicitly asks for detailed process logs.
+""".strip()
 
 
 def _chii(key):
     return get_phrase(key, pool=_CHII)
+
+
+def _apply_tg_extra_system_prompt():
+    llmclients = getattr(agent, "llmclients", []) or []
+    current = getattr(agent, "llmclient", None)
+    if current is not None and current not in llmclients:
+        llmclients = [current] + list(llmclients)
+
+    for client in llmclients:
+        backend = getattr(client, "backend", None)
+        if backend is None:
+            continue
+        setattr(backend, "extra_sys_prompt", _TG_EXTRA_SYSTEM_PROMPT)
 
 
 async def _resolve_notify_sticker(bot, phrase_key):
@@ -753,7 +777,8 @@ async def _stream(dq, msg):
             for item in items:
                 chunk = item.get("next", "")
                 if chunk:
-                    await session.emit_summaries(chunk)
+                    if _ENABLE_TG_SUMMARIES:
+                        await session.emit_summaries(chunk)
                     await session.add_chunk(chunk)
                 await _dispatch_pending_ask_user_events(msg)
                 if "done" in item:
@@ -761,7 +786,8 @@ async def _stream(dq, msg):
                     break
 
             if done_item is not None:
-                await session.emit_summaries_from_full_text(done_item.get("done", ""))
+                if _ENABLE_TG_SUMMARIES:
+                    await session.emit_summaries_from_full_text(done_item.get("done", ""))
                 explicit_files = _files_from_done_item(done_item)
                 await session.finalize(
                     done_item.get("done", ""), explicit_files=explicit_files
@@ -826,6 +852,7 @@ async def handle_msg(update, ctx):
     if ALLOWED and uid not in ALLOWED:
         return await update.message.reply_text("no")
     await _cancel_stream_task(ctx)
+    _apply_tg_extra_system_prompt()
     prompt = _build_text_prompt(update.message.text)
     dq = agent.put_task(prompt, source="telegram")
     task = asyncio.create_task(_stream(dq, update.message))
@@ -870,6 +897,7 @@ async def handle_ask_callback(update, ctx):
         return
 
     await _cancel_stream_task(ctx)
+    _apply_tg_extra_system_prompt()
     dq = agent.put_task(_build_text_prompt(selected), source="telegram")
     task = asyncio.create_task(_stream(dq, query.message))
     ctx.user_data["stream_task"] = task
@@ -887,6 +915,7 @@ async def cmd_llm(update, ctx):
         try:
             n = int(args[1])
             agent.next_llm(n)
+            _apply_tg_extra_system_prompt()
             await _reply_html(
                 update.message, f"✅ 已切换到 [{agent.llm_no}] {agent.get_llm_name()}"
             )
@@ -928,6 +957,7 @@ async def handle_photo(update, ctx):
     else:
         prompt = f"[TIPS] 收到{kind}temp/{fpath}，请等待下一步指令"
 
+    _apply_tg_extra_system_prompt()
     dq = agent.put_task(prompt, source="telegram")
     task = asyncio.create_task(_stream(dq, update.message))
     ctx.user_data["stream_task"] = task
@@ -991,6 +1021,7 @@ if __name__ == "__main__":
 
     require_runtime(agent, "Telegram", tg_bot_token=mykeys.get("tg_bot_token"))
     redirect_log(__file__, "tgapp.log", "Telegram", ALLOWED)
+    _apply_tg_extra_system_prompt()
     _register_ask_user_hook()
     threading.Thread(target=agent.run, daemon=True).start()
 
