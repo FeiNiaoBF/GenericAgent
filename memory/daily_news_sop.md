@@ -1,112 +1,48 @@
-# daily_news_sop · 唧的每日早安新闻简报（新闻模块） (v1.0)
+# daily_news_sop · 唧式早安新闻简报 (v1.1)
 
-## 执行摘要（≥1步执行前必读）
-1. `python ../memory/daily_news_fetch.py --json` → 取 15 条（国际/国内/财经各5）
-2. 每类挑 3 条 → 加唧式解读 → 写入日记 `## 📰 新闻`
-3. 回复主人摘要（每条带超链接）→ 🛑 **过验证门禁**
+## 执行摘要
+1. `python ../memory/daily_news_fetch.py --json` → 15条(国际/国内/财经各5)
+2. 每类挑3条+唧解读 → 写日记`## 📰 新闻` → 回复主人摘要 → 🛑 门禁
 
-## 0. 🎯 架构说明（v2.0 重要变更）
+## 架构
+- **新闻(📰)** = 时事播报 → 本SOP 08:00 | **消息源(📡)** = 深度学习 → `signal_source_sop.md` 10:00
+- ⚠️ 科技新闻不归本任务，归HN消息源
 
-```
-08:00  新闻（本 SOP）     → 国际/国内/财经 → 脚本 daily_news_fetch.py → GA 解读+写日记
-10:00  消息源（HN）        → 科技/深度/学习 → 脚本 hn_daily_fetch.py  → GA 写入📡今日信号
-```
+## 触发
+- 定时：`sche_tasks/daily_news.json` 08:00
+- 手动："唧早安"/"唧新闻"/"/today"
+- Vault：`D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
+- 日记：`{vault}/00.Chronicles/Daily/{YYYY-MM-DD}.md`
 
-- **新闻** = 今天发生了什么（时事播报）
-- **消息源** = 有什么值得深入学习（信号/洞察/深度内容）
-- ⚠️ 科技/技术不在新闻范围内，那是 10:00 HN 消息源的任务！
+## 执行流程
 
-## 1. 触发方式
-- **定时任务**：`../sche_tasks/daily_news.json`（**08:00** 每天）
-- **手动触发**：主人说"唧早安"/"唧新闻"/"今天有什么新闻"/"/today"
-- **Vault路径**：`D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
-- **日记路径**：`{vault}/00.Chronicles/Daily/{YYYY-MM-DD}.md`
+**Step 1** 脚本取数 → JSON含`国际`/`国内`/`财经`各5条
+- RSS源：Google News WORLD(en-US) / zh-CN综合 / BUSINESS(en-US)
 
-## 2. 新闻三大特性（必须遵守）
-```
-✅ 真实性 → Google News RSS 聚合 + 可靠来源标注 + 不转谣言
-✅ 时效性 → RSS 自动反映当天新闻，每条标注来源
-✅ 准确性 → 脚本取 Google News 头部聚合，来源均为主流媒体
-```
+**Step 2** 唧化解读 → 每类挑3条，1-2句俏皮点评，保留`[标题](URL)`+`— *来源*`
 
-## 3. 执行流程（脚本化 v2.0）
+**Step 3** 写入日记
+- 确认日记存在(daily_task_sop步骤3-5)
+- 替换/新建`## 📰 新闻`区块
 
-### Step 1 — 运行脚本获取新闻
-```bash
-python ../memory/daily_news_fetch.py --json
-```
-得到 JSON：`{"国际": [{"title":"...", "url":"...", "source":"..."}, ...], "国内": [...], "财经": [...]}`
-每类 5 条，共 15 条原始数据。RSS 源：
-- 国际: Google News WORLD section (en-US)
-- 国内: Google News zh-CN 综合
-- 财经: Google News BUSINESS section (en-US)
+**Step 4** 回复主人 → 唧式口吻摘要+超链接
 
-### Step 2 — 唧化解读
-- 每类 5 条中挑最重要的 **3 条**
-- 每条加唧的解读（1-2句俏皮点评，体现唧式视角）
-- 保留原文超链接 `[标题](URL)`，附来源 `— *来源名*`
-
-### Step 3 — 写入日记
-- 确认日记存在（调用 `daily_task_sop.md` 流程步骤3-5）
-- 找到 `## 📰 新闻` 区块，替换内容
-- 如区块不存在则新建（放在日记靠前位置）
-
-**写入格式：**
-```
-## 📰 新闻
-
-> 🗞️ **唧式早安播报 · MM月DD日新闻快讯**
-
-### 🌏 国际
-- [标题](URL) — *来源*
-  > 唧的解读：...
-
-### 🇨🇳 国内
-- [标题](URL) — *来源*
-  > 唧的解读：...
-
-### 📈 财经
-- [标题](URL) — *来源*
-  > 唧的解读：...
-
-> 📌 新闻三大特性：✅ 真实性 ✅ 时效性 ✅ 准确性
-> 📡 科技资讯见今日信号 HN 消息源~
-```
-
-### Step 4 — 回复主人
-唧式口吻摘要，每条带超链接：
-```
-> 🗞️ **唧式早安播报 · MM月DD日**
-> 🌏 国际 — [标题](URL)
-> 🇨🇳 国内 — [标题](URL)
-> 📈 财经 — [标题](URL)
-> 唧觉得…这条新闻最让唧在意呢。主人怎么看？
-```
-
-## 4. 避坑指南
-
+## 避坑
 | 坑 | 解法 |
 |----|------|
-| RSS 返回空/网络错误 | 脚本有容错，某类失败不影响其他；全失败则用浏览器 Google News 兜底 |
-| 新闻太旧（>2天前） | Google News RSS 自动按时间排序，头几条基本是今天 |
-| 国内 RSS 偏官方 | 正常（新华/人民/生态环境部）；如有需要可补澎湃 `site:thepaper.cn` |
-| 忘了唧式口吻 | 每条加"唧的解读"，用第三身+语气词 |
-| 科技新闻窜入 | 严格去科技：AI/航天/互联网/代码相关归 HN 消息源，本任务跳过 |
-| 脚本导入失败 | 路径：`import sys; sys.path.insert(0, 'D:/Creative_Studio/WorkSpace/Github/GenericAgent'); from memory.daily_news_fetch import fetch_all_news` |
-
-## 5. 扩展预留
-- 后续消息源扩展（如 Reddit r/MachineLearning、arXiv 热点等）统一走 `📡今日信号` 区块
-- 新增消息源脚本命名规范：`memory/{source}_daily_fetch.py`
-- 新闻模块保持轻量（只做时事播报），不做深度聚合
+| RSS空/网络错 | 脚本容错，全失败→浏览器Google News兜底 |
+| 新闻太旧 | RSS自动按时间排序 |
+| 国内偏官方 | 正常，可补澎湃 |
+| 科技窜入 | AI/航天/互联网/代码→跳过，归HN |
+| 脚本导入失败 | `sys.path.insert(0, 'D:/Creative_Studio/WorkSpace/Github/GenericAgent')` |
 
 ## 🛑 验证门禁
-
 | # | 验证动作 | 工具 | 预期结果 | PASS/FAIL |
 |---|----------|------|----------|-----------|
-| 1 | 脚本输出非空 | code_run | JSON含`国际`/`国内`/`财经`三个key | |
-| 2 | 每类≥3条 | 同Step1输出 | 国际≥3, 国内≥3, 财经≥3 | |
-| 3 | 日记写入确认 | file_read | 日记中 `## 📰 新闻` 区块内容非空 | |
-| 4 | 日期正确 | file_read | 日记文件名=今日日期(YYYY-MM-DD) | |
-| 5 | 无科技窜入 | 目视检查 | 新闻标题不含AI/航天/互联网/代码/芯片 | |
+| 1 | 脚本输出非空 | code_run | JSON含3个key | |
+| 2 | 每类≥3条 | code_run | 各类≥3 | |
+| 3 | 日记写入 | file_read | `## 📰 新闻`区块非空 | |
+| 4 | 日期正确 | file_read | 文件名=今日日期 | |
+| 5 | 无科技窜入 | 目视 | 不含AI/航天/代码/芯片 | |
 
 最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

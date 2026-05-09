@@ -25,6 +25,9 @@ import argparse
 import re
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
+
+HN_SIGNAL_MARKER = "📡 **HN 今日信号**"
 
 
 VAULT = r"D:\Documents_Learn\Personal\Obsidian\Codex Vitae"
@@ -60,16 +63,33 @@ weekday: {weekday}
 tags: [daily]
 ---
 
-## 🐣 唧の足迹
+## 📰 新闻
 
-- {dt.strftime('%H:%M')}:: 📝 日记创建
+> 🗞️ **唧式早安播报 · {dt.strftime('%m月%d日')}**
 
-## 今日任务
+### 🌏 国际
+
+### ♾️ 国内
+
+### 📈 财经
+
+---
+
+## 📡 今日信号
+
+> 信息摄入 · 来自 [[Info-Sources|🗺️信息源MOC]]
+
+---
+
+## ✅ 待办
 
 - [ ] 
 
-## 今日总结
+---
 
+## 🐣 唧の足迹
+
+- {dt.strftime('%H:%M')}:: 📝 日记创建
 """
     os.makedirs(os.path.dirname(fp), exist_ok=True)
     with open(fp, 'w', encoding='utf-8') as f:
@@ -157,6 +177,49 @@ def append_entry(fp: str, content: str, time_str: str = None):
     print(f"   {time_str}:: {first_line}")
 
 
+def inject_hn_signal(fp: str):
+    """抓取HN热点并注入到日记的 📡今日信号 区块"""
+    try:
+        from hn_daily_fetch import fetch_top_stories, parse_stories, format_for_diary
+    except ImportError:
+        print("❌ 无法导入 hn_daily_fetch，请确认文件存在于 memory 目录")
+        return False
+
+    print("🔄 正在抓取 Hacker News 热点...")
+    raw = fetch_top_stories()
+    if not raw:
+        print("❌ HN API 抓取失败")
+        return False
+
+    data = parse_stories(raw)
+    if not data:
+        print("⚠️ HN 无有效数据")
+        return False
+
+    signal_md = format_for_diary(data)
+
+    if not os.path.exists(fp):
+        print(f"⚠️ 日记不存在: {fp}")
+        return False
+
+    with open(fp, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    if HN_SIGNAL_MARKER not in content:
+        print(f"⚠️ 日记中未找到 '{HN_SIGNAL_MARKER}' 标记，跳过注入")
+        return False
+
+    # 替换标记为实际HN内容
+    new_content = content.replace(HN_SIGNAL_MARKER, signal_md)
+
+    with open(fp, 'w', encoding='utf-8') as f:
+        f.write(new_content)
+
+    rel = os.path.relpath(fp, VAULT)
+    print(f"✅ HN信号已注入 [{rel}]，共 {len(data)} 条热点")
+    return True
+
+
 def main():
     sys.stdout.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(
@@ -174,7 +237,16 @@ def main():
     parser.add_argument('--time', '-t', help='时间 (HH:MM, 默认现在)')
     parser.add_argument('--date', '-d', help='日期 (YYYY-MM-DD, 默认今天)')
     parser.add_argument('--stdin', action='store_true', help='从标准输入读取内容')
+    parser.add_argument('--hn', action='store_true',
+                        help='抓取HN热点并注入📡今日信号区块')
     args = parser.parse_args()
+    
+    fp = get_daily_path(args.date)
+    
+    # --hn 模式：注入HN信号
+    if args.hn:
+        inject_hn_signal(fp)
+        return
     
     # 获取内容
     if args.stdin:
@@ -185,7 +257,6 @@ def main():
         parser.print_help()
         sys.exit(1)
     
-    fp = get_daily_path(args.date)
     append_entry(fp, content, args.time)
 
 
