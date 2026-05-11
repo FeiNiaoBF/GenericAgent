@@ -20,6 +20,8 @@ class BaseHandler:
         if hasattr(self, method_name):
             args['_index'] = index
             prer = yield from try_call_generator(self.tool_before_callback, tool_name, args, response)
+            if isinstance(prer, StepOutcome):
+                return prer
             ret = yield from try_call_generator(getattr(self, method_name), args, response)
             _ = yield from try_call_generator(self.tool_after_callback, tool_name, args, response, ret)
             return ret

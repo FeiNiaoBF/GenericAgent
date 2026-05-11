@@ -91,26 +91,12 @@ $startScript = Join-Path $BootDir "start.ps1"
 & $startScript -Restart 2>&1 | ForEach-Object { Write-Host $_ }
 Write-Log "start.ps1 -Restart 退出码: $LASTEXITCODE"
 
-# --- 第3步：启动 GUI ---
-$GuiScript = Join-Path $BootDir "run_gui.pyw"
-$VenvDir = Join-Path (Split-Path $BootDir) ".venv"
-$Pythonw = Join-Path (Join-Path $VenvDir "Scripts") "pythonw.exe"
-if (Test-Path $Pythonw) {
-    Write-Log "启动 GUI..."
-    Write-Host ""
-    Write-Host "🖥️  启动 GUI..." -ForegroundColor Cyan
-    Start-Process -FilePath $Pythonw -ArgumentList "`"$GuiScript`""
-    Write-Log "GUI 已启动"
-} else {
-    Write-Log "pythonw.exe 未找到: $Pythonw" -Level "WARN"
-    Write-Host "⚠️  pythonw 未找到，跳过 GUI 启动" -ForegroundColor Yellow
-}
-
-# --- 第4步：预设下次点击的随机图标 ---
+# --- 第3步：预设下次点击的随机图标 ---
 $nextPick = Get-RandomIcon -Folder $IconFolder
 if ($nextPick) {
     # 确保和本次不同（如果有多个图标）
-    if ($pick -and $icoFiles.Count -gt 1) {
+    $iconCount = @(Get-ChildItem $IconFolder -Filter "*.ico" -ErrorAction SilentlyContinue).Count
+    if ($pick -and $iconCount -gt 1) {
         while ($nextPick.Name -eq $pick.Name) {
             $nextPick = Get-RandomIcon -Folder $IconFolder
         }

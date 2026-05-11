@@ -300,7 +300,7 @@ class GenericAgentTUI(App[None]):
         }
         handlers[cmd](args)
 
-    def submit_user_message(self, text: str) -> int:
+    def submit_user_message(self, text: str, *, source: str = "user", metadata: dict | None = None, display_text: str | None = None) -> int:
         session = self.current
         if session.status == "running":
             self._system(f"Session #{session.agent_id} is already running; wait or /stop before submitting another task.")
@@ -310,11 +310,11 @@ class GenericAgentTUI(App[None]):
         session.current_task_id = task_id
         session.buffer = ""
         session.status = "running"
-        session.messages.append(ChatMessage("user", text))
+        session.messages.append(ChatMessage("user", display_text if display_text is not None else text))
         session.messages.append(ChatMessage("assistant", "", task_id=task_id, done=False))
         self._refresh_all()
         try:
-            display_queue = session.agent.put_task(text, source="user")
+            display_queue = session.agent.put_task(text, source=source, metadata=metadata)
         except Exception as exc:
             session.status = "error"
             self._set_assistant_message(session.agent_id, task_id, f"[ERROR] put_task failed: {exc}", done=True)
@@ -418,8 +418,20 @@ class GenericAgentTUI(App[None]):
     def _cmd_plan(self, args: list[str]) -> None:
         cmd = "/plan" + (" " + " ".join(args) if args else "")
         try:
-            reply = _handle_plan_command(self.current.agent, cmd)
-            self._system(reply)
+            result = _handle_plan_command(
+                self.current.agent,
+                cmd,
+                scope_id=f"tui:{self.current.agent_id}",
+            )
+            if getattr(result, "kind", "") == "start_plan":
+                self.submit_user_message(
+                    result.prompt,
+                    source="tui_plan",
+                    metadata=result.metadata,
+                    display_text=cmd,
+                )
+            else:
+                self._system(result.reply_text)
         except Exception as e:
             self._system(f"/plan error: {e}")
 

@@ -304,18 +304,29 @@ class AgentChatMixin:
         if op == "/new":
             return await self.send_text(chat_id, _reset_conversation(self.agent), **ctx)
         if op == "/plan":
-            return await self.send_text(chat_id, _handle_plan_command(self.agent, cmd), **ctx)
+            result = _handle_plan_command(self.agent, cmd, scope_id=f"{self.source}:{chat_id}")
+            if getattr(result, "kind", "") == "start_plan":
+                return await self.run_agent(
+                    chat_id,
+                    result.prompt,
+                    source=f"{self.source}_plan",
+                    metadata=result.metadata,
+                    prefix_file_hint=False,
+                    **ctx,
+                )
+            return await self.send_text(chat_id, result.reply_text, **ctx)
         if op == "/btw":
             answer = await asyncio.to_thread(_handle_btw_frontend, self.agent, cmd)
             return await self.send_text(chat_id, answer, **ctx)
         return await self.send_text(chat_id, HELP_TEXT, **ctx)
 
-    async def run_agent(self, chat_id, text, **ctx):
+    async def run_agent(self, chat_id, text, source=None, metadata=None, prefix_file_hint=True, **ctx):
         state = {"running": True}
         self.user_tasks[chat_id] = state
         try:
             await self.send_text(chat_id, "思考中...", **ctx)
-            dq = self.agent.put_task(f"{FILE_HINT}\n\n{text}", source=self.source)
+            prompt = f"{FILE_HINT}\n\n{text}" if prefix_file_hint else text
+            dq = self.agent.put_task(prompt, source=source or self.source, metadata=metadata)
             last_ping = time.time()
             while state["running"]:
                 try:

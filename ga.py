@@ -158,7 +158,10 @@ def log_memory_access(path):
     except: stats = {}
     fname = os.path.basename(path)
     stats[fname] = {'count': stats.get(fname, {}).get('count', 0) + 1, 'last': datetime.now().strftime('%Y-%m-%d')}
-    with open(stats_file, 'w', encoding='utf-8') as f: json.dump(stats, f, indent=2, ensure_ascii=False)
+    try:
+        with open(stats_file, 'w', encoding='utf-8') as f: json.dump(stats, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
 
 def web_execute_js(script, switch_tab_id=None, no_monitor=False):
     """执行 JS 脚本来控制浏览器，并捕获结果和页面变化"""
@@ -260,6 +263,8 @@ def consume_file(dr, file):
 
 class GenericAgentHandler(BaseHandler):
     '''Generic Agent 工具库，包含多种工具的实现。工具函数自动加上了 do_ 前缀。实际工具名没有前缀。'''
+    PLAN_BLOCKED_TOOLS = {"file_patch", "file_write", "web_execute_js", "start_long_term_update"}
+
     def __init__(self, parent, last_history=None, cwd='./temp'):
         self.parent = parent
         self.working = {}
@@ -271,6 +276,20 @@ class GenericAgentHandler(BaseHandler):
     def _get_abs_path(self, path):
         if not path: return ""
         return os.path.abspath(os.path.join(self.cwd, path))   
+
+    def _plan_only_mode(self): return bool(self.working.get('plan_only_mode'))
+
+    def tool_before_callback(self, tool_name, args, response):
+        if self._plan_only_mode() and tool_name in self.PLAN_BLOCKED_TOOLS:
+            msg = (
+                f"[Plan Mode] Blocked `{tool_name}`. Official plan mode is read-only: "
+                "explore, ask questions, then output `<proposed_plan>`; do not implement."
+            )
+            yield msg + "\n"
+            return StepOutcome(
+                {"status": "blocked", "msg": msg},
+                next_prompt="[Plan Mode] Continue planning without executing changes. Use read-only tools or ask_user if needed.",
+            )
 
     def _extract_code_block(self, response, code_type):
         code_type = {'python':'python|py', 'powershell':'powershell|ps1|pwsh', 'bash':'bash|sh|shell'}.get(code_type, re.escape(code_type))
@@ -419,10 +438,17 @@ class GenericAgentHandler(BaseHandler):
         return StepOutcome(result, next_prompt=next_prompt)
     
     def _in_plan_mode(self): return self.working.get('in_plan_mode')
-    def _exit_plan_mode(self): self.working.pop('in_plan_mode', None)
-    def enter_plan_mode(self, plan_path): 
-        self.working['in_plan_mode'] = plan_path; self.max_turns = 100
-        print(f"[Info] Entered plan mode with plan file: {plan_path}"); return plan_path
+    def _exit_plan_mode(self):
+        self.working.pop('in_plan_mode', None)
+        self.working.pop('plan_only_mode', None)
+    def enter_plan_mode(self, plan_path='', scope_id='default', goal='', plan_only=False):
+        marker = plan_path or scope_id or 'default'
+        self.working['in_plan_mode'] = marker
+        self.working['plan_scope_id'] = scope_id
+        self.working['plan_goal'] = goal
+        self.working['plan_only_mode'] = bool(plan_only)
+        print(f"[Info] Entered plan mode: scope={scope_id}, plan_only={bool(plan_only)}")
+        return marker
     def _check_plan_completion(self):
         if not os.path.isfile(p:=self._in_plan_mode() or ''): return None
         try: return len(re.findall(r'\[ \]', open(p, encoding='utf-8', errors='replace').read()))
@@ -459,7 +485,7 @@ class GenericAgentHandler(BaseHandler):
         if 'max_tokens !!!]' in content[-100:]:
             return self._retry_or_exit("[System] max_tokens limit reached. Use multi small steps to do it.")
         
-        if self._in_plan_mode() and any(kw in content for kw in ['任务完成', '全部完成', '已完成所有', '🏁']):
+        if self._in_plan_mode() and (not self._plan_only_mode()) and any(kw in content for kw in ['任务完成', '全部完成', '已完成所有', '🏁']):
             if 'VERDICT' not in content and '[VERIFY]' not in content and '验证subagent' not in content:
                 yield "[Warn] Plan模式完成声明拦截。\n"
                 return StepOutcome({}, next_prompt="⛔ [验证拦截] 检测到你在plan模式下声称完成，但未执行[VERIFY]验证步骤。请先按plan_sop §四启动验证subagent，获得VERDICT后才能声称完成。")
@@ -487,7 +513,7 @@ class GenericAgentHandler(BaseHandler):
                     )
                     return StepOutcome({}, next_prompt=next_prompt)
                 
-        if self._in_plan_mode():
+        if self._in_plan_mode() and (not self._plan_only_mode()):
             remaining = self._check_plan_completion()
             if remaining == 0:
                 self._exit_plan_mode(); yield "[Info] Plan完成：plan.md中0个[ ]残留，退出plan模式。\n"
@@ -560,7 +586,9 @@ class GenericAgentHandler(BaseHandler):
             next_prompt += f"\n\n[DANGER] 已连续执行第 {turn} 轮。禁止无效重试。若无有效进展，必须切换策略：1. 探测物理边界 2. 请求用户协助。如有需要，可调用 update_working_checkpoint 保存关键上下文。"
         elif turn % 10 == 0: next_prompt += get_global_memory()
 
-        if _plan and turn >= 10 and turn % 5 == 0:
+        if _plan and self._plan_only_mode() and turn >= 3 and turn % 3 == 0:
+            next_prompt = "[Plan Hint] Official plan mode is read-only. Do not implement. Ask user if needed, otherwise output exactly one <proposed_plan> block.\n\n" + next_prompt
+        elif _plan and turn >= 10 and turn % 5 == 0:
             next_prompt = f"[Plan Hint] 正在计划模式。必须 file_read({_plan}) 确认当前步骤，回复开头引用：📌 当前步骤：...\n\n" + next_prompt
         if _plan and turn >= 90: next_prompt += f"\n\n[DANGER] Plan模式已运行 {turn} 轮，已达上限。必须 ask_user 汇报进度并确认是否继续。"
 

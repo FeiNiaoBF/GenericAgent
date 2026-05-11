@@ -1,57 +1,53 @@
-# Plan Mode SOP (v4.0)
-**触发**: 3步以上/多文件协同/条件分支/需并行 | **禁用**: 1-2步简单任务直接做
-**工具**: `/plan [目标]` 进入 | `/plan status` | `/plan show` | `/plan exit`
+# Official Plan Mode SOP
 
-## 零. 复杂度评估
-简单(3-5步/线性/<5文件) | 中等(6-10/有分支/5-20文件) | 复杂(10+/多层嵌套/20+文件)
+**Trigger**: `/plan <goal>` starts planning-only mode.
+**Purpose**: explore, clarify, and produce an implementation-ready plan. Do not execute the plan.
 
-## 一、探索态（只读调研）
-⛔ 主agent禁直接探测，必须委托subagent。主agent只做：创建目录、匹配SOP、启动subagent、读结论
+## Core Rules
+1. Plan mode is read-only. Do not modify files, run formatters, run migrations, or perform irreversible actions.
+2. Ground in the local environment first using read-only inspection.
+3. Ask the user only for high-impact decisions that cannot be discovered from the repo.
+4. Final output must contain exactly one `<proposed_plan>` block.
+5. The plan must be decision-complete enough for another engineer or agent to implement immediately.
 
-1. `mkdir plan_XXX/` + 从L1索引匹配可用领域SOP
-2. 启动探索subagent(`--verbose`): 探测环境→写`plan_XXX/exploration_findings.md`(现状/发现/风险)，只读禁改，≤10次工具
-3. 监察output.txt，按需纠偏(`_intervene`/`_keyinfo`/`_stop`)，`[ROUND END]`后读findings
+## Allowed During Planning
+- `file_read` for source/config/docs inspection.
+- `web_scan` for read-only page inspection.
+- `code_run` only for non-mutating checks or static probes.
+- `ask_user` for product decisions, constraints, or ambiguous tradeoffs.
+- `update_working_checkpoint` for long planning context.
 
-## 二、规划态（写plan.md）
+## Blocked During Planning
+- `file_patch`
+- `file_write`
+- `web_execute_js`
+- `start_long_term_update`
+- Any command whose purpose is implementation rather than planning.
 
-### plan.md格式
+## Final Plan Shape
 ```markdown
-<!-- EXECUTION PROTOCOL (每轮必读)
-1. file_read(plan.md)找第一个 [ ] → 2. 读该步SOP → 3. 执行+验证→标记✓ → 4. 扫描确认0个[ ]
-⚠ 禁凭记忆/禁跳验证/禁未终止检查 -->
-# 任务标题 | 需求：一句话 | 约束：关键限制
-## 探索发现 (来源标注)
-## 执行计划
-1. [ ] 步骤1 SOP: xxx.md
-2. [D] 步骤2(委托) 依赖：1
-3. [P] 步骤3(并行)
-4. [?] 步骤4 条件：X成功→4.1，否则→4.2
-## 验证检查点
-N+1. [ ] [VERIFY] 启动独立验证subagent
+<proposed_plan>
+# Title
+
+## Summary
+...
+
+## Key Changes
+...
+
+## Public Interfaces
+...
+
+## Test Plan
+...
+
+## Assumptions
+...
+</proposed_plan>
 ```
 
-**[D]委托标注条件**: >3文件/>100行 | 网页提取 | >3次重复 | 运行测试
-
-### 自检+确认
-- 探索发现→plan反映 | SOP标注 | 依赖正确 | 粒度1-3次/步 | [D]+验证检查点
-- `ask_user` 确认后才能执行 ⛔
-
-## 三、执行态循环（连续执行，不停顿汇报）
-每轮: 读plan→读SOP→检查标记([D]委托/[P]并行/[?]条件)→执行→Mini验证→标记[✓]→继续
-
-**动态委托**: >3文件/100行 | 反复试错 | 网页提取 → 主动委托subagent
-**禁令**: 禁凭记忆执行 | 禁跳验证 | 禁未终止检查 | 禁停顿纯文字汇报
-
-## 四、验证态
-全部[✓]后→创建`verify_context.json`→启动验证subagent→读VERDICT: PASS/FAIL/PARTIAL
-修复循环: FAIL→追加[FIX]→修复→重验，最多2轮，超过ask_user
-
-## 五、失败处理（三阶恢复）
-1. 自动重试(网络/锁/端口→指数退避3次)
-2. 降级执行(简化/替代/标[✗ SKIP])
-3. 中断上报(关键步骤连续失败→暂停+报告)
-
-plan修正: 回规划态只改失败部分，保留已完成[✓]
-
-## 强制约束
-每项独立判据 | 禁"处理所有文件"必须展开 | 一次一项 | 不可逆操作前多验证
+## Commands
+- `/plan <goal>`: start planning-only mode.
+- `/plan status`: show current scope state.
+- `/plan show`: show latest proposed plan.
+- `/plan exit`: exit current scope planning state.

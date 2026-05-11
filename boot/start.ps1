@@ -279,21 +279,28 @@ if ($botKeys.Count -eq 0) {
     exit 0
 }
 
+if (($botKeys -contains "gui") -and ($botKeys -contains "launch")) {
+    $botKeys = @($botKeys | Where-Object { $_ -ne "launch" })
+    Write-Log "  [GUI] gui 已包含 launch.pyw, 跳过 launch 避免重复窗口"
+}
+
 # --- start ---
 Write-Log "--- 启动bot ---"
 $started = @()
+$startedFail = @()
+$allOk = $true
 foreach ($key in $botKeys) {
     $bot = $cfg.bots.$key
     $scriptPath = Join-Path $ProjectRoot $bot.entry
     Write-Log "  启动 $($bot.name) ($($bot.entry)) ..."
     $pids = Start-Bot $scriptPath $bot.name $key $cfg $pythonwPath
     if ($pids.Count -gt 0) { $started += @{key=$key; name=$bot.name} }
+    else { $startedFail += $bot.name; $allOk = $false }
 }
 
 # --- verify ---
 Write-Log "--- 状态验证 ---"
 $startedOk = @()
-$startedFail = @()
 foreach ($s in $started) {
     $bot = $cfg.bots.$($s.key)
     $scriptPath = Join-Path $ProjectRoot $bot.entry
@@ -310,7 +317,7 @@ $failList = if ($startedFail.Count -gt 0) { $startedFail -join ', ' } else { '' 
 $pythonExe = Join-Path $PSScriptRoot '..\.venv\Scripts\python.exe'
 if (-not (Test-Path $pythonExe)) { $pythonExe = 'python' }
 $notifyScript = Join-Path $PSScriptRoot 'notify_boot.py'
-& $pythonExe $notifyScript -Ok $okList -Fail $failList *>> $bootLog
+& $pythonExe $notifyScript -Ok $okList -Fail $failList *>> $LogPath
 
 # 开机自启提示 (不再静默安装)
 $vbsPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\GenericAgent.vbs"

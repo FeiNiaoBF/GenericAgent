@@ -49,6 +49,7 @@ class GenericAgent:
         self.is_running = False; self.stop_sig = False
         self.llm_no = 0;  self.inc_out = False; self.verbose = True
         self.peer_hint = True
+        self.plan_sessions = {}
         self.log_path = os.path.join(script_dir, f'temp/model_responses/model_responses_{int(time.time()*1e6)%1000000:06d}.txt')
         self.load_llm_sessions()
 
@@ -101,9 +102,9 @@ class GenericAgent:
         self.stop_sig = True
         if self.handler is not None: self.handler.code_stop_signal.append(1)
             
-    def put_task(self, query, source="user", images=None):
+    def put_task(self, query, source="user", images=None, metadata=None):
         display_queue = queue.Queue()
-        self.task_queue.put({"query": query, "source": source, "images": images or [], "output": display_queue})
+        self.task_queue.put({"query": query, "source": source, "images": images or [], "metadata": metadata or {}, "output": display_queue})
         return display_queue
 
     # i know it is dangerous, but raw_query is dangerous enough it doesn't enlarge
@@ -120,13 +121,29 @@ class GenericAgent:
             return None
         if raw_query.strip() == '/resume':
             return r'帮我看看最近有哪些会话可以恢复。读model_responses/目录，按修改时间取最近10个文件，从每个文件里找最后一个<history>...</history>块，用一句话总结每个会话在聊什么，列表给我选。注意读文件后要把字面的\n替换成真换行才能正确匹配。'
+        if raw_query.strip() == '/plan' or raw_query.strip().startswith('/plan '):
+            try:
+                from frontends.plan_cmd import handle_plan_command
+            except Exception:
+                from plan_cmd import handle_plan_command
+            result = handle_plan_command(self, raw_query, scope_id="default")
+            if result.kind == "start_plan":
+                return result.prompt, (result.metadata or {})
+            display_queue.put({'done': result.reply_text, 'source': 'system'})
+            return None
         return raw_query
 
     def run(self):
         while True:
             task = self.task_queue.get()
             raw_query, source, display_queue = task["query"], task["source"], task["output"]
-            raw_query = self._handle_slash_cmd(raw_query, display_queue)
+            metadata = dict(task.get("metadata") or {})
+            handled_query = self._handle_slash_cmd(raw_query, display_queue)
+            if isinstance(handled_query, tuple):
+                raw_query, slash_metadata = handled_query
+                metadata.update(slash_metadata or {})
+            else:
+                raw_query = handled_query
             if raw_query is None:
                 self.task_queue.task_done(); continue
             self.is_running = True
@@ -141,10 +158,17 @@ class GenericAgent:
                 handler.working['key_info'] = ki
                 handler.working['passed_sessions'] = ps = self.handler.working.get('passed_sessions', 0) + 1
                 if ps > 0: handler.working['key_info'] += f'\n[SYSTEM] 此为 {ps} 个对话前设置的key_info，若已在新任务，先更新或清除工作记忆。\n'
+            if metadata.get("plan_mode"):
+                handler.enter_plan_mode(
+                    scope_id=metadata.get("plan_scope_id") or "default",
+                    goal=metadata.get("plan_goal") or "",
+                    plan_only=bool(metadata.get("plan_only", True)),
+                )
             self.handler = handler  # although new handler, the **full** history is in llmclient, so it is full history!
             self.llmclient.log_path = self.log_path
+            max_turns = 30 if metadata.get("plan_mode") else 70
             gen = agent_runner_loop(self.llmclient, sys_prompt, raw_query, 
-                                handler, TOOLS_SCHEMA, max_turns=70, verbose=self.verbose)
+                                handler, TOOLS_SCHEMA, max_turns=max_turns, verbose=self.verbose)
             try:
                 full_resp = ""; last_pos = 0
                 for chunk in gen:
@@ -158,6 +182,12 @@ class GenericAgent:
                 if '</summary>' in full_resp: full_resp = full_resp.replace('</summary>', '</summary>\n\n')
                 if '</file_content>' in full_resp: full_resp = re.sub(r'<file_content>\s*(.*?)\s*</file_content>', r'\n````\n<file_content>\n\1\n</file_content>\n````', full_resp, flags=re.DOTALL)                
                 display_queue.put({'done': full_resp, 'source': source})
+                if metadata.get("plan_mode"):
+                    try:
+                        from frontends.plan_cmd import record_plan_result
+                    except Exception:
+                        from plan_cmd import record_plan_result
+                    record_plan_result(self, metadata, full_resp)
                 self.history = handler.history_info
             except Exception as e:
                 print(f"Backend Error: {format_error(e)}")

@@ -11,7 +11,7 @@ TELEGRAM_HTML_LIMIT = 4000
 _CODE_TOKEN_RE = re.compile(r"(`{3,})([A-Za-z0-9_+-]*)\n([\s\S]*?)\1", re.DOTALL)
 _INLINE_CODE_RE = re.compile(r"`([^`\n]+)`")
 _BOLD_RE = re.compile(r"\*\*([^\n]+?)\*\*|__([^\n]+?)__")
-_ITALIC_RE = re.compile(r"(?<!\*)\*(?!\*)([^\n]+?)(?<!\*)\*(?!\*)|(?<!_)_([^\n]+?)(?<!_)_")
+_ITALIC_RE = re.compile(r"(?<!\*)\*(?!\*)([^\n]+?)(?<!\*)\*(?!\*)|(?<![\w])_(?!_)([^\n_]+?)(?<!_)_(?![\w])")
 _STRIKE_RE = re.compile(r"~~([^\n]+?)~~")
 _LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)\n]+)\)")
 _TABLE_SEPARATOR_CELL_RE = re.compile(r"^:?-{3,}:?$")
@@ -129,13 +129,7 @@ def _extract_summary_sections(text):
     open_pos = remainder.find(_SUMMARY_OPEN_TAG)
     close_pos = remainder.find(_SUMMARY_CLOSE_TAG)
     if open_pos != -1 and (close_pos == -1 or open_pos > close_pos):
-        suffix = remainder[open_pos + len(_SUMMARY_OPEN_TAG) :].strip()
-        summary, spill = _split_summary_content(suffix)
-        if summary:
-            summaries.append(summary)
-        if spill:
-            spilled_bodies.append(spill)
-        remainder = remainder[:open_pos]
+        remainder = remainder[:open_pos] + remainder[open_pos + len(_SUMMARY_OPEN_TAG) :]
 
     if spilled_bodies:
         remainder = "\n\n".join(part for part in spilled_bodies + [remainder] if part.strip())
@@ -319,7 +313,7 @@ def _apply_markdown_to_html(escaped_text):
     def _link_repl(match):
         label = match.group(1)
         url = match.group(2)
-        safe_url = html.escape(url, quote=True)
+        safe_url = url.replace('"', "&quot;")
         return f"<a href=\"{safe_url}\">{label}</a>"
 
     text = _LINK_RE.sub(_link_repl, text)

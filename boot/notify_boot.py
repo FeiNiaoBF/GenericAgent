@@ -5,6 +5,11 @@ from datetime import datetime
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # ──── 人格化消息池 ────
 _CHII_WAKE_BRIEF = [
     "唧、ちぃ起来了！✨",
@@ -31,7 +36,7 @@ def read_mykey_token():
 
 
 def read_boot_config():
-    config_path = os.path.join(SCRIPT_DIR, 'boot_config.json')
+    config_path = os.path.join(PROJECT_ROOT, 'config', 'boot_config.json')
     if os.path.exists(config_path):
         with open(config_path, 'r', encoding='utf-8') as f:
             return json.load(f)

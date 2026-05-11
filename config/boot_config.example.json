@@ -1,18 +1,43 @@
 {
-  "api_keys": {
-    "openai": "<your-openai-key>",
-    "claude": "<your-anthropic-key>",
-    "claude_rip": "<your-claude-rip-key>",
-    "google": "<your-google-key>",
-    "serper": "<your-serper-key>",
-    "serpapi": "<your-serpapi-key>",
-    "deepseek": "<your-deepseek-key>",
-    "siliconflow": "<your-siliconflow-key>"
-  },
-  "mode": "<your-default-mode>",
-  "data_paths": {
-    "user_root": "~",
-    "memory_dir": "~/path/to/memory",
-    "log_dir": "~/path/to/logs"
+  "pythonw": ".venv\\Scripts\\pythonw.exe",
+  "bots": {
+    "gui": {
+      "name": "GUI",
+      "entry": "boot\\run_gui.pyw",
+      "enabled": true
+    },
+    "tg": {
+      "name": "Telegram",
+      "entry": "boot\\run_tg.py",
+      "enabled": false,
+      "notify_chat_id": ""
+    },
+    "fs": {
+      "name": "飞书",
+      "entry": "frontends\\fsapp.py",
+      "enabled": false,
+      "notify_chat_id": "",
+      "notify_chat_type": "open_id"
+    },
+    "dingtalk": {
+      "name": "钉钉",
+      "entry": "frontends\\dingtalkapp.py",
+      "enabled": false
+    },
+    "qq": {
+      "name": "QQ",
+      "entry": "frontends\\qqapp.py",
+      "enabled": false
+    },
+    "wechat": {
+      "name": "微信",
+      "entry": "frontends\\wechatapp.py",
+      "enabled": false
+    },
+    "hub": {
+      "name": "Hub",
+      "entry": "hub.pyw",
+      "enabled": false
+    }
   }
 }

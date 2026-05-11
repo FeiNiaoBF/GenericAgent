@@ -3,13 +3,17 @@ import subprocess, sys, os, json
 from datetime import datetime
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BOOT_CONFIG = os.path.join(BASE, 'boot_config.json')
-SCHED_LOG = os.path.join(BASE, 'sche_tasks', 'scheduler.log')
+BOOT_CONFIG = os.path.join(BASE, 'config', 'boot_config.json')
+SCHED_LOG = os.path.join(BASE, 'logs', 'scheduler.log')
+SCHEDULER_PORT = 50123
 TEMPLATE = {
-    "scheduler": {
-        "enabled": True,
-        "script": "reflect/scheduler.py",
-        "port": 50123
+    "pythonw": ".venv\\Scripts\\pythonw.exe",
+    "bots": {
+        "scheduler": {
+            "name": "Scheduler",
+            "entry": "boot\\run_scheduler.py",
+            "enabled": True
+        }
     }
 }
 
@@ -21,6 +25,7 @@ diag['boot_config'] = 'OK' if os.path.exists(BOOT_CONFIG) else 'MISSING'
 if diag['boot_config'] == 'MISSING':
     print(f"[run_scheduler] boot_config.json MISSING, auto-healing...")
     try:
+        os.makedirs(os.path.dirname(BOOT_CONFIG), exist_ok=True)
         with open(BOOT_CONFIG, 'w', encoding='utf-8') as f:
             json.dump(TEMPLATE, f, indent=2)
         diag['boot_config'] = 'HEALED'
@@ -32,7 +37,7 @@ if diag['boot_config'] == 'MISSING':
 # 2) 检查scheduler进程（端口占用 = 已运行）
 import socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-port_open = sock.connect_ex(('127.0.0.1', TEMPLATE['scheduler']['port'])) == 0
+port_open = sock.connect_ex(('127.0.0.1', SCHEDULER_PORT)) == 0
 sock.close()
 diag['scheduler_already'] = 'RUNNING' if port_open else 'NOT_RUNNING'
 

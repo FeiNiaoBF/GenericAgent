@@ -43,7 +43,11 @@ from chatapp_common import (
     require_runtime,
 )
 from continue_cmd import handle_frontend_command, reset_conversation
-from plan_cmd import handle_frontend_command as handle_plan_frontend
+from plan_cmd import (
+    active_plan_metadata,
+    build_plan_followup_prompt,
+    handle_frontend_command as handle_plan_frontend,
+)
 from llmcore import mykeys
 from frontends.persona_pool import get_phrase, load_phrase_pool
 from frontends.tg_html import (
@@ -403,6 +407,12 @@ def _parse_ask_callback_data(data):
 
 def _build_text_prompt(text):
     return f"{FILE_HINT}\n\n{text}"
+
+
+def _plan_scope_id(update):
+    chat_id = getattr(getattr(update, "effective_chat", None), "id", None)
+    user_id = getattr(getattr(update, "effective_user", None), "id", None)
+    return f"tg:{chat_id or 'chat'}:{user_id or 'user'}"
 
 
 def _normalize_ask_menu_event(stored):
@@ -1127,7 +1137,15 @@ async def handle_ask_callback(update, ctx):
 
     await _cancel_stream_task(ctx)
     _apply_tg_extra_system_prompt()
-    dq = agent.put_task(_build_text_prompt(selected), source="telegram")
+    plan_metadata = active_plan_metadata(agent, _plan_scope_id(update))
+    if plan_metadata:
+        dq = agent.put_task(
+            build_plan_followup_prompt(selected),
+            source="telegram_plan",
+            metadata=plan_metadata,
+        )
+    else:
+        dq = agent.put_task(_build_text_prompt(selected), source="telegram")
     task = asyncio.create_task(_stream(dq, query.message))
     ctx.user_data["stream_task"] = task
 
@@ -1239,7 +1257,18 @@ async def handle_command(update, ctx):
 
     if op == "/plan":
         await _cancel_stream_task(ctx)
-        return await _reply_html(update.message, handle_plan_frontend(agent, cmd))
+        result = handle_plan_frontend(agent, cmd, scope_id=_plan_scope_id(update))
+        if getattr(result, "kind", "") != "start_plan":
+            return await _reply_html(update.message, result.reply_text)
+        _apply_tg_extra_system_prompt()
+        dq = agent.put_task(
+            result.prompt,
+            source="telegram_plan",
+            metadata=result.metadata,
+        )
+        task = asyncio.create_task(_stream(dq, update.message))
+        ctx.user_data["stream_task"] = task
+        return
 
     return await _reply_html(update.message, HELP_TEXT)
 
