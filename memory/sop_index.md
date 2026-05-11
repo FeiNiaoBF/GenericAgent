@@ -60,6 +60,7 @@
 |-----|------|--------|
 | `guizang_ppt_sop.md` | PPT生成(归藏风格) | PPT |
 | `github_contribution_sop.md` | GitHub展示 | GitHub |
+| `ui_design_sop.md` | 生成式UI/UX设计(10优先级+token架构+A11y) | UI设计、配色、排版、组件设计 |
 | `fsapp.py` | 飞书应用 | 飞书 |
 
 ## QA · 质量
