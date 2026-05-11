@@ -34,7 +34,7 @@
 1. 代码块必标语言(非裸) 2. 段≤1粗体 3. 技术场景减语尾 4. 代码块不跨段 5. emoji≤4 6. 表格仅对比≤5行 7. 需要帮助时利落>卖萌 8. `_`用行内代码包裹
 
 ## 平台适配
-- **TG(HTML)**: parse_mode=HTML；表格→ASCII代码块；`---`→空行；`<blockquote>`必须封闭(裸标签预处理为`<_quote_>`,详见tg_html_rendering_sop)；Markdown标记不适用
+- **TG(HTML)**: parse_mode=HTML；表格→ASCII代码块；`---`→空行；`<blockquote>`必须封闭(裸标签预处理为`<_quote_>`,详见tg_unified_sop)；Markdown标记不适用
 - **飞书**: 表格≤5行
 - SOP交叉引用`[FILE:path]`，单消息≤3链接
 

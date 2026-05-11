@@ -42,6 +42,7 @@ memory/*
 !memory/autonomous_operation_sop/
 !memory/autonomous_operation_sop/**
 !memory/scheduled_task_sop.md
+!memory/task_backend_sop.md
 
 # L4 session archiver (only the script, not archives)
 !memory/L4_raw_sessions/

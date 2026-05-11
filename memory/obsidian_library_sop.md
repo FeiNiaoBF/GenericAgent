@@ -1,104 +1,73 @@
-# [L3 SOP] obsidian_library_sop — 图书馆·读书心流SOP (v1.0)
+# [L3 SOP] obsidian_library_sop — 图书馆·读书心流SOP (v2.0)
 > Vault: `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
-> 架构文档: `Codex Vitae知识库架构.md` (v2.1)
+> 单职责：只处理“书籍笔记/阅读心流”。知识库架构见 `vault_knowledge_sop.md`；发布见 `obsidian_blog_sync_sop.md`。
 
 ## 执行摘要（≥1步执行前必读）
-① 确认书类型(技术/科幻/哲学等)→② 读取对应模板创建笔记→③ 填充断言+底部Dataview+双链至MOC → 🛑 步骤③后必须过验证门禁
+① 确认书籍与阅读状态 → ② 用 `Templates/Book.md` 建 `03.Library/Books/书名.md` → ③ 记录划线/思考 → ④ 读完提炼核心断言 → ⑤ 运行验证/分类工具 → 🛑
 
-## 1. 适用场景
-主人要读书/整理Book笔记/需要读书笔记模板时激活。
+## 1. 触发场景
+主人要：找书、建书籍笔记、整理读书批注、把一本书读完归档时激活。
 
-## 2. 核心流程
+不处理：
+- 主题MOC/知识库结构 → `vault_knowledge_sop.md`
+- Blog发布 → `obsidian_blog_sync_sop.md`
+- 日记追加 → `diary_append.py`
+- 全库分类 → `vault_classifier.py`
 
-```
-找书 → 建笔记 → 读书标记 → 提炼断言 → MOC聚合 → Blog发布
-```
-
-详细执行委托给阶段A-D（见§3），分类委托给 `vault_classifier.py`。
-
-## 3. 阶段详解
-
-### 阶段A：找书入架
-- 路径：`03.Library/Books/书名.md`
+## 2. 路径与模板
+- 书籍笔记路径：`03.Library/Books/书名.md`
 - 模板：`Templates/Book.md`
-- 填充：frontmatter（评分/状态/封面/标签）、目录、阅读动机
+- 一书一文件，禁把多本书混在同一笔记。
 
-### 阶段B：读书标注
-- 划线/批注直接用Obsidian Callout：`> [!quote] 原文` / `> [!think] 思考`
-- 状态：`tbr` → `reading` → `done`
-- 评分：读完填1-5星
+## 3. 阅读状态流
+`tbr` → `reading` → `done`
 
-### 阶段C：提炼断言
-- 笔记底部 `## 💡 核心断言` 节，每条断言一行
-- 双链规则：`[[书名]]` 引用；Book笔记底部Dataview自动发现
-- 高价值断言 → 独立卡片 `05.Knowledge/` — 走 vault_knowledge_sop
+读完必须补：评分、完成状态、至少1段读后感或核心收获。
 
-### 阶段D：MOC主题聚合
-多书围绕同一主题时 → `03.Library/Maps/` 下创建 `MOC.md` → 双链汇总 → 可发布Blog
+## 4. 批注格式
+Obsidian Callout：
+```md
+> [!quote] 原文摘录
+> [!think] 唧的思考/主人的判断
+```
 
-## 4. Type 分类规则
-委托 `../memory/vault_classifier.py` 自动分类。类型定义见该脚本注释。
-CLI：`python ../memory/vault_classifier.py`（全量）| `--dry-run`（预览）| `--file "关键词"`（单文件）
+原则：原文和思考分开；摘录服务于后续断言，不堆材料。
 
-### 阶段D补充：MOC 模板强制规则 (v3.0)
-- ⚠️ **两种MOC模板禁止混淆**：顶层MOC(领域级)用 `99.System/Templates/01-05Cat·LLM版.md` | 主题MOC(知识聚合)用 `99.System/Templates/MOC.md` (v3.0)。决策树：新学科领域→顶层MOC | 领域内某主题≥3篇→主题MOC
-- v3.0 按需启用标准区块：🗺️地图边界(scope+核心问题) → 📚精选导航(≥3篇) → 🧠知识断言(Dataview) → 📊动态索引(Dataview contains(moc)) → 🔗概念关系 → 🌱待探索 → 🏷️子MOC
-- Note/Knowledge 模板已内置 `moc` YAML 字段，写笔记时填入所属 MOC 即可被 Dataview contains(moc) 自动索引。
-- 硬性要求：`Ctrl+E` 提示行、精选导航节、至少1个 Dataview contains(moc) 查询、scope 地图边界、≥2 个核心问题。
-- 🚫 禁手写表格列举笔记（Dataview 替代）；禁缺 scope；禁缺核心问题(≥2)；禁分4类型MOC(统一v3.0)。
+## 5. 核心断言输出
+Book笔记底部保留：
+```md
+## 💡 核心断言
+- [[书名]] 支持的一个明确判断。
+```
 
-## 5. YAML 坑点
-- Tags 用空格缩进列表格式（别用 `[a, b]`）
-- 日期 `YYYY-MM-DD`，无引号
-- status 必须用脚本定义值（`tbr/reading/done` 等），手填易错
+高价值断言再拆到 `05.Knowledge/`，执行 `vault_knowledge_sop.md`。
 
-## 6. 红牌规则（禁触）
-- 🚫 笔记内容放 `00.Inbox/` 超过24h不归类
-- 🚫 不同书笔记混在同一文件
-- 🚫 断言不加双链（变成孤立知识孤岛）
-- 🚫 frontmatter 中 `type` 手填（用 vault_classifier.py）
-- 🚫 书籍元数据缺失（评分/状态至少一项）
+## 6. 双链与聚合
+- Book笔记至少自然链接到1个相关主题或MOC。
+- 多书围绕同一主题时，MOC创建/维护交给 `obsidian_moc_sop.md`。
+- 禁为了凑链接添加“相关概念”垃圾区块。
 
-## 7. Diary 写作规范
-触发：读书完成后。路径：`04.Diary/YYYY-MM-DD-书名简写.md`
-内容：阅读时长、感悟（≥1段）、新断言数、下一步行动
+## 7. 工具委托
+- 分类：`python ../memory/vault_classifier.py --file "书名"`
+- 验证：`python ../memory/verify_note.py "<Vault内相对或绝对路径>"`
+- 日记收尾：`python ../memory/diary_append.py "读完/整理《书名》"`
 
-## 8. 课程学习笔记
+## 8. 红牌规则
+- 🚫 `00.Inbox/` 暂存超过24h不归类。
+- 🚫 frontmatter 中 `type` 乱手填；优先走分类工具。
+- 🚫 书籍元数据缺评分/状态。
+- 🚫 断言散落在正文里不汇总。
+- 🚫 用本SOP处理课程笔记、技术主题笔记、MOC建设。
 
-### 课程大纲（quest）
-路径：`01.Quests/Active/课程名.md`
-frontmatter：`type: quest | status: active | domain: "[[学业]]" | subject: CS | topic: 课程名`
-
-### 学习笔记（blog）
-路径：`03.Library/Notes/计算机/主题/笔记.md`
-frontmatter：`type: note | status: budding | created: YYYY-MM-DD`
-唧第一人称叙事。
-
-### 断言输出
-`05.Knowledge/CS/断言.md`（走 vault_knowledge_sop）
-
-## 9. 技术主题笔记
-路径：`03.Library/Notes/计算机/{语言或框架}/{主题}.md`
-- 中文文件名：`{主概念} - {副标题}.md`
-- frontmatter：`type: note | status: budding | created: YYYY-MM-DD | category: 计算机/{语言} | proficiency: 1-5`
-- 先建目录再写文件（`os.makedirs`）
-- 长篇解释→03，短断言→05.Knowledge/
-
-## 10. 避免常见问题
-1. **路径错误**：Vault根 `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`，已记本SOP头部
-2. **Type手填** → 走脚本
-3. **断言散落** → 必须双链 + 底部Dataview
-4. **模板缺失** → 参考 `Templates/Book.md` 和 `Templates/Blog.md`
-5. **MOC孤立** → 至少引用2本书才建MOC
-
-## 🛑 验证门禁（执行前/后强制检查）
-
+## 🛑 验证门禁
 | 检查项 | 状态 |
 |--------|------|
-| 笔记类型(Type)正确？ | |
-| 模板字段完整(断言+Dataview)？ | |
-| 双链出度≥1(关联MOC)？ | |
-| MOC引用≥2本书？ | |
-| 路径基D:\Documents_Learn\Personal\Obsidian\Codex Vitae？ | |
+| 路径在 `D:\Documents_Learn\Personal\Obsidian\Codex Vitae` 内？ | |
+| 一书一文件？ | |
+| 状态/评分已补齐？ | |
+| `## 💡 核心断言` 存在且至少1条？ | |
+| 双链自然生长且非垃圾链接？ | |
+| 需要拆出的断言已转 `vault_knowledge_sop.md`？ | |
 
 最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`
+

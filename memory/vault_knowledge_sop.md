@@ -44,35 +44,10 @@ type/status/created/updated/tags→全箱 | domain/subject→Library/Knowledge |
 事件→背景+前因+过程+决策逻辑+后果+当代意义+关联链 | 概念→定义+思想史来源+逻辑展开+应用场景+概念边界+关联
 Notes不设"例题/出处/易错/陷阱"节
 
-## MOC规范(v3.0)
+## MOC引用
+MOC/地图笔记创建、模板、字段、同步清单见 `obsidian_moc_sop.md`。
 
-### ⚠️两种MOC模板（禁混淆）
-| | 顶层MOC(领域领航) | 主题MOC(知识聚合) |
-|---|---|---|
-|模板|`01-05Cat·LLM版.md`|`MOC.md`(v3.0)|
-|指向|子MOC `[[子MOC名]]`|笔记`[[笔记名]]`+Dataview|
-|字段|无moc字段|moc必填|
-|何时建|新学科领域|领域内某主题≥3篇|
-
-### 次级MOC(学习/子领域)
-模板：MOC.md v3.0精简版(无dataview/无边界区块) | `level:sub` + `parent:"[[父MOC]]"` | 禁用01-05Cat模板
-
-**决策树**：学科领域级→顶层MOC | 领域内主题→主题MOC(moc必填) | 学习类子领域→次级MOC(level:sub)
-
-### 主题MOC必填字段
-`type:moc | status | moc:"[[MOC名]]" | scope`(地图边界)
-
-### 标准区块(按需)
-1.🗺️地图边界—scope+≥2核心问题
-2.📚精选导航—≥3篇核心笔记(双链+定位)
-3.🧠知识断言—`FROM "05.Knowledge" WHERE contains(moc,"[[本MOC]]")`
-4.📊动态索引—`FROM "03.Library/Notes" WHERE contains(moc,"[[本MOC]]")`
-5.🔗概念关系—正文中生长
-6.🌱待探索—待学主题+优先级
-7.🏷️子MOC—`FROM "03.Library/Maps" WHERE contains(moc,"[[父MOC]]")`
-
-### MOC创建后同步清单
-1.顶层MOC新增精选导航项 | 2.Quests三件套更新 | 3.MOC总览新增行
+`03.Library/Maps` 只在同subject≥3-5篇或领域导航需要时创建，禁用MOC替代正文自然双链。
 
 ## 双链原则
 链接从正文论证自然生长，禁"相关概念"区块 | 零链接正常态 | 新笔记加前向链接，已有笔记不自动回改(MOC例外)

@@ -54,10 +54,10 @@
 
 ## 进度跟踪 (2026-05-09 SOP优化)
 ### Step1: 删除冗余 ✅
-✅ 删除 `chi_character_card.md` + `web_setup_sop.md`(备份至`../backup/`) ✅ 修引用链 ✅ 更新`sop_index.md`
+✅ 旧角色卡/网页启动细节已并入源SOP；引用链与`sop_index.md`已更新
 
-### Step2: 合并9→3组 + 内化3个 ⬜
-- TG三合一→`tg_unified_sop.md` | 学习合一→`learning_tutor_sop.md` | 后台合一→`task_backend_sop.md`
-- 内化: `procmem_scanner`+`vision_ocr`→tmwebdriver | `goal_mode`→plan_sop
+### Step2: 合并9→3组 + 内化3个 ✅
+- TG→`tg_unified_sop.md` | 学习助教→`learning_tutor_sop.md` | 后台/定时→`task_backend_sop.md`
+- MOC已拆出→`obsidian_moc_sop.md`；知识库保留分类职责→`vault_knowledge_sop.md`
 
 ### Step3: 同步记忆+Git ⬜

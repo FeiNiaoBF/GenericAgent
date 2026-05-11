@@ -24,8 +24,7 @@
 |-----|------|--------|
 | `daily_task_sop.md` | 每日开场/清点/收尾 | 早晨 |
 | `daily_news_sop.md` | 新闻简报 | 新闻 |
-| `scheduled_task_sop.md` | 定时任务JSON规范 | schedule |
-| `task_backend_sop.md` | 后台引擎(自主+信号源+目标) | 后台、goal |
+| `task_backend_sop.md` | 后台任务/定时调度/自主执行/Goal Mode | task_backend、后台、goal |
 | `gongji_exam_sop.md` | 公基备考(4Phase) | 公基、刷题 |
 
 ## TOOLS · 工具
@@ -44,7 +43,7 @@
 ## LEARN · 学习
 | SOP | 用途 | 触发词 |
 |-----|------|--------|
-| `obsidian_library_sop.md` | Obsidian知识库 | 笔记、知识库 |
+| `obsidian_library_sop.md` | 图书/阅读心流 | 书籍、读书、批注 |
 | `learning_tutor_sop.md` | 学习导师(CS+英语) | 英语、背单词 |
 
 ## KNOWLEDGE · 知识管理
