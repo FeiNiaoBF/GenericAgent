@@ -1,4 +1,4 @@
-# 公基备考 SOP (唧式陪练) (v2.0)
+# 公基备考 SOP (唧式陪练) (v3.0)
 > 触发: 公基/备考/刷题/时政/常识判断/事业单位考试
 > 依赖: web_search_sop | vault_knowledge_sop | user_profile_sop
 
@@ -61,8 +61,34 @@ frontmatter: `tags: [公基], moc: "[[对应主题MOC]]", status: seedling, crea
 主题MOC不存在→按vault_knowledge_sop §5创建(MOC.md v3.0)→同步Quests三件套
 存在→Dataview靠moc字段自动索引
 
-**Step 3: 生成Anki卡片**
-错题追加到笔记`## 🐛 错题` → `python memory/anki_export.py` → .apkg
+**Step 3: 推送Anki卡片（AnkiConnect直推）**
+
+前提：Anki桌面端已打开 + AnkiConnect插件运行中（端口8765）
+
+① 构造笔记数据：
+```python
+note = {
+    "deckName": "公基错题",
+    "modelName": "公基错题",
+    "fields": {
+        "id": "编号(如 002)",
+        "question": "题干全文",
+        "options": "A. ...\nB. ...\nC. ...\nD. ...",
+        "answer": "正确选项字母",
+        "notes": "法条原文+逐项解析+陷阱标注"
+    },
+    "tags": ["公基", "错题", "学科分类"]
+}
+```
+
+② 推送：`requests.post('http://127.0.0.1:8765', json={"action":"addNote","version":6,"params":{"note":note}})`
+
+③ 验证（必须！）：
+- 返回含noteId→成功
+- 失败→查错误信息（常见：字段名不匹配/重复卡片）
+- 读回：`findNotes` + `notesInfo` 确认内容一致
+
+参考：anki_connect_sop.md §1-6（读写action名不同/验证闭环/CSS要点）
 
 ## Phase 3: 错题复习
 触发: "复习错题" 或 每20题提醒
@@ -74,6 +100,9 @@ Dataview调取 #公基+#错题 → 抽3-5题重测 → 二次错→重点标记 
 ## 🛑 验证门禁
 | 检查项 | 状态 |
 |--------|------|
-| 错题按领域归档？ | |
+| 错题按领域归档(vault笔记)？ | |
+| MOC已同步(moc字段+Dataview索引)？ | |
+| Anki卡片已推送(noteId已获取)？ | |
+| Anki卡片读回验证(fields一致)？ | |
 | 薄弱模块已标记(正确率<60%)？ | |
 | 统计已输出？ | |
