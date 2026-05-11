@@ -19,42 +19,40 @@ param(
     [switch]$RemoveAutoStart
 )
 
-$BootDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$ProjectRoot = Resolve-Path (Join-Path $BootDir '..')
-$ConfigPath = Join-Path $ProjectRoot "config\boot_config.json"
-$LogPath = Join-Path $ProjectRoot "logs\boot.log"
-$LogDir = Split-Path $LogPath
-if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Path $LogDir -Force | Out-Null }
+. (Join-Path $PSScriptRoot 'common.ps1')
+Initialize-GABootConsole
+
+$ctx = Get-GABootContext
+$BootDir = $ctx.BootDir
+$ProjectRoot = $ctx.ProjectRoot
+$ConfigPath = $ctx.ConfigPath
+$LogPath = $ctx.RootLogPath
 
 # ---------- helper ----------
 function Write-Log { param([string]$msg)
-    $time = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    "$time $msg" | Out-File -FilePath $LogPath -Append -Encoding UTF8
-    Write-Host "$time $msg"
-}
-
-function Show-Popup { param([string]$title, [string]$message, [int]$timeout = 5)
-    try {
-        $wshell = New-Object -ComObject Wscript.Shell
-        $wshell.Popup($message, $timeout, $title, 0x40) | Out-Null
-    } catch {
-        Write-Host "[Popup] $title : $message" -ForegroundColor Cyan
-    }
+    Write-GALog -Path $LogPath -Message $msg
 }
 
 function Get-RunningPids { param([string]$scriptName)
     $scriptName = $scriptName -replace '\.pyw?$',''
-    # 优先用 Get-CimInstance (非Admin也能拿到CommandLine)
-    $pids = Get-CimInstance Win32_Process -Filter "Name LIKE 'python%'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -like "*$scriptName*" } |
-        Select-Object -ExpandProperty ProcessId
+    $pids = @()
+    try {
+        $pids = @(Get-CimInstance Win32_Process -Filter "Name LIKE 'python%'" -ErrorAction Stop |
+            Where-Object { $_.CommandLine -like "*$scriptName*" } |
+            Select-Object -ExpandProperty ProcessId)
+    } catch {
+        $pids = @()
+    }
     if ($pids) { return $pids }
-    # 回退: Get-Process (Admin可能需要)
-    Get-Process -Name "python*" -ErrorAction SilentlyContinue |
-        Where-Object {
-            try { $_.CommandLine -like "*$scriptName*" } catch { $false }
-        } |
-        Select-Object -ExpandProperty Id
+    try {
+        return @(Get-Process -Name "python*" -ErrorAction Stop |
+            Where-Object {
+                try { $_.CommandLine -like "*$scriptName*" } catch { $false }
+            } |
+            Select-Object -ExpandProperty Id)
+    } catch {
+        return @()
+    }
 }
 
 function Stop-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botKey = "")
@@ -64,6 +62,8 @@ function Stop-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botKe
         # Signal graceful shutdown
         if ($botKey) {
             $shutdownFile = Join-Path $ProjectRoot "temp\.shutdown_$botKey"
+            $shutdownDir = Split-Path $shutdownFile
+            if (-not (Test-Path $shutdownDir)) { New-Item -ItemType Directory -Path $shutdownDir -Force | Out-Null }
             Set-Content -Path $shutdownFile -Value "shutdown" -Force
             Write-Log "  [$botLabel] 发送关闭信号..."
             $waited = 0
@@ -109,8 +109,8 @@ function Start-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botK
     $psi.Arguments = "`"$scriptPath`""
     $psi.WorkingDirectory = $ProjectRoot
     $psi.UseShellExecute = $false
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
+    $psi.RedirectStandardOutput = $false
+    $psi.RedirectStandardError = $false
     # Pass notification config via env vars
     if ($botCfg.notify_chat_id) {
         $psi.EnvironmentVariables["GA_NOTIFY_CHAT_ID"] = $botCfg.notify_chat_id
@@ -119,6 +119,8 @@ function Start-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botK
         $psi.EnvironmentVariables["GA_NOTIFY_CHAT_TYPE"] = $botCfg.notify_chat_type
     }
     $shutdownFile = Join-Path $ProjectRoot "temp\.shutdown_$botKey"
+    $shutdownDir = Split-Path $shutdownFile
+    if (-not (Test-Path $shutdownDir)) { New-Item -ItemType Directory -Path $shutdownDir -Force | Out-Null }
     $psi.EnvironmentVariables["GA_SHUTDOWN_FILE"] = $shutdownFile
     # Clean any stale shutdown file
     if (Test-Path $shutdownFile) { Remove-Item $shutdownFile -Force }
@@ -146,9 +148,24 @@ function Resolve-Pythonw {
     if ($cfgPythonw) { $candidates += $cfgPythonw }
     $candidates += "pythonw.exe"
     foreach ($c in $candidates) {
-        $resolved = $ExecutionContext.InvokeCommand.ExpandString($c)
-        $exe = Get-Command $resolved -ErrorAction SilentlyContinue
-        if ($exe) { return $exe.Source }
+        $expanded = [Environment]::ExpandEnvironmentVariables(
+            $ExecutionContext.InvokeCommand.ExpandString($c)
+        )
+        $candidatePaths = @()
+        if ([System.IO.Path]::IsPathRooted($expanded)) {
+            $candidatePaths += $expanded
+        } elseif (($expanded -match '[\\/]') -or $expanded.StartsWith(".")) {
+            $candidatePaths += (Join-Path $ProjectRoot $expanded)
+        }
+        $candidatePaths += $expanded
+
+        foreach ($candidate in ($candidatePaths | Select-Object -Unique)) {
+            if (Test-Path $candidate -PathType Leaf) {
+                return (Resolve-Path $candidate).Path
+            }
+            $exe = Get-Command $candidate -ErrorAction SilentlyContinue
+            if ($exe) { return $exe.Source }
+        }
     }
     $found = where.exe pythonw 2>$null | Select-Object -First 1
     if ($found) { return $found.Trim() }
@@ -159,7 +176,7 @@ function Resolve-Pythonw {
 # ---------- load / write config ----------
 function Get-Config {
     if (-not (Test-Path $ConfigPath)) {
-        $examplePath = Join-Path $ProjectRoot "config\boot_config.example.json"
+        $examplePath = $ctx.ConfigExamplePath
         if (Test-Path $examplePath) {
             Copy-Item $examplePath $ConfigPath -Force
             Write-Log "配置不存在, 已从 example 创建: $ConfigPath"
@@ -177,6 +194,26 @@ function Write-Config { param($cfg)
     $cfg | ConvertTo-Json -Depth 10 | Set-Content -Path $ConfigPath -Encoding UTF8
 }
 
+function Invoke-BootNotification {
+    param([string]$OkList, [string]$FailList)
+    $pythonExe = Resolve-GAPath ".venv\Scripts\python.exe" $ProjectRoot
+    if (-not (Test-Path $pythonExe -PathType Leaf)) { $pythonExe = 'python' }
+    $notifyScript = Join-Path $PSScriptRoot 'notify_boot.py'
+    if (-not (Test-Path $notifyScript -PathType Leaf)) {
+        Write-Log "  [notify] 跳过: notify_boot.py 不存在"
+        return
+    }
+
+    try {
+        $output = & $pythonExe $notifyScript "--ok=$OkList" "--fail=$FailList" 2>&1
+        foreach ($line in $output) {
+            if ($line) { Write-Log "  [notify] $line" }
+        }
+    } catch {
+        Write-Log "  [notify] 失败: $_"
+    }
+}
+
 # ========== main ==========
 $pythonwPath = Resolve-Pythonw
 $cfg = Get-Config
@@ -188,7 +225,7 @@ Write-Log "  配置: $ConfigPath"
 
 # --- RemoveAutoStart ---
 if ($RemoveAutoStart) {
-    $vbsPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\GenericAgent.vbs"
+    $vbsPath = $ctx.StartupVbsPath
     if (Test-Path $vbsPath) {
         Remove-Item $vbsPath -Force
         Write-Log "OK 已移除开机自启动"
@@ -198,7 +235,7 @@ if ($RemoveAutoStart) {
 
 # --- SetupAutoStart ---
 if ($SetupAutoStart) {
-    $vbsPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\GenericAgent.vbs"
+    $vbsPath = $ctx.StartupVbsPath
     $psCall = "powershell.exe -ExecutionPolicy Bypass -File `"$BootDir\start.ps1`""
     $vbsContent = "Set WshShell = CreateObject(""WScript.Shell"")`r`n" +
                   "WshShell.Run ""$psCall "", 0, False"
@@ -212,21 +249,22 @@ if ($Status) {
     Write-Host ""
     Write-Host "========== GenericAgent Boot 运行状态 =========="
     Write-Host "配置: $ConfigPath"
-    $autoStart = Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\GenericAgent.vbs"
+    $autoStart = Test-Path $ctx.StartupVbsPath
     Write-Host "开机自启动: $(if($autoStart){'Y'}else{'N'})"
     Write-Host ""
-    Write-Host "Bot                     状态   PID"
-    Write-Host "----------------------------------------"
+    Write-Host "Bot                     启用   状态   PID"
+    Write-Host "-----------------------------------------------"
     foreach ($key in $cfg.bots.PSObject.Properties.Name) {
         $bot = $cfg.bots.$key
         $name = $bot.name
-        $scriptPath = Join-Path $ProjectRoot $bot.entry
+        $enabled = if ($bot.enabled) { "Y" } else { "N" }
+        $scriptPath = Resolve-GAPath $bot.entry
         $pids = Get-RunningPids $scriptPath
         if ($pids.Count -gt 0) { $st = "运行中" } else { $st = "已停止" }
         $pidStr = if ($pids.Count -gt 0) { "$($pids -join ',')" } else { "-" }
-        Write-Host ("{0,-25} {1,-6} {2}" -f $name, $st, $pidStr)
+        Write-Host ("{0,-25} {1,-6} {2,-6} {3}" -f $name, $enabled, $st, $pidStr)
     }
-    Write-Host "----------------------------------------"
+    Write-Host "-----------------------------------------------"
     Write-Host ""
     exit 0
 }
@@ -236,7 +274,7 @@ if ($Restart) {
     Write-Log "--- 重启模式: 停止所有bot ---"
     foreach ($key in $cfg.bots.PSObject.Properties.Name) {
         $bot = $cfg.bots.$key
-        $scriptPath = Join-Path $ProjectRoot $bot.entry
+        $scriptPath = Resolve-GAPath $bot.entry
         Stop-Bot $scriptPath $bot.name $key
     }
     Start-Sleep -Seconds 1
@@ -248,7 +286,7 @@ if ($Stop) {
     Write-Log "--- 停止模式: 优雅停止所有bot ---"
     foreach ($key in $cfg.bots.PSObject.Properties.Name) {
         $bot = $cfg.bots.$key
-        $scriptPath = Join-Path $ProjectRoot $bot.entry
+        $scriptPath = Resolve-GAPath $bot.entry
         Stop-Bot $scriptPath $bot.name $key
     }
     Write-Log "--- 停止完成 ---"
@@ -291,7 +329,7 @@ $startedFail = @()
 $allOk = $true
 foreach ($key in $botKeys) {
     $bot = $cfg.bots.$key
-    $scriptPath = Join-Path $ProjectRoot $bot.entry
+    $scriptPath = Resolve-GAPath $bot.entry
     Write-Log "  启动 $($bot.name) ($($bot.entry)) ..."
     $pids = Start-Bot $scriptPath $bot.name $key $cfg $pythonwPath
     if ($pids.Count -gt 0) { $started += @{key=$key; name=$bot.name} }
@@ -303,7 +341,7 @@ Write-Log "--- 状态验证 ---"
 $startedOk = @()
 foreach ($s in $started) {
     $bot = $cfg.bots.$($s.key)
-    $scriptPath = Join-Path $ProjectRoot $bot.entry
+    $scriptPath = Resolve-GAPath $bot.entry
     $pids = Get-RunningPids $scriptPath
     if ($pids.Count -gt 0) { Write-Log "  [OK] $($s.name) 运行中 PID=$($pids -join ',')"; $startedOk += $s.name }
     else { Write-Log "  [X] $($s.name) 已退出"; $allOk = $false; $startedFail += $s.name }
@@ -314,13 +352,10 @@ else { Write-Log "=== Warn 部分启动失败, 请检查日志 ===" }
 # --- Bot 通知 (替代弹窗) ---
 $okList = if ($startedOk.Count -gt 0) { $startedOk -join ', ' } else { '' }
 $failList = if ($startedFail.Count -gt 0) { $startedFail -join ', ' } else { '' }
-$pythonExe = Join-Path $PSScriptRoot '..\.venv\Scripts\python.exe'
-if (-not (Test-Path $pythonExe)) { $pythonExe = 'python' }
-$notifyScript = Join-Path $PSScriptRoot 'notify_boot.py'
-& $pythonExe $notifyScript -Ok $okList -Fail $failList *>> $LogPath
+Invoke-BootNotification -OkList $okList -FailList $failList
 
 # 开机自启提示 (不再静默安装)
-$vbsPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\GenericAgent.vbs"
+$vbsPath = $ctx.StartupVbsPath
 if (Test-Path $vbsPath) {
     Write-Log "  (开机自启: 已配置)"
 } else {
