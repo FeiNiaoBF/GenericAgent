@@ -3,9 +3,26 @@
 > 触发: 任何Git操作 | 前置: `git aliases`确认别名可用
 
 ## 执行摘要
+0. **Step 0（前置必做）：确认cwd在git仓库根目录** — `git rev-parse --show-toplevel`
 1. 四步法：`git st`→`git a`逐文件→定type/scope→`git cm`
 2. Push前：`git status -s`确认干净 + 禁提交密钥
 3. 合并后：`git status -s`→确认clean → 🛑 验证门禁
+
+---
+
+## 0. 前置检查 (Step 0 — 必须最先执行)
+
+> ⚠️ 教训：cwd≠git根目录时直接执行git命令会fatal，浪费回合
+
+```powershell
+# 确认git仓库根目录，后续所有命令在该目录执行
+$gitRoot = (git rev-parse --show-toplevel 2>$null)
+if (-not $gitRoot) { Write-Error "❌ cwd不在git仓库内！请先确认路径" }
+else { Set-Location $gitRoot; Write-Output "✅ git根: $gitRoot" }
+```
+
+- 若cwd不是git根 → **立即cd到git根**，不要在错误目录重试
+- 工具调用时在 `cwd` 参数中指定git根路径，或在脚本内 `cd`
 
 ---
 
@@ -163,9 +180,11 @@ diff temp_ours.py <theirs> | grep '^<'  # 提取独有行
 
 | 检查项 | PASS | FAIL |
 |--------|------|------|
-| 无密钥泄漏 | `git diff --staged`无.env/credentials | 撤销+加gitignore |
+| 无密钥泄漏 | `git diff --staged`无.env/credentials + `git ls-files`无密钥文件 | 撤销+加gitignore |
 | status干净 | `git status -s`仅预期变更 | 清理/checkout |
 | merge后已清理 | `git status -s`确认clean | `git add -A && git commit` |
 | main无直接commit | `git log main --oneline`无实验性提交 | cherry-pick整理 |
+
+> ⚠️ 密钥检查必须用**双重验证**：diff --staged + ls-files grep，缺一不可
 
 `VERDICT: PASS` / `VERDICT: FAIL`
