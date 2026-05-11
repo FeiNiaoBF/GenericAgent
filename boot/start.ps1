@@ -1,14 +1,14 @@
 ﻿<#
 .SYNOPSIS
-GenericAgent Boot 统一启动器 — 从 config/boot_config.json 读取配置，管理所有bot
-用法:
-  cd boot; .\start.ps1                     -> 按配置启动已启用的bot
-  cd boot; .\start.ps1 -Bots "tg,fs"       -> 启动指定bot并保存配置
-  cd boot; .\start.ps1 -Restart            -> 重启(优雅停止→启动)
-  cd boot; .\start.ps1 -Stop               -> 优雅停止所有bot
-  cd boot; .\start.ps1 -Status             -> 查看运行状态 
-  cd boot; .\start.ps1 -SetupAutoStart     -> 安装开机自启动
-  cd boot; .\start.ps1 -RemoveAutoStart    -> 移除开机自启动
+GenericAgent boot launcher. Reads config/boot_config.json and manages enabled entries.
+Usage:
+  cd boot; .\start.ps1                     -> start enabled entries
+  cd boot; .\start.ps1 -Bots "tg,fs"       -> enable specific entries and start them
+  cd boot; .\start.ps1 -Restart            -> stop then start
+  cd boot; .\start.ps1 -Stop               -> stop all entries
+  cd boot; .\start.ps1 -Status             -> show status
+  cd boot; .\start.ps1 -SetupAutoStart     -> install Windows startup entry
+  cd boot; .\start.ps1 -RemoveAutoStart    -> remove Windows startup entry
 #>
 param(
     [string]$Bots = "",
@@ -57,7 +57,7 @@ function Get-RunningPids { param([string]$scriptName)
 
 function Stop-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botKey = "")
     $pids = Get-RunningPids $scriptPath
-    if ($pids.Count -eq 0) { Write-Log "  [$botLabel] 未运行" }
+    if ($pids.Count -eq 0) { Write-Log "  [$botLabel] not running" }
     else {
         # Signal graceful shutdown
         if ($botKey) {
@@ -65,19 +65,19 @@ function Stop-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botKe
             $shutdownDir = Split-Path $shutdownFile
             if (-not (Test-Path $shutdownDir)) { New-Item -ItemType Directory -Path $shutdownDir -Force | Out-Null }
             Set-Content -Path $shutdownFile -Value "shutdown" -Force
-            Write-Log "  [$botLabel] 发送关闭信号..."
+            Write-Log "  [$botLabel] shutdown signal sent..."
             $waited = 0
             while ($waited -lt 8) {
                 Start-Sleep -Seconds 1
                 $waited++
                 $remaining = Get-RunningPids $scriptPath
-                if ($remaining.Count -eq 0) { Write-Log "  [$botLabel] 已优雅退出"; return }
+                if ($remaining.Count -eq 0) { Write-Log "  [$botLabel] exited cleanly"; return }
             }
-            Write-Log "  [$botLabel] 优雅关闭超时, 强制停止"
+            Write-Log "  [$botLabel] graceful shutdown timed out; forcing stop"
         }
         foreach ($pidVal in (Get-RunningPids $scriptPath)) {
-            try { Stop-Process -Id $pidVal -Force; Write-Log "  [$botLabel] 强制停止 PID=$pidVal" }
-            catch { Write-Log "  [$botLabel] 停止失败 PID=$pidVal : $_" }
+            try { Stop-Process -Id $pidVal -Force; Write-Log "  [$botLabel] force stopped PID=$pidVal" }
+            catch { Write-Log "  [$botLabel] stop failed PID=$pidVal : $_" }
         }
     }
 }
@@ -89,19 +89,19 @@ function Start-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botK
         $stalePids = Get-RunningPids $botCfg.also_check
         if ($stalePids.Count -gt 0) {
             foreach ($sp in $stalePids) {
-                try { Stop-Process -Id $sp -Force; Write-Log "  [$botLabel] 清理旧进程 PID=$sp ($($botCfg.also_check))" }
-                catch { Write-Log "  [$botLabel] 清理旧进程失败 PID=$sp : $_" }
+                try { Stop-Process -Id $sp -Force; Write-Log "  [$botLabel] removed stale PID=$sp ($($botCfg.also_check))" }
+                catch { Write-Log "  [$botLabel] stale cleanup failed PID=$sp : $_" }
             }
             Start-Sleep -Milliseconds 500
         }
     }
     $existingPids = Get-RunningPids $scriptPath
     if ($existingPids.Count -gt 0) {
-        Write-Log "  [$botLabel] 已在运行 PID=$($existingPids -join ',') 跳过"
+        Write-Log "  [$botLabel] already running PID=$($existingPids -join ','); skipped"
         return $existingPids
     }
     if (-not (Test-Path $scriptPath)) {
-        Write-Log "  [$botLabel] 错误: 脚本不存在 $scriptPath"
+        Write-Log "  [$botLabel] error: script not found $scriptPath"
         return @()
     }
     $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -128,7 +128,7 @@ function Start-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botK
     Start-Sleep -Milliseconds 3000
     $p.Refresh()
     if ($p.HasExited) {
-        Write-Log "  [$botLabel] 启动失败 (立即退出)"
+        Write-Log "  [$botLabel] start failed (exited immediately)"
         return @()
     }
     Write-Log "  [$botLabel] OK PID=$($p.Id)"
@@ -169,7 +169,7 @@ function Resolve-Pythonw {
     }
     $found = where.exe pythonw 2>$null | Select-Object -First 1
     if ($found) { return $found.Trim() }
-    Write-Log "错误: 找不到 pythonw.exe"
+    Write-Log "error: pythonw.exe not found"
     exit 1
 }
 
@@ -179,11 +179,11 @@ function Get-Config {
         $examplePath = $ctx.ConfigExamplePath
         if (Test-Path $examplePath) {
             Copy-Item $examplePath $ConfigPath -Force
-            Write-Log "配置不存在, 已从 example 创建: $ConfigPath"
-            Write-Log "请编辑 $ConfigPath 填入实际配置后再启动"
+            Write-Log "config missing; created from example: $ConfigPath"
+            Write-Log "please edit $ConfigPath before starting"
             exit 0
         }
-        Write-Log "配置不存在: $ConfigPath (也无 example 模板), 无法启动"
+        Write-Log "config missing: $ConfigPath (no example template); cannot start"
         exit 1
     }
     $cfg = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -200,7 +200,7 @@ function Invoke-BootNotification {
     if (-not (Test-Path $pythonExe -PathType Leaf)) { $pythonExe = 'python' }
     $notifyScript = Join-Path $PSScriptRoot 'notify_boot.py'
     if (-not (Test-Path $notifyScript -PathType Leaf)) {
-        Write-Log "  [notify] 跳过: notify_boot.py 不存在"
+        Write-Log "  [notify] skipped: notify_boot.py not found"
         return
     }
 
@@ -210,7 +210,7 @@ function Invoke-BootNotification {
             if ($line) { Write-Log "  [notify] $line" }
         }
     } catch {
-        Write-Log "  [notify] 失败: $_"
+        Write-Log "  [notify] failed: $_"
     }
 }
 
@@ -219,17 +219,17 @@ $pythonwPath = Resolve-Pythonw
 $cfg = Get-Config
 
 Write-Log "=== Boot start.ps1 ==="
-Write-Log "  项目: $ProjectRoot"
+Write-Log "  project: $ProjectRoot"
 Write-Log "  Python: $pythonwPath"
-Write-Log "  配置: $ConfigPath"
+Write-Log "  config: $ConfigPath"
 
 # --- RemoveAutoStart ---
 if ($RemoveAutoStart) {
     $vbsPath = $ctx.StartupVbsPath
     if (Test-Path $vbsPath) {
         Remove-Item $vbsPath -Force
-        Write-Log "OK 已移除开机自启动"
-    } else { Write-Log "开机自启动尚未安装" }
+        Write-Log "OK removed startup entry"
+    } else { Write-Log "startup entry is not installed" }
     exit 0
 }
 
@@ -240,19 +240,19 @@ if ($SetupAutoStart) {
     $vbsContent = "Set WshShell = CreateObject(""WScript.Shell"")`r`n" +
                   "WshShell.Run ""$psCall "", 0, False"
     Set-Content -Path $vbsPath -Value $vbsContent -Encoding ASCII
-    Write-Log "OK 开机自启动已安装 -> $vbsPath"
+    Write-Log "OK startup entry installed -> $vbsPath"
     exit 0
 }
 
 # --- Status ---
 if ($Status) {
     Write-Host ""
-    Write-Host "========== GenericAgent Boot 运行状态 =========="
-    Write-Host "配置: $ConfigPath"
+    Write-Host "========== GenericAgent Boot status =========="
+    Write-Host "config: $ConfigPath"
     $autoStart = Test-Path $ctx.StartupVbsPath
-    Write-Host "开机自启动: $(if($autoStart){'Y'}else{'N'})"
+    Write-Host "startup entry: $(if($autoStart){'Y'}else{'N'})"
     Write-Host ""
-    Write-Host "Bot                     启用   状态   PID"
+    Write-Host "Bot                     Enabled Status PID"
     Write-Host "-----------------------------------------------"
     foreach ($key in $cfg.bots.PSObject.Properties.Name) {
         $bot = $cfg.bots.$key
@@ -260,7 +260,7 @@ if ($Status) {
         $enabled = if ($bot.enabled) { "Y" } else { "N" }
         $scriptPath = Resolve-GAPath $bot.entry
         $pids = Get-RunningPids $scriptPath
-        if ($pids.Count -gt 0) { $st = "运行中" } else { $st = "已停止" }
+        if ($pids.Count -gt 0) { $st = "running" } else { $st = "stopped" }
         $pidStr = if ($pids.Count -gt 0) { "$($pids -join ',')" } else { "-" }
         Write-Host ("{0,-25} {1,-6} {2,-6} {3}" -f $name, $enabled, $st, $pidStr)
     }
@@ -271,25 +271,25 @@ if ($Status) {
 
 # --- Restart: stop all first ---
 if ($Restart) {
-    Write-Log "--- 重启模式: 停止所有bot ---"
+    Write-Log "--- restart mode: stopping all entries ---"
     foreach ($key in $cfg.bots.PSObject.Properties.Name) {
         $bot = $cfg.bots.$key
         $scriptPath = Resolve-GAPath $bot.entry
         Stop-Bot $scriptPath $bot.name $key
     }
     Start-Sleep -Seconds 1
-    Write-Log "--- 重启模式: 启动bot ---"
+    Write-Log "--- restart mode: starting entries ---"
 }
 
 # --- Stop: graceful stop all ---
 if ($Stop) {
-    Write-Log "--- 停止模式: 优雅停止所有bot ---"
+    Write-Log "--- stop mode: stopping all entries ---"
     foreach ($key in $cfg.bots.PSObject.Properties.Name) {
         $bot = $cfg.bots.$key
         $scriptPath = Resolve-GAPath $bot.entry
         Stop-Bot $scriptPath $bot.name $key
     }
-    Write-Log "--- 停止完成 ---"
+    Write-Log "--- stop complete ---"
     exit 0
 }
 
@@ -303,9 +303,9 @@ if ($Bots) {
         if ($cfg.bots.$b) { $cfg.bots.$b.enabled = $true; $botKeys += $b }
         else { $unknown += $b }
     }
-    if ($unknown.Count -gt 0) { Write-Log "  Warn 未知bot: $($unknown -join ',') (可用: $($cfg.bots.PSObject.Properties.Name -join ', '))" }
+    if ($unknown.Count -gt 0) { Write-Log "  Warn unknown bot: $($unknown -join ',') (available: $($cfg.bots.PSObject.Properties.Name -join ', '))" }
     Write-Config $cfg
-    Write-Log "OK 配置已更新: 启用bot = $Bots"
+    Write-Log "OK config updated: enabled entries = $Bots"
 } else {
     foreach ($key in $cfg.bots.PSObject.Properties.Name) {
         if ($cfg.bots.$key.enabled) { $botKeys += $key }
@@ -313,51 +313,51 @@ if ($Bots) {
 }
 
 if ($botKeys.Count -eq 0) {
-    Write-Log "没有需要启动的bot (配置中未启用任何bot, 可用 -Bots 指定)"
+    Write-Log "no entries to start (none enabled; use -Bots to select)"
     exit 0
 }
 
 if (($botKeys -contains "gui") -and ($botKeys -contains "launch")) {
     $botKeys = @($botKeys | Where-Object { $_ -ne "launch" })
-    Write-Log "  [GUI] gui 已包含 launch.pyw, 跳过 launch 避免重复窗口"
+    Write-Log "  [GUI] gui already uses launch.pyw; skipped launch to avoid duplicate window"
 }
 
 # --- start ---
-Write-Log "--- 启动bot ---"
+Write-Log "--- starting entries ---"
 $started = @()
 $startedFail = @()
 $allOk = $true
 foreach ($key in $botKeys) {
     $bot = $cfg.bots.$key
     $scriptPath = Resolve-GAPath $bot.entry
-    Write-Log "  启动 $($bot.name) ($($bot.entry)) ..."
+    Write-Log "  starting $($bot.name) ($($bot.entry)) ..."
     $pids = Start-Bot $scriptPath $bot.name $key $cfg $pythonwPath
     if ($pids.Count -gt 0) { $started += @{key=$key; name=$bot.name} }
     else { $startedFail += $bot.name; $allOk = $false }
 }
 
 # --- verify ---
-Write-Log "--- 状态验证 ---"
+Write-Log "--- status verification ---"
 $startedOk = @()
 foreach ($s in $started) {
     $bot = $cfg.bots.$($s.key)
     $scriptPath = Resolve-GAPath $bot.entry
     $pids = Get-RunningPids $scriptPath
-    if ($pids.Count -gt 0) { Write-Log "  [OK] $($s.name) 运行中 PID=$($pids -join ',')"; $startedOk += $s.name }
-    else { Write-Log "  [X] $($s.name) 已退出"; $allOk = $false; $startedFail += $s.name }
+    if ($pids.Count -gt 0) { Write-Log "  [OK] $($s.name) running PID=$($pids -join ',')"; $startedOk += $s.name }
+    else { Write-Log "  [X] $($s.name) exited"; $allOk = $false; $startedFail += $s.name }
 }
-if ($allOk) { Write-Log "=== OK 全部启动成功 ===" }
-else { Write-Log "=== Warn 部分启动失败, 请检查日志 ===" }
+if ($allOk) { Write-Log "=== OK all entries started ===" }
+else { Write-Log "=== Warn some entries failed; check logs ===" }
 
-# --- Bot 通知 (替代弹窗) ---
+# --- bot notification ---
 $okList = if ($startedOk.Count -gt 0) { $startedOk -join ', ' } else { '' }
 $failList = if ($startedFail.Count -gt 0) { $startedFail -join ', ' } else { '' }
 Invoke-BootNotification -OkList $okList -FailList $failList
 
-# 开机自启提示 (不再静默安装)
+# startup hint
 $vbsPath = $ctx.StartupVbsPath
 if (Test-Path $vbsPath) {
-    Write-Log "  (开机自启: 已配置)"
+    Write-Log "  (startup entry: configured)"
 } else {
-    Write-Log "  (提示: 如需开机自启, 手动将 start.ps1 快捷方式放入启动目录: $env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\)"
+    Write-Log "  (hint: for startup, place a start.ps1 shortcut in: $env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\)"
 }

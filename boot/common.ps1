@@ -1,8 +1,16 @@
-function Initialize-GABootConsole {
+﻿function Initialize-GABootConsole {
     try {
-        [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+        $utf8 = [System.Text.UTF8Encoding]::new($false)
+        [Console]::InputEncoding = $utf8
+        [Console]::OutputEncoding = $utf8
+        $script:OutputEncoding = $utf8
+        $global:OutputEncoding = $utf8
         $PSDefaultParameterValues['*:Encoding'] = 'utf8'
     } catch {}
+}
+
+function Get-GADefaultShortcutName {
+    return ([string]::Concat([char]0x542F, [char]0x52A8, 'GA'))
 }
 
 function Get-GABootContext {
@@ -57,7 +65,7 @@ function Write-GALog {
         } catch {
             if (-not $script:GALogWriteWarnings) { $script:GALogWriteWarnings = @{} }
             if (-not $script:GALogWriteWarnings.ContainsKey($Path)) {
-                Write-Host "$time Warn 日志写入失败: $($_.Exception.Message)" -ForegroundColor Yellow
+                Write-Host "$time Warn log write failed: $($_.Exception.Message)" -ForegroundColor Yellow
                 $script:GALogWriteWarnings[$Path] = $true
             }
         }
@@ -67,7 +75,10 @@ function Write-GALog {
 }
 
 function Get-GAShortcutPath {
-    param([string]$ShortcutName = '启动GA')
+    param([string]$ShortcutName = '')
+    if ([string]::IsNullOrWhiteSpace($ShortcutName)) {
+        $ShortcutName = Get-GADefaultShortcutName
+    }
     $desktop = [Environment]::GetFolderPath('Desktop')
     return Join-Path $desktop "$ShortcutName.lnk"
 }
@@ -78,6 +89,14 @@ function Get-GAWindowsTerminalPath {
     $cmd = Get-Command wt.exe -ErrorAction SilentlyContinue
     if ($cmd) { return $cmd.Source }
     return $null
+}
+
+function Get-GAPowerShellPath {
+    foreach ($name in @('pwsh.exe', 'powershell.exe')) {
+        $cmd = Get-Command $name -ErrorAction SilentlyContinue
+        if ($cmd) { return $cmd.Source }
+    }
+    throw 'PowerShell executable not found'
 }
 
 function Get-GAIconFiles {
@@ -118,8 +137,8 @@ function Set-GAShortcutIcon {
         [string]$LogPath = ''
     )
     if (-not (Test-Path $ShortcutPath)) {
-        if ($LogPath) { Write-GALog -Path $LogPath -Message "快捷键不存在: $ShortcutPath" -Level 'ERROR' -NoConsole }
-        Write-Host '快捷键不存在，请先运行 setup_shortcut.ps1' -ForegroundColor Red
+        if ($LogPath) { Write-GALog -Path $LogPath -Message "Shortcut not found: $ShortcutPath" -Level 'ERROR' -NoConsole }
+        Write-Host 'Shortcut not found. Run setup_shortcut.ps1 first.' -ForegroundColor Red
         return $false
     }
     try {
@@ -130,34 +149,40 @@ function Set-GAShortcutIcon {
         Update-GAIconCache
         return $true
     } catch {
-        if ($LogPath) { Write-GALog -Path $LogPath -Message "图标更新失败: $_" -Level 'ERROR' -NoConsole }
+        if ($LogPath) { Write-GALog -Path $LogPath -Message "Icon update failed: $_" -Level 'ERROR' -NoConsole }
         return $false
     }
 }
 
 function New-GADesktopShortcut {
     param(
-        [string]$ShortcutName,
+        [string]$ShortcutName = '',
         [string]$IconPath,
         [string]$BootDir = (Get-GABootContext).BootDir
     )
+    if ([string]::IsNullOrWhiteSpace($ShortcutName)) {
+        $ShortcutName = Get-GADefaultShortcutName
+    }
     $wtPath = Get-GAWindowsTerminalPath
-    if (-not $wtPath) { throw '未找到 Windows Terminal (wt.exe)' }
+    if (-not $wtPath) { throw 'Windows Terminal not found (wt.exe)' }
 
     $launcherPath = Join-Path $BootDir 'launcher.ps1'
     if (-not (Test-Path $launcherPath -PathType Leaf)) {
-        throw "launcher.ps1 不存在: $launcherPath"
+        throw "launcher.ps1 not found: $launcherPath"
     }
 
     $shortcutPath = Get-GAShortcutPath -ShortcutName $ShortcutName
+    $psPath = Get-GAPowerShellPath
+    $cmdPath = $env:ComSpec
+    if (-not $cmdPath) { $cmdPath = Join-Path $env:SystemRoot 'System32\cmd.exe' }
     $shell = New-Object -ComObject WScript.Shell
     $shortcut = $shell.CreateShortcut($shortcutPath)
-    $shortcut.TargetPath = $wtPath
-    $shortcut.Arguments = "-d `"$BootDir`" powershell -NoExit -ExecutionPolicy Bypass -Command `"& .\launcher.ps1`""
+    $shortcut.TargetPath = $cmdPath
+    $shortcut.Arguments = "/d /c start `"`" `"%LOCALAPPDATA%\Microsoft\WindowsApps\wt.exe`" -d `"$BootDir`" `"$psPath`" -NoLogo -NoExit -ExecutionPolicy Bypass -File `"$launcherPath`""
     $shortcut.WorkingDirectory = $BootDir
     $shortcut.IconLocation = "$IconPath,0"
     $shortcut.WindowStyle = 1
-    $shortcut.Description = '启动 GenericAgent 桌面启动器'
+    $shortcut.Description = 'Start GenericAgent desktop launcher'
     $shortcut.Save()
     return $shortcutPath
 }
