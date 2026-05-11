@@ -36,7 +36,7 @@
 | `ljqctrl_sop.md` | 键鼠模拟 | 点击、快捷键 |
 | `web_search_sop.md` | Google搜索 | 搜索 |
 | `skill_discovery_sop.md` | 技能发现-评估-集成 | 找工具、找库 |
-| `git_sop.md` | Git操作 | commit、push |
+| `git_sop.md` | 分支模型+提交规范+故障恢复 | commit、push、merge、cherry-pick、分支、PR |
 | `gcal_sop.md` | Google Calendar | 日历 |
 | `subagent.md` | 子Agent通信 | 子agent |
 | `start.ps1` / `launcher.ps1` | boot主控 / GUI入口 | 启动GA |
