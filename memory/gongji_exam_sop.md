@@ -61,34 +61,31 @@ frontmatter: `tags: [公基], moc: "[[对应主题MOC]]", status: seedling, crea
 主题MOC不存在→按vault_knowledge_sop §5创建(MOC.md v3.0)→同步Quests三件套
 存在→Dataview靠moc字段自动索引
 
-**Step 3: 推送Anki卡片（AnkiConnect直推）**
+**Step 3: 推送Anki卡片（用utils）**
 
 前提：Anki桌面端已打开 + AnkiConnect插件运行中（端口8765）
 
-① 构造笔记数据：
 ```python
-note = {
-    "deckName": "公基错题",
-    "modelName": "公基错题",
-    "fields": {
+import sys; sys.path.insert(0, r"D:\Creative_Studio\WorkSpace\Github\GenericAgent\memory")
+from anki_connect_utils import Anki
+
+anki = Anki()
+note_id = anki.add_note(
+    deck="公基错题", model="公基错题",
+    fields={
         "id": "编号(如 002)",
         "question": "题干全文",
         "options": "A. ...\nB. ...\nC. ...\nD. ...",
         "answer": "正确选项字母",
         "notes": "法条原文+逐项解析+陷阱标注"
     },
-    "tags": ["公基", "错题", "学科分类"]
-}
+    tags=["公基", "错题", "学科分类"]
+)
 ```
 
-② 推送：`requests.post('http://127.0.0.1:8765', json={"action":"addNote","version":6,"params":{"note":note}})`
+② 验证（必须！）：`add_note`内部已含noteId校验 + `notes_info`读回确认
 
-③ 验证（必须！）：
-- 返回含noteId→成功
-- 失败→查错误信息（常见：字段名不匹配/重复卡片）
-- 读回：`findNotes` + `notesInfo` 确认内容一致
-
-参考：anki_connect_sop.md §1-6（读写action名不同/验证闭环/CSS要点）
+参考：anki_connect_sop.md v3.0（用utils而非裸HTTP）
 
 ## Phase 3: 错题复习
 触发: "复习错题" 或 每20题提醒
