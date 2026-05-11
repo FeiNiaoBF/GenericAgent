@@ -3,7 +3,7 @@
   "bots": {
     "gui": {
       "name": "GUI",
-      "entry": "boot\\run_gui.pyw",
+      "entry": "launch.pyw",
       "enabled": true
     },
     "tg": {
@@ -34,15 +34,10 @@
       "entry": "frontends\\wechatapp.py",
       "enabled": false
     },
-    "launch": {
-      "name": "GA Core",
-      "entry": "launch.pyw",
-      "enabled": true
-    },
     "hub": {
       "name": "Hub",
       "entry": "hub.pyw",
-      "enabled": true
+      "enabled": false
     }
   }
 }

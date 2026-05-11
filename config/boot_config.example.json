@@ -3,7 +3,7 @@
   "bots": {
     "gui": {
       "name": "GUI",
-      "entry": "boot\\run_gui.pyw",
+      "entry": "launch.pyw",
       "enabled": true
     },
     "tg": {
