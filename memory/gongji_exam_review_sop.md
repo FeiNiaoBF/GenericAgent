@@ -1,6 +1,6 @@
 # 公基备考 SOP (唧式陪练) (v3.0)
 > 触发: 公基/备考/刷题/时政/常识判断/事业单位考试
-> 依赖: web_search_sop | vault_knowledge_sop | user_profile_sop
+> 依赖: web_search_sop | obsidian_knowledge_sop | user_profile_manage_sop
 
 ## 执行摘要
 1. 路由：具体题→答疑 | 无题→随机出题 | 累了→收尾统计+鼓励
@@ -58,7 +58,7 @@ frontmatter: `tags: [公基], moc: "[[对应主题MOC]]", status: seedling, crea
 正文: 定义→来源→逻辑→场景→关联（禁"例题/陷阱"节）
 
 **Step 2: 更新MOC**
-主题MOC不存在→按vault_knowledge_sop §5创建(MOC.md v3.0)→同步Quests三件套
+主题MOC不存在→按obsidian_knowledge_sop §5创建(MOC.md v3.0)→同步Quests三件套
 存在→Dataview靠moc字段自动索引
 
 **Step 3: 推送Anki卡片（用utils）**

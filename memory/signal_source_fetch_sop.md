@@ -1,4 +1,4 @@
-# signal_source_sop · 消息源管理 SOP (v1.0)
+# signal_source_fetch_sop · 消息源管理 SOP (v1.0)
 
 ## 执行摘要（≥1步执行前必读）
 1. `python ../memory/{source}_daily_fetch.py` → 获取消息源数据
@@ -6,7 +6,7 @@
 3. 回复摘要（TOP 3，每条加唧解读）→ 🛑 **过验证门禁**
 
 ## 0. 概念定义
-- **新闻（📰）** = 今天发生了什么 → `daily_news_sop.md` → 日记 `## 📰 新闻`
+- **新闻（📰）** = 今天发生了什么 → `daily_news_fetch_sop.md` → 日记 `## 📰 新闻`
 - **消息源（📡）** = 有什么值得深度学习 → 本 SOP → 日记 `📡今日信号`
 - 新闻讲时效（今天），消息源讲深度（值得学的东西）
 

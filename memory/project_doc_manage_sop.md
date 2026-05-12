@@ -1,4 +1,4 @@
-# project_doc_sop · 项目文档生成与维护 (v1.0)
+# project_doc_manage_sop · 项目文档生成与维护 (v1.0)
 > 知识融合: README三步法 | Diátaxis四象限 | C4四层 | OpenAPI 3.1
 
 ## 执行摘要

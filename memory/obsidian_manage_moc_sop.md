@@ -1,6 +1,6 @@
-# obsidian_moc_sop — Obsidian MOC地图 (v1.0)
+# obsidian_manage_moc_sop — Obsidian MOC地图 (v1.0)
 > Vault: `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
-> 单职责：只处理 MOC/地图笔记创建、字段、同步。知识库分类见 `vault_knowledge_sop.md`。
+> 单职责：只处理 MOC/地图笔记创建、字段、同步。知识库分类见 `obsidian_knowledge_sop.md`。
 
 ## 执行摘要
 ① 判断MOC层级 → ② 选模板 → ③ 填字段/边界 → ④ 加精选导航/Dataview → ⑤ 同步父级/总览 → 🛑

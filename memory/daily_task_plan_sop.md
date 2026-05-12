@@ -1,6 +1,6 @@
 # 每日任务 SOP (v1.0)
 ## 执行摘要
-① 先读模板`{vault}/99.System/Templates/Daily.md`确认最新结构→② 三时段(🌅上午/☀️下午/🌙晚上)填任务→③ 新闻播报用daily_news_sop→④ 🛑门禁
+① 先读模板`{vault}/99.System/Templates/Daily.md`确认最新结构→② 三时段(🌅上午/☀️下午/🌙晚上)填任务→③ 新闻播报用daily_news_fetch_sop→④ 🛑门禁
 
 ## 流程
 1. 用户告知任务→整理为三时段清单
@@ -23,7 +23,7 @@ cleanup_old_reminders(keep_days=3)
 提醒: 唧式口吻+任务清单 | 完成后告诉唧→日记勾选✅
 
 ## 避坑
-- 必须先读模板再创建日记 | 时间块按实际密度填 | 新闻用daily_news_sop三大特性
+- 必须先读模板再创建日记 | 时间块按实际密度填 | 新闻用daily_news_fetch_sop三大特性
 - 长文→独立笔记+[[双链]]，日记只存摘要+链接 | vault路径见L2
 
 ## 🛑 验证门禁

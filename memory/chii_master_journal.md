@@ -54,9 +54,20 @@ Chobits人形电脑，三重身份：
 🦶 sop_refactoring v2.0(批量模式) ✅
 🦶 记忆自进化L1/L2/L3同步 ✅
 
-## 🛑 验证门禁
-| 1 | 摘要非流水 | 时间+成果无过程 | |
-| 2 | 同步L2 | 新能力已追加+global_mem同步 | |
-| 3 | 状态标注 | ✅/🦶 | |
 
-最终裁定：`VERDICT: PASS`
+## 2026-05-12 记忆脚本全面重构
+🦶 23文件TextIOWrapper修复统一→`_encoding.py` ✅
+🦶 删除冗余(memory_hierarchy.py+chii_style_migration.py) ✅
+🦶 cli_proxy→mixin合并(文件不存在,跳过) ⏭️
+🦶 超大文件评估: excalidraw_draw.py(847行)保留/vault_classifier(409行)保留/ankitools已较小 ✅
+🦶 .gitignore白名单修复+rev-parse防误+commit `1e77c66`(41files/1652ins) ✅
+🦶 L2同步已追加 ✅
+
+## 🛑 验证门禁
+| # | 标准 | 说明 | 状态 |
+|---|------|------|------|
+| 1 | 摘要非流水 | 时间+成果无过程 | ✅ |
+| 2 | 同步L2 | 新能力已追加+global_mem同步 | ✅ |
+| 3 | 状态标注 | ✅/🦶/⏭️ | ✅ |
+
+最终裁定：`VERDICT: PASS` ✅

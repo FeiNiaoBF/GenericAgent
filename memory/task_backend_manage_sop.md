@@ -10,7 +10,7 @@
 
 ## §1 启动+任务选择
 ```python
-from task_backend_sop.helper import *
+from task_backend_manage_sop.helper import *
 print(get_history(40))  # 历史避免重复
 print(get_todo())       # 当前待办
 ```

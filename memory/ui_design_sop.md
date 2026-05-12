@@ -2,7 +2,7 @@
 
 > 来源：`ui-ux-pro-max` 技能（SKILL.md + 10 CSV + 7 references）
 > 用途：设计/审查UI时的**强制检查清单**，按优先级递减排列
-> 交叉：组件开发→`vue3_component_sop` | 博客视觉→`yeekox_blog_style_sop`
+> 交叉：组件开发→`vue3_component_sop` | 博客视觉→`yeekox_blog_style_format_sop`
 
 ---
 
