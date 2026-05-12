@@ -8,12 +8,10 @@ audit_l1.py — L1 Insight 索引审计工具
   python memory/audit_l1.py report                 # 生成审计报告
 """
 
-import os, sys, re, io
+import os, sys, re
 from datetime import datetime
 
-# Fix Windows GBK encoding for emoji output
-if hasattr(sys.stdout, 'buffer'):
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+from _encoding import setup_utf8; setup_utf8()
 
 # 工作目录
 MEMORY_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -75,7 +75,7 @@ note_id = anki.add_note(
     fields={
         "id": "编号(如 002)",
         "question": "题干全文",
-        "options": "A. ...\nB. ...\nC. ...\nD. ...",
+        "options": "选项1||选项2||选项3||选项4",  # 只写纯选项，禁带A/B/C/D与<br>；模板会自动生成字母
         "answer": "正确选项字母",
         "notes": "法条原文+逐项解析+陷阱标注"
     },

@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-import sys, io
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+from _encoding import setup_utf8; setup_utf8()
 """
 本地 OCR 工具
 - OCR引擎: rapidocr-onnxruntime (~1s/次, 中英文准确率高, 带bbox)

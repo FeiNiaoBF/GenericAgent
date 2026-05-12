@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys, io
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+from _encoding import setup_utf8; setup_utf8()
 """
 vault_tools.py — Obsidian Vault 实用工具集 (基于 vault_classifier 分类结果)
 用法:
@@ -24,16 +21,19 @@ from vault_classifier import VAULT, classify_type, classify_status, classify_tag
 # 文件类型 → 目标目录映射
 TYPE_TO_DIR = {
     'daily': '00.Chronicles/Daily',
-    'moc': '05.MOCs',
-    'project': '10.Projects',
-    'book': '20.Bookshelf',
-    'note': '80.Knowledge',
-    'resource': '15.ResourceHub',
-    'archive': '90.Archive',
+    'moc': '03.Library/Maps',
+    'project': '01.Quests/Active',
+    'book': '03.Library/Books',
+    'note': '05.Knowledge',
+    'resource': '03.Library/Clippings',
+    'archive': '04.Archives',
+    'template': '99.System/Templates',
+    'technique': '05.Knowledge',
+    'area': '02.Domains',
     'unknown': None,
 }
 
-LLM_DRAFTS = os.path.join(VAULT, '99.LLM-Drafts')
+LLM_DRAFTS = os.path.join(VAULT, '99.System', 'LLM-Drafts')
 
 
 def load_frontmatter(fp: str) -> dict:
@@ -135,7 +135,7 @@ def cmd_inspect():
         print(f"    {s}: {c}")
     
     # LLM-Drafts 检查
-    llm_dir = os.path.join(VAULT, '99.LLM-Drafts')
+    llm_dir = LLM_DRAFTS
     if os.path.exists(llm_dir):
         drafts = []
         for root, dirs, filenames in os.walk(llm_dir):

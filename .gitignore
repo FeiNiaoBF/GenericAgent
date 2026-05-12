@@ -95,6 +95,25 @@ memory/L4_raw_sessions/*
 # Memory management
 !memory/memory_cleanup_sop.md
 
+# Refactoring batch - tools
+!memory/_encoding.py
+!memory/anki_connect_utils.py
+!memory/anki_export.py
+!memory/skill_ranker.py
+!memory/skill_scraper.py
+
+# Refactoring batch - SOPs
+!memory/anki_connect_sop.md
+!memory/anki_vocab_sop.md
+!memory/learning_tutor_sop.md
+!memory/llm_proxy_sop.md
+!memory/obsidian_moc_sop.md
+!memory/programming_teaching_sop.md
+!memory/skill_discovery_sop.md
+!memory/sop_creation_sop.md
+!memory/tg_unified_sop.md
+!memory/ui_design_sop.md
+
 # Visual Studio
 .vs/
 restore_commit.txt

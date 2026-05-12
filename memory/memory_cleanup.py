@@ -14,13 +14,12 @@ memory_cleanup.py — Memory 目录清理工具
 """
 
 import os, sys, re, shutil, io
+from _encoding import setup_utf8; setup_utf8()
 from datetime import datetime, timedelta
 from pathlib import Path
 from collections import defaultdict
 
 # Fix Windows GBK encoding for emoji output
-if hasattr(sys.stdout, 'buffer'):
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 MEMORY_DIR = os.path.dirname(os.path.abspath(__file__))
 L4_DIR = os.path.join(MEMORY_DIR, 'L4_raw_sessions')

@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import sys, io
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+import sys
+from _encoding import setup_utf8; setup_utf8()
 """
 capture_window.py - 截取指定窗口截图 (纯ctypes实现)
 API: capture_by_keyword("Chrome", save_path="chrome.png") → (img, title)

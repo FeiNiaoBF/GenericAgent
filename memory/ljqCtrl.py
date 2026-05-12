@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import sys, io
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+import sys
+from _encoding import setup_utf8; setup_utf8()
 """
 CRITICAL: 严禁在此工具链中 import pyautogui (会污染 win32api 导致逻辑冲突)。
 ljqCtrl Quick Reference:

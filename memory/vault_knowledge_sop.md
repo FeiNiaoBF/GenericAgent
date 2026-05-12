@@ -29,6 +29,16 @@ Clipping流程：原文→Sources/→提炼Notes/→assertion入05.Knowledge
 与03分工：03=学习整理(可长篇) vs 05=验证断言(一句,≥1来源)
 每条必含`scope`：科普(通俗) vs 严格(理论推导)
 
+**子目录结构（按subject分）**：
+| 子目录 | 内容 | 现有量 |
+|--------|------|--------|
+| `CS/` | 计算机科学断言 | ~10篇 |
+| `Economics/` | 经济学断言 | ~5篇 |
+| `History/` | 历史断言 | ~1篇 |
+| `法律/` | 法律领域断言 | ~3篇 |
+
+⚠️ **路径映射一致性**: `vault_tools.py` 中 `TYPE_TO_DIR` 必须与 Vault 真实目录一致。目前 `note→05.Knowledge`，对应子目录如 `CS/` 等。修改目录结构时同步更新脚本映射。
+
 ## 属性体系
 type/status/created/updated/tags→全箱 | domain/subject→Library/Knowledge | source→Clippings必填
 ✅元数据存SQLite索引，**禁注入.md正文**（无YAML/frontmatter）
