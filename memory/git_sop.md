@@ -28,6 +28,24 @@ else { Set-Location $gitRoot; Write-Output "✅ git根: $gitRoot" }
 
 ## 1. 分支模型
 
+### 1.0 术语铁律
+
+- **官方 / upstream / 上游默认只指 `origin/main`**，不要把本地 `main` 或 `yeelight/main` 当官方。
+- 用户说“和官方比 / 官方有什么更新 / 同步官方”时，默认基准都是 `origin/main`。
+- 用户只说“main”时必须先判定上下文：本地 `main`、`yeelight/main`、还是 `origin/main`；不清楚就用命令核实，不凭印象。
+
+### 1.1 对官方差异/更新自检
+
+```bash
+git fetch origin --prune
+git rev-list --left-right --count origin/main...HEAD
+git diff --stat origin/main...HEAD
+git log --oneline --left-right --cherry-pick origin/main...HEAD
+```
+
+- `rev-list` 左侧 >0：官方有本分支未包含的提交；右侧 >0：本分支有官方没有的提交。
+- “有什么更新”优先看 `origin/main..HEAD` 与 `HEAD..origin/main` 两边提交，别只看工作区 diff。
+
 ### 远端 (Remote)
 
 | 远端 | 分支 | 用途 |
