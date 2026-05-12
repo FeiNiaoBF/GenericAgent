@@ -4,7 +4,7 @@ import sys
 from _encoding import setup_utf8; setup_utf8()
 """verify_note.py — 笔记验证门禁自动化
 
-验证 vault_knowledge_sop.md §验证门禁 的 7 项检查。
+验证 obsidian_knowledge_sop.md §验证门禁 的 7 项检查。
 用法: python verify_note.py <note_path> [--fix]
        python verify_note.py --all         (扫描全 vault)
 """

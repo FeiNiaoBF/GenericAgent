@@ -27,8 +27,8 @@ L4_DIR = os.path.join(MEMORY_DIR, 'L4_raw_sessions')
 # 保留文件白名单（永不删除）
 KEEP_ALWAYS = {
     'global_mem.txt', 'global_mem_insight.txt',
-    'memory_management_sop.md', 'vault_knowledge_sop.md',
-    'cs_learning_sop.md', 'english_learning.md',
+    'memory_management_sop.md', 'obsidian_knowledge_sop.md',
+    'learning_tutor_sop.md', 'english_learning.md',
     'chi_character_card.md', 'user_profile.md',
     '.gitkeep', '.gitignore', 'README.md',
 }

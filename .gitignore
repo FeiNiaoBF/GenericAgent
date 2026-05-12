@@ -112,6 +112,9 @@ memory/L4_raw_sessions/*
 !memory/skill_discovery_sop.md
 !memory/sop_creation_sop.md
 !memory/tg_unified_sop.md
+
+# SOP Python scripts (auto-generated from SOP .md)
+!memory/*_sop.py
 !memory/ui_design_sop.md
 
 # Visual Studio
