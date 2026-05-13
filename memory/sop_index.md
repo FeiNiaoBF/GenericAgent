@@ -50,6 +50,7 @@
 | SOP | 用途 | 触发词 |
 |-----|------|--------|
 | `obsidian_knowledge_sop.md` | 知识写入/检索 | 记下来 |
+| `obsidian_manage_quest_sop.md` | Quest生命周期管理 | quest、项目行动 |
 | `obsidian_blog_sync_sop.md` | 博客同步 | 发博客 |
 | `yeekox_blog_style_format_sop.md` | 博客风格 | 博客排版 |
 | `excalidraw_draw_sop.md` | Excalidraw绘图 | 画图 |

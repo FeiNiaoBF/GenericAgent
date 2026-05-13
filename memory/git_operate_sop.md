@@ -129,9 +129,10 @@ git branch backup/dev-before-<描述>-<YYYY-MM-DD>
 
 ---
 
-## 3. Conventional Commits（祈使语气·≤72字符）
+## 3. Conventional Commits（祈使语气·≤72字符 · 禁emoji）
 `<type>[!][scope]: <description>` — type: feat/fix/docs/style/refactor/perf/test/build/ci/chore/revert
 `!`紧贴type=Breaking Change | body: what/why | footer: `BREAKING CHANGE: <描述>`
+**🔴 铁律：commit message中禁止使用任何emoji图标** — description/body/footer均不得含有emoji。控制台输出/日志装饰不在此限。
 
 ## 4. 提交四步法
 ① `git st` + `git diff [--staged]` 分析变更（staged有内容→`--staged`）

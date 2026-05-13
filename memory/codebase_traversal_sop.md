@@ -62,7 +62,7 @@ Glob(找文件)→Grep(搜文本)→Read(精读)→Follow imports | 找定义用
 禁: 空泛断言/未验证推测/遗漏路径
 
 ## 避坑
-大文件先确认大小用keyword|必skip依赖|先os.path.exists|改前必file_read|前端看运行态|PS禁→python替代
+大文件先确认大小用keyword|必skip依赖|先os.path.exists|改前必file_read|前端看运行态|PS禁→python替代|Windows CLI编码统一入口setup_utf8，禁多处TextIOWrapper包stdout/stderr
 
 ## 🛑 验证门禁
 全文已读？|版本号更新？|交叉引用闭环？|L2+L1同步？|编号无断链？
