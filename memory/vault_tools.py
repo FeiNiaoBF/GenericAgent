@@ -24,12 +24,13 @@ TYPE_TO_DIR = {
     'moc': '03.Library/Maps',
     'project': '01.Quests/Active',
     'book': '03.Library/Books',
-    'note': '05.Knowledge',
+    'note': '03.Library/Notes',
     'resource': '03.Library/Clippings',
     'archive': '04.Archives',
     'template': '99.System/Templates',
     'technique': '05.Knowledge',
     'area': '02.Domains',
+    'inbox': '88.Inbox/Fleeting',
     'unknown': None,
 }
 

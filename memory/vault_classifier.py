@@ -59,8 +59,8 @@ def classify_type(body: str, rel: str) -> str:
         if h2_tags & book_sigs or 'isbn:' in body_lower or 'dewey:' in body_lower:
             candidates['book'] = TYPE_PRIORITY['book']
     
-    # moc: MOCs目录 或 含DATAVIEW+多双链
-    if '/MOCs/' in rel_norm:
+    # moc: Maps目录 或 含DATAVIEW+多双链
+    if '/Maps/' in rel_norm:
         double_links = body.count('[[')
         if double_links >= 3 or 'dataview' in body_lower:
             candidates['moc'] = TYPE_PRIORITY['moc']
@@ -115,8 +115,8 @@ def classify_type(body: str, rel: str) -> str:
     if '/Domains/' in rel_norm and body.count('[[') >= 3:
         candidates['area'] = TYPE_PRIORITY['area']
     
-    # resource: Library子目录(排除Books)
-    if rel_norm.startswith('03.Library/') and '/Books/' not in rel_norm:
+    # resource: Library子目录(排除Books/Notes/Maps—它们有各自类型)
+    if rel_norm.startswith('03.Library/') and not any(p in rel_norm for p in ['/Books/', '/Notes/', '/Maps/']):
         candidates['resource'] = TYPE_PRIORITY['resource']
     
     if not candidates:
