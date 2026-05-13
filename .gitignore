@@ -117,6 +117,9 @@ memory/L4_raw_sessions/*
 !memory/*_sop.py
 !memory/ui_design_sop.md
 
+# Code Review Principles
+!memory/code_review_principles.md
+
 # Visual Studio
 .vs/
 restore_commit.txt
