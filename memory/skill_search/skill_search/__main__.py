@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-import sys, io
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 """CLI 入口: python -m skill_search"""
 from __future__ import annotations
+from _encoding import setup_utf8; setup_utf8()
 import argparse, json, sys
 from .engine import SearchResult, SkillSearchError, detect_environment, search, get_stats
 

@@ -7,6 +7,7 @@ DIY: 一个脚本只做遍历分析
 """
 
 import os, sys
+from _encoding import setup_utf8; setup_utf8()
 
 def walk_codebase(root_dir, exclude_dirs=None, max_depth=5):
     """遍历代码库，生成文件树"""
@@ -47,7 +48,7 @@ def walk_codebase(root_dir, exclude_dirs=None, max_depth=5):
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='代码库遍历工具')
-    parser.add_argument('path', nargs='?', default='.', help '目标路径')
+    parser.add_argument('path', nargs='?', default='.', help='目标路径')
     parser.add_argument('--depth', type=int, default=5, help='最大深度')
     args = parser.parse_args()
 

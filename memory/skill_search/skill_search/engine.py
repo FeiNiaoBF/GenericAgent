@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-import sys, io
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+from _encoding import setup_utf8; setup_utf8()
 """Skill 检索引擎 — API 客户端（含数据模型与环境检测）"""
 import json, os, platform, shutil, subprocess, urllib.request, urllib.error
 from dataclasses import dataclass, field
