@@ -614,17 +614,27 @@ def _fix_messages(messages):
     """修复 messages 符合 Claude API：交替、tool_use/tool_result 配对"""
     if not messages: return messages
     _wrap = lambda c: c if isinstance(c, list) else [{"type": "text", "text": str(c)}]
+    def _tu_ids(m): return [b.get('id') for b in _wrap(m.get('content', [])) if isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('id')]
+    def _tr_ids(m): return {b.get('tool_use_id') for b in _wrap(m.get('content', [])) if isinstance(b, dict) and b.get('type') == 'tool_result'}
+    def _balance_pair(a, u):
+        uses = _tu_ids(a); has = _tr_ids(u); miss = [uid for uid in uses if uid not in has]
+        if miss: u = {**u, 'content': [{"type": "tool_result", "tool_use_id": uid, "content": "(error)"} for uid in miss] + _wrap(u['content'])}
+        orphan = _tr_ids(u) - set(uses)
+        if orphan: u = {**u, 'content': [{"type":"text","text":str(b.get('content',''))} if isinstance(b,dict) and b.get('type')=='tool_result' and b.get('tool_use_id') in orphan else b for b in _wrap(u['content'])]}
+        return u
+    def _drop_orphan_tool_results(u):
+        return {**u, 'content': [{"type":"text","text":str(b.get('content',''))} if isinstance(b,dict) and b.get('type')=='tool_result' else b for b in _wrap(u['content'])]}
     fixed = []
     for m in messages:
+        m = {**m, 'content': _wrap(m.get('content', ''))}
+        if m['role'] == 'user' and (not fixed or fixed[-1]['role'] != 'assistant'):
+            m = _drop_orphan_tool_results(m)
+        if fixed and fixed[-1]['role'] == 'assistant' and m['role'] == 'user': m = _balance_pair(fixed[-1], m)
         if fixed and m['role'] == fixed[-1]['role']:
+            if fixed[-1]['role'] == 'assistant' and (_tu_ids(fixed[-1]) or _tu_ids(m)):
+                fixed.append({'role': 'user', 'content': [{"type": "tool_result", "tool_use_id": uid, "content": "(error)"} for uid in _tu_ids(fixed[-1])]} if _tu_ids(fixed[-1]) else {'role':'user','content':[{'type':'text','text':'...'}]})
+                fixed.append(m); continue
             fixed[-1] = {**fixed[-1], 'content': _wrap(fixed[-1]['content']) + [{"type": "text", "text": "\n"}] + _wrap(m['content'])}; continue
-        if fixed and fixed[-1]['role'] == 'assistant' and m['role'] == 'user':
-            uses = [b.get('id') for b in fixed[-1].get('content', []) if isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('id')]
-            has = {b.get('tool_use_id') for b in _wrap(m['content']) if isinstance(b, dict) and b.get('type') == 'tool_result'}
-            miss = [uid for uid in uses if uid not in has]
-            if miss: m = {**m, 'content': [{"type": "tool_result", "tool_use_id": uid, "content": "(error)"} for uid in miss] + _wrap(m['content'])}
-            orphan = has - set(uses)
-            if orphan: m = {**m, 'content': [{"type":"text","text":str(b.get('content',''))} if isinstance(b,dict) and b.get('type')=='tool_result' and b.get('tool_use_id') in orphan else b for b in _wrap(m['content'])]}
         fixed.append(m)
     while fixed and fixed[0]['role'] != 'user': fixed.pop(0)
     return fixed
