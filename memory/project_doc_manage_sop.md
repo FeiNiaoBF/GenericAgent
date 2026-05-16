@@ -7,7 +7,8 @@
 ## 文档类型决策树
 ```
 README/主页→§2 | 架构/系统设计→§3 C4 | API文档→§4 OpenAPI
-新人入职→§5 双文档 | 技术手册→§6 十章 | 未明确→Diátaxis(Tutorial/How-to/Reference/Explanation)
+新人入职→§5 双文档 | 技术手册→§6 十章 | 他人项目学习笔记→§7 Obsidian Note
+未明确→Diátaxis(Tutorial/How-to/Reference/Explanation)
 ```
 铁律：一个文档只承担一种角色，禁止混写。
 
@@ -28,10 +29,14 @@ OpenAPI 3.1 YAML优先 | 每端点: Method+Path+Summary+Params+Res(200/400/401/5
 ## §6 技术手册
 简介→快速开始→核心概念→详细指南→API→配置→部署→故障排除→FAQ→Changelog
 
-## §7 维护
+## §7 他人项目学习笔记（Obsidian Note）
+流程：克隆/定位仓库→读README+package/配置+入口+核心模块+测试/构建→用`99.System/Templates/项目学习笔记模板.md`成稿→按`obsidian_note_wiki_sop`自然嵌入双链→末尾附真实来源URL/源码路径→`verify_note.py`验证→放入`03.Library/Notes/<subject>/`。
+要点：先概览目标/运行方式/技术栈，再写架构数据流、目录地图、关键调用链、技术亮点、可复用模式、疑问与后续阅读；代码结论必须能回指README或源码文件；禁只写评价不写证据；禁独立“相关概念”区块，双链放正文里。
+
+## §8 维护
 增量更新: `git diff`识别变更→只更新受影响章节 | 发布前执行`docs/release-checklist.md`
 
-## §8 模板路径
+## §9 模板路径
 README: `templates/readme-template.md` | C4: `templates/c4-*.md` | API: `templates/api-template.yaml`
 
 ## 🛑 验证门禁
