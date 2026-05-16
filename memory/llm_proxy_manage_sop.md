@@ -5,9 +5,27 @@
 
 ---
 
-## 1. CC Switch (本地代理层)
+### 当前主链路
 
-**本质**: 桌面GUI应用，聚合多家LLM provider，开本地proxy给Claude Code/Codex/GA用
+```text
+Claude Code / GA
+  ↓
+CC Switch localhost:15721
+  ↓
+New API localhost:3000
+  ↓
+CLIProxyAPI localhost:8200(host 8200 → container 8317)
+  ↓
+Codex OAuth(auths/)
+  ↓
+gpt-5.5
+```
+
+用途分层：
+- `CC Switch`: 本机入口、provider切换、给Claude Code/GA提供本地兼容API。
+- `New API`: 渠道管理、统计、配额、中转到CLIProxyAPI。
+- `CLIProxyAPI`: 直接对接CLI OAuth/上游凭据，暴露OpenAI兼容API。
+- `Codex OAuth`: 当前`gpt-5.5`实际认证来源。
 
 ### 关键路径
 - exe: `%LOCALAPPDATA%\Programs\CC Switch\cc-switch.exe`
@@ -65,7 +83,14 @@ native_claude_config0 = {
 ### 用途
 - 多模型API key统一管理
 - 用量统计/配额控制
-- 可作为上游给CC Switch或直接给GA提供API
+- 当前链路中作为 `CC Switch → New API → CLIProxyAPI` 的中转层
+- 当前渠道名: `CLIProxyAPI-OpenAI`
+- 上游目标: `http://localhost:8200`
+
+### 排查要点
+- New API负责渠道、统计、配额和转发，不负责Codex OAuth本身。
+- 慢请求要先看New API请求统计，再下钻CLIProxyAPI日志。
+- 如果CC Switch能通但`gpt-5.5`慢，优先确认是否命中正确New API渠道。
 
 ---
 
@@ -79,7 +104,7 @@ native_claude_config0 = {
 - 本地: **http://127.0.0.1:8200** (Docker host 8200 → container 8317；容器内仍监听8317)
 
 ### API Key认证
-- Key: `ko-bbKSYkO05xk3QMjBDEb4incC3kINYzCN` (config.yaml L38)
+- Key: 见项目配置文件 `config.yaml` 的 `api-keys`，不要写入记忆或SOP明文。
 - 请求头: `Authorization: Bearer <key>` 或 `x-api-key: <key>`
 - **会校验key** (不像CC Switch本地模式跳过)
 
@@ -113,7 +138,7 @@ mykey.py中暂无CLIProxyAPI配置。如需接入:
 ```python
 native_claude_config_cliproxy = {
     "name": "cli-proxy-api",
-    "apikey": "ko-bbKSYkO05xk3QMjBDEb4incC3kINYzCN",
+    "apikey": "<从CLIProxyAPI config.yaml 的 api-keys 读取，不写入记忆>",
     "apibase": "http://127.0.0.1:8200",
     "model": "待确认",  # 取决于CLIProxyAPI接入的provider
 }
@@ -148,7 +173,9 @@ GA (GenericAgent)
 | 症状 | 检查 |
 |------|------|
 | GA连不上LLM | CC Switch进程在否？端口15721能curl？ |
-| 401错误 | fake_cc_system_prompt开了没？ |
+| 401错误 | fake_cc_system_prompt开了没？CLIProxyAPI key是否来自配置文件？ |
 | CC Switch crash | 看logs/cc-switch.log，tao框架窗口crash通常无害重启即可 |
 | provider切换 | CC Switch GUI切换或改settings.json的currentProviderClaude |
 | 用量异常 | 查DB的usage_daily_rollups表 |
+| `gpt-5.5`慢尾 | 先确认完整链路是否仍是`CC Switch→NewAPI→CLIProxyAPI→Codex OAuth`；再查New API请求统计；最后查CLIProxyAPI session-affinity与OAuth账号状态 |
+| 偶发长尾但成功 | 已实测把CLIProxyAPI `session-affinity.ttl` 从1小时改到5分钟可降低粘滞坏会话影响，但单OAuth账号仍可能有上游长尾 |
