@@ -30,6 +30,7 @@ HN_SIGNAL_MARKER = "📡 **HN 今日信号**"
 
 VAULT = r"D:\Documents_Learn\Personal\Obsidian\Codex Vitae"
 DAILY_DIR = "00.Chronicles/Daily"
+DAILY_TEMPLATE = os.path.join(VAULT, "99.System", "Templates", "Daily.md")
 SECTION_MARKER = "🐣 唧の足迹"
 
 
@@ -49,14 +50,32 @@ def get_daily_path(date_str: str = None) -> str:
 
 
 def create_daily_template(fp: str, dt: datetime):
-    """创建日记模板"""
+    """创建日记模板：优先使用 Vault 模板 Daily.md"""
     weekday_names = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
     weekday = weekday_names[dt.weekday()]
-    
-    template = f"""---
+    date_str = dt.strftime('%Y-%m-%d')
+    time_str = dt.strftime('%H:%M')
+
+    if os.path.exists(DAILY_TEMPLATE):
+        with open(DAILY_TEMPLATE, 'r', encoding='utf-8') as f:
+            template = f.read()
+        replacements = {
+            "{{date}}": date_str,
+            "{{DATE}}": date_str,
+            "{{time}}": time_str,
+            "{{TIME}}": time_str,
+            "{{weekday}}": weekday,
+            "{{WEEKDAY}}": weekday,
+            "{{title}}": date_str,
+            "{{TITLE}}": date_str,
+        }
+        for key, value in replacements.items():
+            template = template.replace(key, value)
+    else:
+        template = f"""---
 type: Daily
 status: active
-date: {dt.strftime('%Y-%m-%d')}
+date: {date_str}
 weekday: {weekday}
 tags: [daily]
 ---
@@ -87,11 +106,12 @@ tags: [daily]
 
 ## 🐣 唧の足迹
 
-- {dt.strftime('%H:%M')}:: 📝 日记创建
+- {time_str}:: 📝 日记创建
 """
+
     os.makedirs(os.path.dirname(fp), exist_ok=True)
     with open(fp, 'w', encoding='utf-8') as f:
-        f.write(template)
+        f.write(template.rstrip() + "\n")
 
 
 def append_entry(fp: str, content: str, time_str: str = None):
