@@ -7,6 +7,8 @@ from _encoding import setup_utf8; setup_utf8()
 向 Codex Vitae/00.Chronicles/Daily/YYYY-MM-DD.md 追加条目
 格式: 🐣 唧の足迹 section 下 - HH:MM:: 内容
 
+注意: 本脚本只记录唧/系统已完成的执行足迹；主人的学习任务、待办提醒（如英语每日任务）必须写入当日日记的“今日任务”/“晚上”待办区，不要使用本脚本追加到“🐣 唧の足迹”。
+
 用法:
   python diary_append.py "今天学习了黑洞热力学"                    # 当前时间
   python diary_append.py "完成代码审查" --time "14:30"             # 指定时间

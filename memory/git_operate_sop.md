@@ -1,12 +1,14 @@
-# Git SOP — 分支模型 & 提交规范 & 故障恢复 (v2.0)
+# Git SOP — 分支模型 & 提交规范 & 故障恢复 (v2.1)
 
 > 触发: 任何Git操作 | 前置: `git aliases`确认别名可用
 
 ## 执行摘要
 0. **Step 0（前置必做）：确认cwd在git仓库根目录** — `git rev-parse --show-toplevel`
-1. 四步法：`git st`→`git a`逐文件→定type/scope→`git cm`
-2. Push前：`git status -s`确认干净 + 禁提交密钥
-3. 合并后：`git status -s`→确认clean → 🛑 验证门禁
+1. 分支制度：`base/origin-main`=官方PR基线；`main`=个人稳定；`dev`=个人完整开发+Chii记忆
+2. PR铁律：`pr/*`只能从`base/origin-main`切；`base/origin-main`只ff同步`origin/main`，禁止合并/被合并
+3. 四步法：`git st`→`git a`逐文件→定type/scope→`git cm`
+4. Push前：`git status -s`确认干净 + 禁提交密钥
+5. 合并后：`git status -s`→确认clean → 🛑 验证门禁
 
 ---
 
@@ -51,20 +53,29 @@ git log --oneline --left-right --cherry-pick origin/main...HEAD
 | 远端 | 分支 | 用途 |
 |------|------|------|
 | `origin` | `main` | 上游官方主线。**只读**，拉最新代码、PR对比基准 |
-| `yeelight` | `main` | fork上的个人主线。跨设备同步 |
-| `yeelight` | `dev` | fork上的开发分支。同步实验内容 |
+| `yeelight` | `base/origin-main` | fork上的官方基准镜像。只接受`origin/main` fast-forward同步 |
+| `yeelight` | `main` | fork上的个人稳定主线。跨设备clone默认可用 |
+| `yeelight` | `dev` | fork上的完整开发分支。包含实验功能、辅助工具、Chii个人记忆 |
+| `yeelight` | `pr/*` | 提交官方PR的专用分支。一事一分支 |
 
 ### 本地 (Local)
 
 | 分支 | 跟踪 | 用途 | 允许 | 禁止 |
 |------|------|------|------|------|
-| `base/origin-main` | `origin/main` | 本地干净官方基准 | `merge --ff-only` | 任何个人代码 |
-| `pr/*` | `yeelight/pr/*` | 上游贡献分支，一事一分支 | 所有相关改动 | 混入无关改动 |
+| `base/origin-main` | `origin/main` | 本地干净官方基准 | `merge --ff-only origin/main` | 个人代码；合并`main/dev`；被`main`合并 |
+| `pr/*` | `yeelight/pr/*` | 上游贡献分支，一事一分支 | 从`base/origin-main`创建；只放PR相关改动 | 混入无关改动；从`main/dev`创建 |
 | `main` | `yeelight/main` | 个人跨设备主线。稳定可用的功能 | cherry-pick from dev | 直接做实验/放半成品 |
 | `dev` | `yeelight/dev` | 个人开发分支。实验、boot调整、辅助脚本 | 所有开发 | — |
 | `backup/*` | 无 | 清理前备份。平时不开发不合并 | 回滚查阅 | 日常开发 |
 
-### 日常决策速查
+### 1.3 三层分支铁律（Chii定制）
+
+1. `base/origin-main`是**官方PR基线**：只从`origin/main`执行`merge --ff-only`同步。
+2. `base/origin-main`禁止合并`main/dev/pr/*`，也禁止被`main/dev`反向合并；它只服务官方PR与差异核对。
+3. `pr/*`必须从`base/origin-main`切出；PR完成后删除本地和远端`pr/*`。
+4. `main`是个人稳定版：用于跨设备clone后的默认可用状态；只接收从`dev`精挑的稳定提交。
+5. `dev`是个人完整开发：允许提交实验功能、boot调整、辅助脚本、可公开的Chii记忆。
+6. Chii记忆若要进入仓库：优先进`dev`；确认不含隐私/密钥/机器专属路径后，再选择性进`main`。
 
 | 想做什么 | 用哪个分支 |
 |----------|-----------|
@@ -72,7 +83,7 @@ git log --oneline --left-right --cherry-pick origin/main...HEAD
 | 做稳定的个人功能 | `main` |
 | 做实验/开发辅助/调boot | `dev` |
 | dev的改动进main | 只 `cherry-pick`，不整体merge |
-| 同步上游最新代码 | `origin/main` → `base/origin-main` → (按需merge到dev) |
+| 同步上游最新代码 | `origin/main` → `base/origin-main` → (按需merge到dev；严禁merge到main) |
 | 换设备继续开发 | `git pull --ff-only yeelight main/dev` |
 | 做清理前备份 | `backup/<描述>-<日期>` |
 
@@ -82,19 +93,24 @@ git log --oneline --left-right --cherry-pick origin/main...HEAD
 
 ### 2.1 同步上游（origin/main → base/origin-main）
 ```bash
+# 只允许fast-forward，保持base/origin-main等同官方main
 git fetch origin --prune
 git switch base/origin-main
 git merge --ff-only origin/main
+git push yeelight base/origin-main
 ```
-> 如需将上游更新合入dev：`git switch dev && git merge base/origin-main`
+> `base/origin-main`禁止merge到`main`；如需上游更新进入个人开发，只能按需merge到`dev`：`git switch dev && git merge base/origin-main`
 
 ### 2.2 创建上游PR分支
 ```bash
+git fetch origin --prune
+git switch base/origin-main
+git merge --ff-only origin/main
 git switch -c pr/<feature-name> base/origin-main
-# 开发、提交...
+# 只做PR相关开发、提交...
 git push yeelight pr/<feature-name>
 ```
-> PR合并后删除：`git branch -d pr/<feature-name>` + `git push yeelight --delete pr/<feature-name>`
+> PR分支禁止从`main/dev`切；PR合并后删除：`git branch -d pr/<feature-name>` + `git push yeelight --delete pr/<feature-name>`
 
 ### 2.3 个人开发（dev）
 ```bash

@@ -21,6 +21,7 @@
   流程：audiobook → 阅读 → 标新词(每章≤5生词)
 **Track B — Info**: Tech blogs / BBC News / Medium
 **Track C — Listening**: 通勤6min English+Techmeme | 洗碗audiobook | 晚间预热3-5min
+**Track D — 主人音频输入**: 收到主人英语音频/口语练习时，先确认音频有效 → 转写 → 按“原句/更自然表达/原因/可复用chunk/今日复练句”反馈 → 只挑1-3个高价值点入词汇或表达库；不要把音频当普通文件处理。
 
 ### 词汇系统
 字段：source / etymology(词根) / collocation / mnemonic / review_status(0→1→2→3)
@@ -79,6 +80,8 @@ Audiobooks: Tom Sawyer / Robinson Crusoe → Librivox免费
 | 早上通勤 | 提醒听播客/简单英语问答 |
 |---|---|
 | 晚间 | 打开笔记→引导流程→记录词汇/断言 |
+| 收到英语音频 | 当作学习输入：转写→纠错→提炼chunk→给复练句→必要时入库 |
+| 每天日记 | 把当天英语保底任务追加到当日日记的 `今日任务` / `晚上` 待办区，避免主人忘记；不要写入 `🐣 唧の足迹`（那是唧自己的执行记录） |
 | 周末 | 建议资源→查进度→SRS复习 |
 
 ### 周末进度追踪（每周末主动问）
