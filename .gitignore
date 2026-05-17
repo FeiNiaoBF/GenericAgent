@@ -22,7 +22,19 @@ dist/
 Thumbs.db
 
 *.log
+logs/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+*.pid
 .env
+.env.*
+!.env.example
+!.env.template
 auth.json
 model_responses.txt
 
@@ -118,6 +130,22 @@ memory/L4_raw_sessions/*
 !memory/*_sop.py
 !memory/ui_design_sop.md
 
+# Chii personal memory - dev only
+!memory/global_mem.txt
+!memory/global_mem_insight.txt
+!memory/cs_teaching_page_sop.md
+!memory/obsidian_book_source_enricher.py
+!memory/obsidian_knowledge_sop.md
+!memory/obsidian_manage_domain_sop.md
+!memory/obsidian_manage_quest_sop.md
+!memory/obsidian_note_wiki_sop.md
+!memory/obsidian_tag_governance_sop.md
+!memory/resume_sop.md
+
+# Chii HTML PPT skill docs - dev only
+!memory/html_ppt_skill/
+!memory/html_ppt_skill/**
+
 # Code Review Principles
 !memory/code_review_principles.md
 
@@ -142,3 +170,13 @@ reflect/*
 **/__pycache__/
 
 .claude/
+
+# Frontend / Tauri generated files
+frontends/desktop/node_modules/
+frontends/desktop/dist/
+frontends/desktop/src-tauri/target/
+frontends/desktop/src-tauri/gen/
+frontends/desktop/.tauri/
+frontends/desktop/.vite/
+
+config/boot_config.json
