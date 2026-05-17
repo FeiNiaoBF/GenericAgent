@@ -44,10 +44,10 @@ class GenericAgent:
         os.makedirs(os.path.join(script_dir, 'temp'), exist_ok=True)
         self.lock = threading.Lock()
         self.task_dir = None
-        self.history = []; self.handler = None; 
-        self.task_queue = queue.Queue() 
-        self.is_running = False; self.stop_sig = False
-        self.llm_no = 0;  self.inc_out = False; self.verbose = True
+        self.history = []; self.handler = None;
+        self.task_queue = queue.Queue()
+        self.is_running = False; self.stop_sig = False; self.llm_no = 0;
+        self.inc_out = False; self.verbose = True; self.show_mode = 'text'
         self.peer_hint = True
         self.plan_sessions = {}
         self.log_path = os.path.join(script_dir, f'temp/model_responses/model_responses_{int(time.time()*1e6)%1000000:06d}.txt')
@@ -75,7 +75,7 @@ class GenericAgent:
         self.llmclients = llm_sessions
         self.llmclient = self.llmclients[self.llm_no%len(self.llmclients)]
         if oldhistory: self.llmclient.backend.history = oldhistory
-    
+
     def next_llm(self, n=-1):
         self.load_llm_sessions()
         self.llm_no = ((self.llm_no + 1) if n < 0 else n) % len(self.llmclients)
@@ -87,7 +87,7 @@ class GenericAgent:
         name = self.get_llm_name(model=True)
         if 'glm' in name or 'minimax' in name or 'kimi' in name: load_tool_schema('_cn')
         else: load_tool_schema()
-    def list_llms(self): 
+    def list_llms(self):
         self.load_llm_sessions()
         return [(i, self.get_llm_name(b), i == self.llm_no) for i, b in enumerate(self.llmclients)]
     def get_llm_name(self, b=None, model=False):
@@ -101,7 +101,7 @@ class GenericAgent:
         print('Abort current task...')
         self.stop_sig = True
         if self.handler is not None: self.handler.code_stop_signal.append(1)
-            
+
     def put_task(self, query, source="user", images=None, metadata=None):
         display_queue = queue.Queue()
         self.task_queue.put({"query": query, "source": source, "images": images or [], "metadata": metadata or {}, "output": display_queue})
@@ -149,11 +149,11 @@ class GenericAgent:
             self.is_running = True
             rquery = smart_format(raw_query.replace('\n', ' '), max_str_len=200)
             self.history.append(f"[USER]: {rquery}")
-            
+
             sys_prompt = get_system_prompt() + getattr(self.llmclient.backend, 'extra_sys_prompt', '')
             if self.peer_hint: sys_prompt += f"\n[Peer] 用户提及其他会话/后台任务状态时: temp/model_responses/ (只找近期修改的文件尾部)\n"
             handler = GenericAgentHandler(self, self.history, os.path.join(script_dir, 'temp'))
-            if self.handler and 'key_info' in self.handler.working: 
+            if self.handler and 'key_info' in self.handler.working:
                 ki = re.sub(r'\n\[SYSTEM\] 此为.*?工作记忆[。\n]*', '', self.handler.working['key_info'])  # 去旧
                 handler.working['key_info'] = ki
                 handler.working['passed_sessions'] = ps = self.handler.working.get('passed_sessions', 0) + 1
@@ -166,22 +166,26 @@ class GenericAgent:
                 )
             self.handler = handler  # although new handler, the **full** history is in llmclient, so it is full history!
             self.llmclient.log_path = self.log_path
-            max_turns = 30 if metadata.get("plan_mode") else 70
-            gen = agent_runner_loop(self.llmclient, sys_prompt, raw_query, 
-                                handler, TOOLS_SCHEMA, max_turns=max_turns, verbose=self.verbose)
+            max_turns = 30 if metadata.get("plan_mode") else 80
+            gen = agent_runner_loop(self.llmclient, sys_prompt, raw_query, handler, TOOLS_SCHEMA,
+                                    max_turns=max_turns, verbose=self.verbose, yield_info=True)
             try:
-                full_resp = ""; last_pos = 0
+                full_resp = ""; last_pos = 0; curr_turn = 0; turn_resps = []
                 for chunk in gen:
-                    if consume_file(self.task_dir, '_stop'): self.abort() 
+                    if consume_file(self.task_dir, '_stop'): self.abort()
                     if self.stop_sig: break
-                    full_resp += chunk
-                    if len(full_resp) - last_pos > 50 or 'LLM Running' in chunk:
-                        display_queue.put({'next': full_resp[last_pos:] if self.inc_out else full_resp, 'source': source})
+                    if isinstance(chunk, dict) and 'turn' in chunk:
+                        curr_turn = chunk['turn']; turn_resps.append(''); continue
+                    full_resp += chunk;  turn_resps[-1] += chunk
+                    if len(full_resp) - last_pos > 30 or 'LLM Running' in chunk:
+                        display_queue.put({'next': full_resp[last_pos:] if self.inc_out else full_resp,
+                                           'source': source, 'turn': curr_turn, 'outputs': turn_resps[-2:]})
                         last_pos = len(full_resp)
-                if self.inc_out and last_pos < len(full_resp): display_queue.put({'next': full_resp[last_pos:], 'source': source})
+                if self.inc_out and last_pos < len(full_resp): display_queue.put({'next': full_resp[last_pos:], 'source': source,
+                                                                                  'turn': curr_turn, 'outputs': turn_resps[-2:]})
                 if '</summary>' in full_resp: full_resp = full_resp.replace('</summary>', '</summary>\n\n')
-                if '</file_content>' in full_resp: full_resp = re.sub(r'<file_content>\s*(.*?)\s*</file_content>', r'\n````\n<file_content>\n\1\n</file_content>\n````', full_resp, flags=re.DOTALL)                
-                display_queue.put({'done': full_resp, 'source': source})
+                if '</file_content>' in full_resp: full_resp = re.sub(r'<file_content>\s*(.*?)\s*</file_content>', r'\n````\n<file_content>\n\1\n</file_content>\n````', full_resp, flags=re.DOTALL)
+                display_queue.put({'done': full_resp, 'source': source, 'turn': curr_turn, 'outputs': turn_resps.copy()})
                 if metadata.get("plan_mode"):
                     try:
                         from frontends.plan_cmd import record_plan_result
@@ -191,14 +195,14 @@ class GenericAgent:
                 self.history = handler.history_info
             except Exception as e:
                 print(f"Backend Error: {format_error(e)}")
-                display_queue.put({'done': full_resp + f'\n```\n{format_error(e)}\n```', 'source': source})
+                display_queue.put({'done': full_resp + f'\n```\n{format_error(e)}\n```', 'source': source, 'turn': curr_turn, 'outputs': turn_resps.copy()})
             finally:
                 if self.stop_sig: print('User aborted the task.')
                 self.is_running = self.stop_sig = False
                 self.task_queue.task_done()
                 if self.handler is not None: self.handler.code_stop_signal.append(1)
 
-GeneraticAgent = GenericAgent    
+GeneraticAgent = GenericAgent
 
 if __name__ == '__main__':
     import argparse
@@ -240,7 +244,7 @@ if __name__ == '__main__':
         with open(infile, encoding='utf-8') as f: raw = f.read()
         while True:
             dq = agent.put_task(raw, source='task')
-            while 'done' not in (item := dq.get(timeout=300)): 
+            while 'done' not in (item := dq.get(timeout=300)):
                 if 'next' in item and random.random() < 0.95:  # 概率写一次中间结果
                     with open(f'{d}/output{nround}.txt', 'w', encoding='utf-8') as f: f.write(item.get('next', ''))
             with open(f'{d}/output{nround}.txt', 'w', encoding='utf-8') as f: f.write(item['done'] + '\n\n[ROUND END]\n')
@@ -267,7 +271,7 @@ if __name__ == '__main__':
                 except Exception as e: print(f'[Reflect] reload error: {e}')
             time.sleep(getattr(mod, 'INTERVAL', 5))
             try: task = mod.check()
-            except Exception as e: 
+            except Exception as e:
                 print(f'[Reflect] check() error: {e}'); continue
             if task and task == '/exit': break
             if task is None: continue
@@ -291,6 +295,14 @@ if __name__ == '__main__':
         try: import readline
         except Exception: pass
         agent.inc_out = True
+        if sys.stdout.isatty():
+            try: model = agent.get_llm_name(model=True) or '?'
+            except Exception: model = '?'
+            try:
+                sys.stdout.write(f'\x1b[92m✦\x1b[0m \x1b[1mGenericAgent\x1b[0m '
+                                 f'\x1b[90m· cli · model:\x1b[0m {model}\n')
+                sys.stdout.flush()
+            except Exception: pass
         while True:
             q = input('> ').strip()
             if not q: continue

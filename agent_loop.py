@@ -32,7 +32,7 @@ class BaseHandler:
 
 def json_default(o): return list(o) if isinstance(o, set) else str(o)
 def exhaust(g):
-    try: 
+    try:
         while True: next(g)
     except StopIteration as e: return e.value
 
@@ -41,7 +41,8 @@ def get_pretty_json(data):
         data = data.copy(); data["script"] = data["script"].replace("; ", ";\n  ")
     return json.dumps(data, indent=2, ensure_ascii=False).replace('\\n', '\n')
 
-def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, max_turns=40, verbose=True, initial_user_content=None):
+def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema,
+                      max_turns=40, verbose=True, initial_user_content=None, yield_info=False):
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": initial_user_content if initial_user_content is not None else user_input}
@@ -51,8 +52,9 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
         turn += 1; turnstr = f'LLM Running (Turn {turn}) ...'
         if handler.parent.task_dir: turnstr = f'Turn {turn} ...'
         if verbose: turnstr = f'**{turnstr}**'
+        if yield_info: yield {'turn': turn}
         yield f"\n\n{turnstr}\n\n"
-        if turn%10 == 0: client.last_tools = ''  # 每10轮重置一次工具描述，避免上下文过大导致的模型性能下降
+        if turn%10 == 0: client.last_tools = ''  # 每10轮重置一次工具描述
         response_gen = client.chat(messages=messages, tools=tools_schema)
         if verbose:
             response = yield from response_gen
@@ -65,12 +67,12 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
         if not response.tool_calls: tool_calls = [{'tool_name': 'no_tool', 'args': {}}]
         else: tool_calls = [{'tool_name': tc.function.name, 'args': json.loads(tc.function.arguments), 'id': tc.id}
                           for tc in response.tool_calls]
-       
+
         tool_results = []; next_prompts = set(); exit_reason = {}
         for ii, tc in enumerate(tool_calls):
             tool_name, args, tid = tc['tool_name'], tc['args'], tc.get('id', '')
             if tool_name == 'no_tool': pass
-            else: 
+            else:
                 if verbose: yield f"🛠️ Tool: `{tool_name}`  📥 args:\n````text\n{get_pretty_json(args)}\n````\n"
                 else: pass  # tool call display suppressed for clean output
             handler.current_turn = turn
@@ -82,14 +84,14 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
                 outcome = (yield from proxy()) if verbose else exhaust(proxy())
                 if verbose: yield '`````\n'
             except StopIteration as e: outcome = e.value
-            
-            if outcome.should_exit: 
+
+            if outcome.should_exit:
                 exit_reason = {'result': 'EXITED', 'data': outcome.data}; break
-            if not outcome.next_prompt: 
+            if not outcome.next_prompt:
                 exit_reason = {'result': 'CURRENT_TASK_DONE', 'data': outcome.data}; break
             if outcome.next_prompt.startswith('未知工具'): client.last_tools = ''
-            if outcome.data is not None and tool_name != 'no_tool': 
-                datastr = json.dumps(outcome.data, ensure_ascii=False, default=json_default) if type(outcome.data) in [dict, list] else str(outcome.data) 
+            if outcome.data is not None and tool_name != 'no_tool':
+                datastr = json.dumps(outcome.data, ensure_ascii=False, default=json_default) if type(outcome.data) in [dict, list] else str(outcome.data)
                 tool_results.append({'tool_use_id': tid, 'content': datastr})
             next_prompts.add(outcome.next_prompt)
         if len(next_prompts) == 0 or exit_reason:
@@ -116,7 +118,7 @@ def _clean_content(text):
 
 def _compact_tool_args(name, args):
     a = {k: v for k, v in args.items() if k != '_index'}
-    for k in ('path',): 
+    for k in ('path',):
         if k in a: a[k] = os.path.basename(a[k])
     if name == 'update_working_checkpoint': s = a.get('key_info', ''); return (s[:60]+'...') if len(s)>60 else s
     if name == 'ask_user':
