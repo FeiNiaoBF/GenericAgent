@@ -21,7 +21,7 @@ import os
 import sys
 import argparse
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -71,6 +71,18 @@ def create_daily_template(fp: str, dt: datetime):
         }
         for key, value in replacements.items():
             template = template.replace(key, value)
+        # Render Obsidian/Templater date format patterns: {{date:FORMAT}} and {{date±N:FORMAT}}
+        def _render_date(m):
+            offset_str = m.group(1)
+            fmt = m.group(2)
+            if offset_str:
+                sign = 1 if offset_str[0] == '+' else -1
+                num = int(offset_str[1:]) if len(offset_str) > 1 else 1
+                target = dt + timedelta(days=sign * num)
+            else:
+                target = dt
+            return target.strftime(fmt)
+        template = re.sub(r'\{\{date([+-]\d*)?:([^}]+)\}\}', _render_date, template)
     else:
         template = f"""---
 type: Daily
