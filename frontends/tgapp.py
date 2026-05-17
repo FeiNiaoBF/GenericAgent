@@ -1252,28 +1252,46 @@ async def cmd_llm(update, ctx):
         await _reply_html(update.message, "LLMs:\n" + "\n".join(lines))
 
 
-async def handle_photo(update, ctx):
+async def handle_attachment(update, ctx):
     uid = update.effective_user.id
     if ALLOWED and uid not in ALLOWED:
         return await update.message.reply_text("no")
     await _cancel_stream_task(ctx)
 
-    if update.message.photo:
-        photo = update.message.photo[-1]
+    message = update.message
+    if message.photo:
+        photo = message.photo[-1]
         file = await photo.get_file()
         fpath = f"tg_{photo.file_unique_id}.jpg"
         kind = "图片"
-    elif update.message.document:
-        doc = update.message.document
+    elif message.document:
+        doc = message.document
         file = await doc.get_file()
         ext = os.path.splitext(doc.file_name or "")[1] or ""
         fpath = f"tg_{doc.file_unique_id}{ext}"
         kind = "文件"
+    elif message.voice:
+        voice = message.voice
+        file = await voice.get_file()
+        fpath = f"tg_{voice.file_unique_id}.ogg"
+        kind = "语音"
+    elif message.audio:
+        audio = message.audio
+        file = await audio.get_file()
+        ext = os.path.splitext(audio.file_name or "")[1] or ".mp3"
+        fpath = f"tg_{audio.file_unique_id}{ext}"
+        kind = "音频"
+    elif message.video_note:
+        video_note = message.video_note
+        file = await video_note.get_file()
+        fpath = f"tg_{video_note.file_unique_id}.mp4"
+        kind = "视频消息"
     else:
         return
 
-    await file.download_to_drive(os.path.join(_TEMP_DIR, fpath))
-    caption = update.message.caption
+    dst = os.path.join(_TEMP_DIR, fpath)
+    await file.download_to_drive(dst)
+    caption = message.caption
     if caption:
         prompt = f"[TIPS] 收到{kind}temp/{fpath}\n{caption}"
     else:
@@ -1281,7 +1299,7 @@ async def handle_photo(update, ctx):
 
     _apply_tg_extra_system_prompt()
     dq = agent.put_task(prompt, source="telegram")
-    task = asyncio.create_task(_stream(dq, update.message))
+    task = asyncio.create_task(_stream(dq, message))
     ctx.user_data["stream_task"] = task
 
 
@@ -1444,8 +1462,11 @@ if __name__ == "__main__":
             )
             app.add_handler(CallbackQueryHandler(handle_ask_callback, pattern=r"^ask:"))
             app.add_handler(MessageHandler(filters.COMMAND, handle_command))
-            app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-            app.add_handler(MessageHandler(filters.Document.ALL, handle_photo))
+            app.add_handler(MessageHandler(filters.PHOTO, handle_attachment))
+            app.add_handler(MessageHandler(filters.Document.ALL, handle_attachment))
+            app.add_handler(
+                MessageHandler(filters.VOICE | filters.AUDIO | filters.VIDEO_NOTE, handle_attachment)
+            )
             app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_msg))
             app.add_error_handler(_error_handler)
             app.run_polling(drop_pending_updates=True, poll_interval=1.0, timeout=30)
