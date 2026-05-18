@@ -36,12 +36,43 @@ if ($pick) {
     Write-LauncherLog "No .ico files found in $IconFolder" -Level 'WARN'
 }
 
+Write-LauncherLog 'Opening frontend selector...'
+$selectorScript = Join-Path $ctx.BootDir 'select_frontends.pyw'
+$selectedKeys = ''
+if (Test-Path $selectorScript -PathType Leaf) {
+    try {
+        $selectedKeys = (& python $selectorScript 2>$null)
+        $selectorExitCode = $LASTEXITCODE
+        if ($selectorExitCode -ne 0) {
+            Write-LauncherLog "Frontend selection cancelled or failed (exit=$selectorExitCode)." -Level 'WARN'
+            Write-Host ''
+            Write-Host 'Frontend selection cancelled. GA was not restarted.' -ForegroundColor Yellow
+            Write-LauncherLog '====== Launcher finished ======'
+            exit 0
+        }
+        $selectedKeys = ([string]$selectedKeys).Trim()
+        Write-LauncherLog "Frontend selection: $selectedKeys"
+    } catch {
+        Write-LauncherLog "Frontend selector failed: $_" -Level 'ERROR'
+        Write-Host ''
+        Write-Host "Frontend selector failed: $_" -ForegroundColor Red
+        Write-LauncherLog '====== Launcher finished ======'
+        exit 1
+    }
+} else {
+    Write-LauncherLog "Frontend selector not found: $selectorScript" -Level 'ERROR'
+    Write-Host ''
+    Write-Host "Frontend selector not found: $selectorScript" -ForegroundColor Red
+    Write-LauncherLog '====== Launcher finished ======'
+    exit 1
+}
+
 Write-LauncherLog 'Restarting GA...'
 Write-Host ''
 Write-Host '=== Restarting GA... ===' -ForegroundColor Green
 $startScript = Join-Path $ctx.BootDir 'start.ps1'
-& $startScript -Restart 2>&1 | ForEach-Object { Write-Host $_ }
-Write-LauncherLog "start.ps1 -Restart exit code: $LASTEXITCODE"
+& $startScript -Restart -UseSelectedKeys -SelectedKeys $selectedKeys 2>&1 | ForEach-Object { Write-Host $_ }
+Write-LauncherLog "start.ps1 -Restart -UseSelectedKeys -SelectedKeys '$selectedKeys' exit code: $LASTEXITCODE"
 
 $exclude = ''
 if ($pick) { $exclude = $pick.Name }

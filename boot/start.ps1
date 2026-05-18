@@ -3,7 +3,8 @@
 GenericAgent boot launcher. Reads config/boot_config.json and manages enabled entries.
 Usage:
   cd boot; .\start.ps1                     -> start enabled entries
-  cd boot; .\start.ps1 -Bots "tg,fs"       -> enable specific entries and start them
+  cd boot; .\start.ps1 -Bots "tg,fs"       -> enable specific entries, save config, and start them
+  cd boot; .\start.ps1 -SelectedKeys "gui,tg" -> start selected entries once without changing config
   cd boot; .\start.ps1 -Restart            -> stop then start
   cd boot; .\start.ps1 -Stop               -> stop all entries
   cd boot; .\start.ps1 -Status             -> show status
@@ -12,6 +13,8 @@ Usage:
 #>
 param(
     [string]$Bots = "",
+    [string]$SelectedKeys = "",
+    [switch]$UseSelectedKeys,
     [switch]$Restart,
     [switch]$Stop,
     [switch]$Status,
@@ -104,35 +107,60 @@ function Start-Bot { param([string]$scriptPath, [string]$botLabel, [string]$botK
         Write-Log "  [$botLabel] error: script not found $scriptPath"
         return @()
     }
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $pythonwPath
-    $psi.Arguments = "`"$scriptPath`""
-    $psi.WorkingDirectory = $ProjectRoot
-    $psi.UseShellExecute = $false
-    $psi.RedirectStandardOutput = $false
-    $psi.RedirectStandardError = $false
-    # Pass notification config via env vars
-    if ($botCfg.notify_chat_id) {
-        $psi.EnvironmentVariables["GA_NOTIFY_CHAT_ID"] = $botCfg.notify_chat_id
+    if ($botCfg.console) {
+        # Console mode: use python.exe + new console window (for TUI bots)
+        $pythonExe = $pythonwPath -replace 'pythonw\.exe$', 'python.exe'
+        if (-not (Test-Path $pythonExe)) { $pythonExe = 'python' }
+        # Collect env vars to pass
+        $envToSet = @{}
+        if ($botCfg.notify_chat_id) { $envToSet["GA_NOTIFY_CHAT_ID"] = $botCfg.notify_chat_id }
+        if ($botCfg.notify_chat_type) { $envToSet["GA_NOTIFY_CHAT_TYPE"] = $botCfg.notify_chat_type }
+        $shutdownFile = Join-Path $ProjectRoot "temp\.shutdown_$botKey"
+        $shutdownDir = Split-Path $shutdownFile
+        if (-not (Test-Path $shutdownDir)) { New-Item -ItemType Directory -Path $shutdownDir -Force | Out-Null }
+        $envToSet["GA_SHUTDOWN_FILE"] = $shutdownFile
+        if (Test-Path $shutdownFile) { Remove-Item $shutdownFile -Force }
+        # Save originals, apply to current process (inherited by child)
+        $origEnv = @{}
+        foreach ($k in $envToSet.Keys) { $origEnv[$k] = [Environment]::GetEnvironmentVariable($k, "Process") }
+        foreach ($k in $envToSet.Keys) { [Environment]::SetEnvironmentVariable($k, $envToSet[$k], "Process") }
+        # Launch in a new console window
+        $p = Start-Process -FilePath $pythonExe -ArgumentList "`"$scriptPath`"" -WorkingDirectory $ProjectRoot -WindowStyle Normal -PassThru
+        # Restore originals
+        foreach ($k in $origEnv.Keys) { [Environment]::SetEnvironmentVariable($k, $origEnv[$k], "Process") }
+    } else {
+        # No-console mode: use pythonw.exe (background GUI bots)
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = $pythonwPath
+        $psi.Arguments = "`"$scriptPath`""
+        $psi.WorkingDirectory = $ProjectRoot
+        $psi.UseShellExecute = $false
+        $psi.RedirectStandardOutput = $false
+        $psi.RedirectStandardError = $false
+        if ($botCfg.notify_chat_id) { $psi.EnvironmentVariables["GA_NOTIFY_CHAT_ID"] = $botCfg.notify_chat_id }
+        if ($botCfg.notify_chat_type) { $psi.EnvironmentVariables["GA_NOTIFY_CHAT_TYPE"] = $botCfg.notify_chat_type }
+        $shutdownFile = Join-Path $ProjectRoot "temp\.shutdown_$botKey"
+        $shutdownDir = Split-Path $shutdownFile
+        if (-not (Test-Path $shutdownDir)) { New-Item -ItemType Directory -Path $shutdownDir -Force | Out-Null }
+        $psi.EnvironmentVariables["GA_SHUTDOWN_FILE"] = $shutdownFile
+        if (Test-Path $shutdownFile) { Remove-Item $shutdownFile -Force }
+        $p = [System.Diagnostics.Process]::Start($psi)
     }
-    if ($botCfg.notify_chat_type) {
-        $psi.EnvironmentVariables["GA_NOTIFY_CHAT_TYPE"] = $botCfg.notify_chat_type
-    }
-    $shutdownFile = Join-Path $ProjectRoot "temp\.shutdown_$botKey"
-    $shutdownDir = Split-Path $shutdownFile
-    if (-not (Test-Path $shutdownDir)) { New-Item -ItemType Directory -Path $shutdownDir -Force | Out-Null }
-    $psi.EnvironmentVariables["GA_SHUTDOWN_FILE"] = $shutdownFile
-    # Clean any stale shutdown file
-    if (Test-Path $shutdownFile) { Remove-Item $shutdownFile -Force }
-    $p = [System.Diagnostics.Process]::Start($psi)
     Start-Sleep -Milliseconds 3000
-    $p.Refresh()
     if ($p.HasExited) {
         Write-Log "  [$botLabel] start failed (exited immediately)"
         return @()
     }
     Write-Log "  [$botLabel] OK PID=$($p.Id)"
     return @($p.Id)
+}
+
+function Stop-AllBots {
+    param($cfg)
+    foreach ($key in $cfg.bots.PSObject.Properties.Name) {
+        $bot = $cfg.bots.$key
+        Stop-Bot (Resolve-GAPath $bot.entry) $bot.name $key
+    }
 }
 
 # ---------- resolve pythonw ----------
@@ -272,11 +300,7 @@ if ($Status) {
 # --- Restart: stop all first ---
 if ($Restart) {
     Write-Log "--- restart mode: stopping all entries ---"
-    foreach ($key in $cfg.bots.PSObject.Properties.Name) {
-        $bot = $cfg.bots.$key
-        $scriptPath = Resolve-GAPath $bot.entry
-        Stop-Bot $scriptPath $bot.name $key
-    }
+    Stop-AllBots $cfg
     Start-Sleep -Seconds 1
     Write-Log "--- restart mode: starting entries ---"
 }
@@ -284,19 +308,24 @@ if ($Restart) {
 # --- Stop: graceful stop all ---
 if ($Stop) {
     Write-Log "--- stop mode: stopping all entries ---"
-    foreach ($key in $cfg.bots.PSObject.Properties.Name) {
-        $bot = $cfg.bots.$key
-        $scriptPath = Resolve-GAPath $bot.entry
-        Stop-Bot $scriptPath $bot.name $key
-    }
+    Stop-AllBots $cfg
     Write-Log "--- stop complete ---"
     exit 0
 }
 
 # --- determine which bots to start ---
 $botKeys = @()
-if ($Bots) {
-    $botList = $Bots -split ',' | ForEach-Object { $_.Trim().ToLower() }
+if ($UseSelectedKeys) {
+    $selectedList = $SelectedKeys -split ',' | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ }
+    $unknown = @()
+    foreach ($b in $selectedList) {
+        if ($cfg.bots.$b) { $botKeys += $b }
+        else { $unknown += $b }
+    }
+    if ($unknown.Count -gt 0) { Write-Log "  Warn unknown selected bot: $($unknown -join ',') (available: $($cfg.bots.PSObject.Properties.Name -join ', '))" }
+    Write-Log "OK one-shot selected entries = $($botKeys -join ',')"
+} elseif ($Bots) {
+    $botList = $Bots -split ',' | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ }
     foreach ($key in $cfg.bots.PSObject.Properties.Name) { $cfg.bots.$key.enabled = $false }
     $unknown = @()
     foreach ($b in $botList) {
@@ -312,8 +341,9 @@ if ($Bots) {
     }
 }
 
+$botKeys = @($botKeys | Select-Object -Unique)
 if ($botKeys.Count -eq 0) {
-    Write-Log "no entries to start (none enabled; use -Bots to select)"
+    Write-Log "no entries to start (none selected/enabled; use launcher window, -SelectedKeys, or -Bots)"
     exit 0
 }
 

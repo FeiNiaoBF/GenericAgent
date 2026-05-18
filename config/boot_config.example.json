@@ -38,6 +38,26 @@
       "name": "Hub",
       "entry": "hub.pyw",
       "enabled": false
+    },
+    "tui_v2": {
+      "name": "TUI v2",
+      "entry": "frontends\\tuiapp_v2.py",
+      "enabled": false
+    },
+    "tui": {
+      "name": "TUI legacy",
+      "entry": "frontends\\tuiapp.py",
+      "enabled": false
+    },
+    "desktop": {
+      "name": "Desktop",
+      "entry": "frontends\\qtapp.py",
+      "enabled": false
+    },
+    "streamlit": {
+      "name": "Streamlit",
+      "entry": "frontends\\stapp.py",
+      "enabled": false
     }
   }
 }
