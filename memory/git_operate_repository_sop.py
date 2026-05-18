@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Git操作 - 执行标准Git操作
 
-SOP: git_operate_sop.md
+SOP: git_operate_repository_sop.md
 用途: 常用的Git操作封装: 状态检查/提交/推送/分支管理
 DIY: 一个脚本只做Git操作
 """

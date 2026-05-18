@@ -1,3 +1,7 @@
+---
+name: obsidian_tag_governance
+description: 治理Obsidian全库标签命名空间与收敛规则
+---
 # [L3 SOP] obsidian_tag_governance_sop — 全库标签治理SOP (v1.0, 干练)
 > Vault: `Codex Vitae` | 单职责: 全库tags统一命名空间/治理/巡检
 

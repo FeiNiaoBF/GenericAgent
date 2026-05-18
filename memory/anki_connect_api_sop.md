@@ -1,3 +1,8 @@
+---
+name: anki_connect_api
+description: 连接 AnkiConnect API，优先使用封装工具完成 Anki 读写与连通性验证
+---
+
 # AnkiConnect SOP (v3.0 · 2026-05-11)
 
 > 前提：Anki已安装AnkiConnect插件，端口8765

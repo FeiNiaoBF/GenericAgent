@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Excalidraw绘图 - 创建Excalidraw图表
 
-SOP: excalidraw_draw_sop.md
+SOP: excalidraw_draw_diagram_sop.md
 用途: 生成Excalidraw图表JSON，支持常见图类型
 DIY: 一个脚本只做图表生成
 """

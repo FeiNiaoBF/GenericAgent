@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Codex协作 - 与Codex/Claude协作编程
 
-SOP: codex_collaboration_sop.md
+SOP: codex_collaborate_tasks_sop.md
 用途: 管理Codex协作任务的创建、执行和提交
 DIY: 一个脚本只做协作管理
 """

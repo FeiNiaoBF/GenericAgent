@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Codebase遍历 - 遍历和分析代码库结构
 
-SOP: codebase_traversal_sop.md
+SOP: codebase_traverse_repository_sop.md
 用途: 递归遍历代码库，输出文件树、统计信息
 DIY: 一个脚本只做遍历分析
 """

@@ -1,3 +1,7 @@
+---
+name: obsidian_knowledge
+description: 维护Obsidian知识库架构、箱体分类与知识流转
+---
 # Vault 知识库架构 SOP (v2.1)
 > Vault: `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
 > 实现: `vault_tools.py`(统一接口) | `verify_note.py`(验证) | `diary_append.py`(日记追加)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """学习辅导 - 学习辅导工具
 
-SOP: learning_tutor_sop.md
+SOP: learning_tutor_study_sop.md
 用途: 生成学习计划、知识点讲解、题目练习
 DIY: 一个脚本只做学习辅导
 """

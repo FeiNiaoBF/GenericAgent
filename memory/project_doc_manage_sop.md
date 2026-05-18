@@ -1,3 +1,7 @@
+---
+name: project_doc_manage
+description: 阅读项目代码并沉淀项目文档笔记
+---
 # project_doc_manage_sop · 项目文档生成与维护 (v1.0)
 > 知识融合: README三步法 | Diátaxis四象限 | C4四层 | OpenAPI 3.1
 

@@ -1,3 +1,7 @@
+---
+name: task_backend_manage
+description: 管理后台任务、定时任务与任务状态核验
+---
 # 🔧 任务后端 SOP (v1.2)
 > 含：自主执行 + 定时调度器 (scheduler)
 > 单职责：后台任务/定时/自主执行的启动、记录、收尾。

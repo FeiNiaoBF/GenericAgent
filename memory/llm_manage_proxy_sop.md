@@ -1,3 +1,8 @@
+---
+name: llm_manage_proxy
+description: 管理本地 LLM 代理链路，检查 CC Switch、New API 与 CLIProxyAPI 状态
+---
+
 # LLM Proxy SOP · CC Switch + New API
 
 > 版本: v1.0 | 创建: 2026-05-11

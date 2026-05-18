@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """LLM代理管理 - 管理和切换LLM代理
 
-SOP: llm_proxy_manage_sop.md
+SOP: llm_manage_proxy_sop.md
 用途: 检查/切换/测试LLM代理连接
 DIY: 一个脚本只做代理管理
 """

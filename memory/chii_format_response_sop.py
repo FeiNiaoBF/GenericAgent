@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Chi格式化 - 应用Chi格式规则到文本
 
-SOP: chi_format_sop.md
+SOP: chii_format_response_sop.md
 用途: 统一格式化风格，确保文本符合唧的格式规范
 DIY: 一个脚本只做格式统一
 """

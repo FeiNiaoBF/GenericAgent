@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 import sys
 from _encoding import setup_utf8; setup_utf8()
+
+SOP_NAME = "daily_news_fetch"
+SOP_DESCRIPTION = "新闻简报抓取、分类、格式化与日记新闻区块输出"
+
 '''
 Daily News Fetch Tool — 定时获取新闻简报（国际/国内/财经）
 =========================================================

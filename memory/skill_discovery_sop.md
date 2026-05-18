@@ -1,3 +1,7 @@
+---
+name: skill_discovery
+description: 发现可复用技能、工具与外部资源并登记索引
+---
 # Skill Discovery & Integration SOP · 外部技能发现-评估-集成
 
 **触发**：主人需求当前SOP/工具无法满足 | **禁用**：已有SOP能解决的不重复搜索
@@ -10,7 +14,7 @@
 
 | L1 本地已安装 | L2 社区(awesome/官方) | L3 GitHub搜索 | L4 Google |
 |---|---|---|---|
-| npm/pip/PATH/scripts/ | npmjs/pypi/awesome-* | `{q} stars:>1000 pushed:>2024` | web_search_sop规则 |
+| npm/pip/PATH/scripts/ | npmjs/pypi/awesome-* | `{q} stars:>1000 pushed:>2024` | web_search_google_sop规则 |
 
 ## 3. 质量评估 ⛔禁止跳过直接推荐
 

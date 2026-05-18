@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """每日任务计划 - 规划和追踪每日任务
 
-SOP: daily_task_plan_sop.md
+SOP: daily_task_plan_day_sop.md
 用途: 创建每日任务清单、追踪进度
 DIY: 一个脚本只做任务计划
 """

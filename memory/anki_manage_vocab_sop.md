@@ -1,3 +1,8 @@
+---
+name: anki_manage_vocab
+description: Anki词汇卡片查询、创建、同步与复习辅助
+---
+
 # Anki英语单词添加 SOP
 
 > 触发词："记单词" + 单词列表

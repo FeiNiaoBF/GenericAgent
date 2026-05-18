@@ -1,3 +1,7 @@
+---
+name: ui_design
+description: 产出界面设计方案、视觉规范与组件建议
+---
 # ui_design_sop · 生成式UI/UX设计规范 (v1.0)
 
 > 来源：`ui-ux-pro-max` 技能（SKILL.md + 10 CSV + 7 references）

@@ -116,15 +116,15 @@ memory/L4_raw_sessions/*
 !memory/skill_scraper.py
 
 # Refactoring batch - SOPs
-!memory/anki_connect_sop.md
-!memory/anki_vocab_sop.md
-!memory/learning_tutor_sop.md
-!memory/llm_proxy_sop.md
-!memory/obsidian_moc_sop.md
+!memory/anki_connect_api_sop.md
+!memory/anki_manage_vocab_sop.md
+!memory/learning_tutor_study_sop.md
+!memory/llm_manage_proxy_sop.md
+!memory/obsidian_manage_moc_sop.md
 !memory/programming_teaching_sop.md
 !memory/skill_discovery_sop.md
 !memory/sop_creation_sop.md
-!memory/tg_unified_sop.md
+!memory/telegram_send_unified_sop.md
 
 # SOP Python scripts (auto-generated from SOP .md)
 !memory/*_sop.py
@@ -133,7 +133,8 @@ memory/L4_raw_sessions/*
 # Chii personal memory - dev only
 !memory/global_mem.txt
 !memory/global_mem_insight.txt
-!memory/cs_teaching_page_sop.md
+!memory/chii_format_response_sop.md
+!memory/cs_teaching_generate_page_sop.md
 !memory/obsidian_book_source_enricher.py
 !memory/obsidian_knowledge_sop.md
 !memory/obsidian_manage_domain_sop.md

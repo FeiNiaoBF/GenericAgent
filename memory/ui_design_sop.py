@@ -7,8 +7,8 @@ EXCALIDRAW_DIR = Path(__file__).parent / '..' / 'excalidraw'
 
 def open_excalidraw():
     """启动Excalidraw编辑"""
-    # 使用excalidraw_draw工具
-    from excalidraw_draw_sop import launch_editor
+    # 使用excalidraw_draw_diagram工具
+    from excalidraw_draw_diagram_sop import launch_editor
     launch_editor()
 
 def create_design_template(name: str, elements: list) -> Path:

@@ -1,3 +1,7 @@
+---
+name: obsidian_manage_quest
+description: 管理Obsidian任务Quest体系与进度记录
+---
 # Quest 生命周期管理 SOP (v1.0)
 
 > 关联知识库：`obsidian_knowledge_sop.md` → 01.Quests 箱摘要

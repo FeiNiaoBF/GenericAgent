@@ -1,3 +1,7 @@
+---
+name: resume
+description: 修改简历内容、结构与项目表达
+---
 # resume_sop · CV/简历修改专属SOP (v1.0)
 > 技能源: resume-cv-builder(LaTeX/PDF) | cv-creator(ATS评分) | resume-optimizer(ATS优化) | cv-writer(专业写作CoT) | cv-resume-builder(多格式+成就框架)
 

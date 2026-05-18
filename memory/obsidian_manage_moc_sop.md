@@ -1,3 +1,7 @@
+---
+name: obsidian_manage_moc
+description: 管理Obsidian MOC地图笔记与导航结构
+---
 # obsidian_manage_moc_sop — Obsidian MOC地图 (v1.0)
 > Vault: `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
 > 单职责：只处理 MOC/地图笔记创建、字段、同步。知识库分类见 `obsidian_knowledge_sop.md`。

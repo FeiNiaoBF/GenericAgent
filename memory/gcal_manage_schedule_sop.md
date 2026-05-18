@@ -1,3 +1,8 @@
+---
+name: gcal_manage_schedule
+description: Google Calendar日程创建、查询、修改与删除
+---
+
 # Google Calendar SOP (v1.0)
 
 ## 执行摘要（≥1步执行前必读）

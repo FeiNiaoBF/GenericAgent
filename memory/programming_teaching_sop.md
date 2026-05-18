@@ -1,3 +1,7 @@
+---
+name: programming_teaching
+description: 按教学节奏讲解编程概念、练习与反馈
+---
 # 🎯 编程教学 SOP (v1.0)
 > 融合自：skills.sh TOP9教学skills方法论 + 唧的教学经验
 > 核心理念：不代写、苏格拉底式引导、渐进式复杂度、诊断驱动

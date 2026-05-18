@@ -1,4 +1,9 @@
-# 📮 Telegram 统一操作 SOP (v1.1)
+---
+name: telegram_send_unified
+description: Telegram统一发送消息、文件、HTML渲染与贴纸操作
+---
+
+# 📮 Telegram 统一发送 SOP (v1.2)
 
 > 合并自：notification / send_file / html_rendering / sticker
 

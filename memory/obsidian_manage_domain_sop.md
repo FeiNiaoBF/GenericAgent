@@ -1,3 +1,7 @@
+---
+name: obsidian_manage_domain
+description: 管理Obsidian领域Domain笔记与领域索引
+---
 # Obsidian Domain 管理 · obsidian_manage_domain_sop
 > 单职责：管理 Codex Vitae 的 `02.Domains/` 领域文件。Vault架构见 `obsidian_knowledge_sop.md`，Note规范见 `obsidian_note_wiki_sop.md`，Quest规则见 `obsidian_manage_quest_sop.md`。
 

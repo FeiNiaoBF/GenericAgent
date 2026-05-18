@@ -1,3 +1,7 @@
+---
+name: obsidian_manage_library
+description: 管理Obsidian Library书籍目录、模板与Dataview字段
+---
 # [L3 SOP] obsidian_manage_library_sop — 图书馆·读书心流/03.Library治理SOP (v2.1)
 > Vault: `D:\Documents_Learn\Personal\Obsidian\Codex Vitae`
 > 单职责：只处理“书籍笔记/阅读心流”。知识库架构见 `obsidian_knowledge_sop.md`；发布见 `obsidian_blog_sync_sop.md`。

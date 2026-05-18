@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """每日新闻获取 - 获取并汇总每日新闻
 
-SOP: daily_news_fetch_sop.md
+SOP: news_fetch_daily_sop.md
 用途: 从指定源获取每日新闻，整理摘要
 DIY: 一个脚本只做新闻获取
 """
 
 import json, sys
+from _encoding import setup_utf8
+
+setup_utf8()
 try:
     import urllib.request as req
 except ImportError:

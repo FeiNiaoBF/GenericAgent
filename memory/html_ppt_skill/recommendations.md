@@ -34,7 +34,7 @@ cover + toc + two-column + code + flow-diagram + arch-diagram + comparison + tab
 
 做专业 CS 教学页时：
 
-1. 先读 `memory/cs_teaching_page_sop.md` 确认教学结构与验证门禁。
+1. 先读 `memory/cs_teaching_generate_page_sop.md` 确认教学结构与验证门禁。
 2. 再读本目录的 `themes.md` / `templates.md` 选择视觉主题与页面结构。
 3. 默认不复制完整 PPT 模板，而是吸收其布局语言到单文件 HTML 教学页。
 4. 页面必须仍满足自包含、响应式、代码与可视化一致、物理验证通过。

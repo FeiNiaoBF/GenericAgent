@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """归藏PPT构建 - 构建归藏风格的PPT
 
-SOP: guizang_ppt_build_sop.md
+SOP: guizang_build_ppt_sop.md
 用途: 基于模板和数据构建PPT文件
 DIY: 一个脚本只做PPT构建(需要pptx/guizang模板)
 """

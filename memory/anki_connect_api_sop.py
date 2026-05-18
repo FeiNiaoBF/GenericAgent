@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """AnkiConnect - 连接AnkiConnect API并测试连通性
 
-SOP: anki_connect_sop.md
+SOP: anki_connect_api_sop.md
 用途: 测试AnkiConnect连接状态，获取deck/note信息
 DIY: 一个脚本只做连接测试
 """
 
 import json, sys, urllib.request, urllib.error
+from _encoding import setup_utf8
+
+setup_utf8()
 
 ANKI_CONNECT_URL = 'http://localhost:8765'
 

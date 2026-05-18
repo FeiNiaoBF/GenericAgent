@@ -1,3 +1,7 @@
+---
+name: obsidian_note_wiki
+description: 创建和维护单概念Wiki笔记、双链与嵌入引用
+---
 # Obsidian 笔记规范 · obsidian_note_wiki_sop (v1.1)
 > 单职责：定义 Note（`type:note`）的书写规范。Vault架构见 `obsidian_knowledge_sop.md`，MOC规则见 `obsidian_manage_moc_sop.md`。
 
@@ -40,10 +44,11 @@ status: seedling/growing/evergreen
 
 1. **内容嵌入双链** — 遇到可形成独立知识点的词，直接 `[[内链]]`
 2. **禁独立"关联"/"相关概念"区块** — 所有关联通过正文双链自然体现
-3. **标题无emoji/无编号** — 纯Markdown，禁 `①`、`🧠`、`📌` 等符号
+3. **标题无emoji/无编号** — 纯Markdown，禁 `①`、`🧠`、`📌` 等符号；标题不得写成 `## 1.xxx`，编号放到标题下方列表
 4. **内容厚实，大纲精简** — 大纲只写主干（不写每段子标题），内容写透
 5. **非blog非vkb** — 不写心得体会/抒情/冗长评价，客观陈述知识
 6. **粒度适中** — 如"马克思主义哲学基本原理.md"允许存在，只写该理论本身
+7. **Obsidian Callout** — 使用官方写法 `> [!info]` / `> [!note]` / `> [!tip]`，多行内容继续以 `>` 开头
 
 ## 五、📚 依据
 
@@ -66,6 +71,7 @@ GA写入前必须获取真实URL，禁编造。
 
 - ❌ 多知识点杂糅到一篇笔记
 - ❌ 用 `##` 加 `①/🧠/📌` 等符号
+- ❌ 用 `## 1.xxx` 这类“标题+编号”混写；改为干净标题 + 下方有序/无序列表
 - ❌ 写心得体会/blog风格
 - ❌ 遗漏frontmatter属性
 - ❌ 在Note中使用MOC结构（大量双链索引）

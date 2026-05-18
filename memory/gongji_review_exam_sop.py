@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """公基考试复习 - 公共基础知识考试复习工具
 
-SOP: gongji_exam_review_sop.md
+SOP: gongji_review_exam_sop.md
 用途: 管理和复习公共基础知识题目
 DIY: 一个脚本只做考试复习
 """

@@ -1,3 +1,7 @@
+---
+name: sop_refactor
+description: 重构、去重、升级SOP并同步记忆索引
+---
 # sop_refactor_sop · SOP重构/去重/版本升级 (v3.0)
 > 复用工具: `file_read`(关键词对比) | `code_run+Python`(diff) | `file_patch`(精确替换) | L2/L1 patch
 
@@ -57,7 +61,7 @@
 ✅ 旧角色卡/网页启动细节已并入源SOP；引用链与`sop_index.md`已更新
 
 ### Step2: 合并9→3组 + 内化3个 ✅
-- TG→`tg_unified_send_sop.md` | 学习助教→`learning_tutor_sop.md` | 后台/定时→`task_backend_manage_sop.md`
+- TG→`telegram_send_unified_sop.md` | 学习助教→`learning_tutor_study_sop.md` | 后台/定时→`task_backend_manage_sop.md`
 - MOC已拆出→`obsidian_manage_moc_sop.md`；知识库保留分类职责→`obsidian_knowledge_sop.md`
 
 ### Step3: 同步记忆+Git ⬜

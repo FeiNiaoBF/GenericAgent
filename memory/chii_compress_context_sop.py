@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Chii压缩 - 压缩归档Chii记忆
 
-SOP: chii_compress_sop.md
+SOP: chii_compress_context_sop.md
 用途: 压缩记忆/日志文件，保留最近内容，归档旧数据
 DIY: 一个脚本只做压缩归档
 """

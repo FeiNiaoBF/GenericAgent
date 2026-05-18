@@ -1,6 +1,10 @@
+---
+name: yeekox_blog_style_format
+description: 按Yeekox博客风格整理文章格式与排版
+---
 # [L3 SOP] yeekox_blog_style_format_sop — YeelightBlog 写作规范 (v1.0)
 > 基于 16 篇博文分析 + Google blog best practices
-> 通用格式 → [`chi_format_sop`](../memory/chi_format_sop.md)
+> 通用格式 → [`chii_format_response_sop`](../memory/chii_format_response_sop.md)
 
 ## 执行摘要（≥1步执行前必读）
 ① 确认文章类型(教程/工具/理论/项目)→② 按frontmatter+结构写→③ `status:published`后`obsidian_blog_sync.py`推送 → 🛑 过验证门禁

@@ -1,3 +1,7 @@
+---
+name: sop_creation
+description: 创建一个职责单一、可复用、可验证的新SOP
+---
 # 🔧 SOP 创建流程 (Meta-SOP)
 
 > 用途：当唧需要基于外部资源创建新SOP时的标准流程

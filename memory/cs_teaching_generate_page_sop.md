@@ -1,3 +1,8 @@
+---
+name: cs_teaching_generate_page
+description: 生成自包含的计算机科学交互式 HTML 教学页面
+---
+
 # CS Teaching Page SOP
 
 > 目标：根据主人指定的计算机科学知识点，生成一个专业、自包含、可直接打开的 HTML/CSS/JS 交互式教学页面。融合 `cs-teaching-page` / `cs-visual-teacher` 的教学完整性，以及 `html-ppt-skill` / `guizang-ppt-skill` 的高级视觉排版能力。
@@ -421,7 +426,7 @@ print("static validation ok", p)
 
 ## 关联记忆
 
-- `learning_tutor`
+- `learning_tutor_study`
 - `programming_teaching`
 - `guizang_ppt`
 - `ui_design`
