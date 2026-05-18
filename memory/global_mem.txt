@@ -123,6 +123,7 @@ sop: task_backend_manage_sop.md | module: ../memory/task_backend_manage_sop/help
 API: get_todo()|get_history(n)|complete_task(title,historyline,report_path)|set_todo(keyword)|validate_l1()
 report_dir: memory/L4_raw_sessions/archive/autonomous_reports/ | history: memory/L4_raw_sessions/archive/autonomous_reports/history.txt
 优先级: ① 自我优化(代码/系统/记忆) > ② 从用户行为学习优化 > ③ 其他任务
+SOP门禁: agent_execute_sop_gate_sop.md | 触发=Git/记忆/SOP/重构/Obsidian/后台/浏览器/代码/长程计划/连续失败≥2/可复用验证经验 | 要求=识别场景→查L1/L2→读1-3个L3→提取门禁→成长判定(先读L0, No Execution No Memory, L1/L2/L3分层)→执行→同步索引→闭环验证 | 禁止=只看L1就声称已按SOP
 内容路由(红牌): 新闻→Obsidian日记(🚫非master_chii_journal) | 技术发现→master_chii_journal(唧成长) | 消息源(HN)→Obsidian日记📡今日信号 | 巡检结果→Obsidian Notes | scheduler on_done→唧の足迹
 
 ## [Git]
