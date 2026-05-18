@@ -124,6 +124,7 @@ memory/L4_raw_sessions/*
 !memory/programming_teaching_sop.md
 !memory/skill_discovery_sop.md
 !memory/sop_creation_sop.md
+!memory/agent_execute_sop_gate_sop.md
 !memory/telegram_send_unified_sop.md
 
 # SOP Python scripts (auto-generated from SOP .md)
