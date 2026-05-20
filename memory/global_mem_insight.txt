@@ -1,16 +1,16 @@
 # [Global Memory Insight]
 浏览器:tmwebdriver|键鼠:ljqCtrl|视觉:ocr|后台任务:task_backend|定时:task_backend|手机:adb_ui
 画像:user_profile|搜索:web_search_google|技能发现:skill_discovery|PPT:guizang_ppt|飞书:fsapp
-Obsidian:obsidian_library(03.Library重构/Books目录Dataview/标签Taxonomy·全库治理/信息源填充→obsidian_book_source_enricher|书页必用Book.md模板骨架·工具只填字段不写正文)|obsidian_tag_governance(全库tag命名空间·干练SOP)|obsidian_knowledge(Codex架构·8箱v2.1·多箱互联·Fiction→Notes/Writing/Fiction)|obsidian_note_wiki(Wiki笔记规范·单概念/嵌入双链)|obsidian_moc(MOC地图→Maps/)|obsidian_domain(Domain领域→02.Domains)|obsidian_blog_sync(Blog落点)|daily_task|excalidraw|chii_format_response|插件:obsidian_plugin_dev
-学习:learning_tutor_study|编程教学:programming_teaching|CS教学页:cs_teaching_generate_page_sop(自包含HTML/CSS交互教学页)|HTML_PPT:html_ppt_skill|audio_master|Whisper:chii-whisper(faster-whisper全局命令)|Anki:anki_connect|Anki词汇:anki_manage_vocab
-流程:sop_creation|agent_execute_sop_gate(执行前识别/展开L3 SOP门禁)|codex_collaborate_tasks|UI设计:ui_design|resume_sop(简历修改)|日计划:daily_task_plan_day|博客格式:yeekox_blog_style_format
+Obsidian:obsidian_library(03.Library书籍/阅读心流/信息源填充→obsidian_book_source_enricher|书页必用Book.md模板骨架·工具只填字段不写正文)|obsidian_tag_governance(全库tag命名空间·干练SOP)|obsidian_knowledge(Codex架构·8箱v2.1·多箱互联·Fiction→Notes/Writing/Fiction)|obsidian_note_wiki(Wiki笔记规范·单概念/嵌入双链)|obsidian_moc(MOC地图→Maps/)|obsidian_domain(Domain领域→02.Domains)|obsidian_blog_sync(Blog落点)|daily_task|excalidraw|chii_format_response|插件:obsidian_plugin_dev
+学习:learning_tutor_study|CS学习:cs_course_learning_loop_sop(课表+教材+Lab/HW/Project环境闭环)|编程教学:programming_teaching|CS教学页:cs_teaching_generate_page_sop(自包含HTML/CSS交互教学页)|HTML_PPT:html_ppt_skill|audio_master|Whisper:chii-whisper(faster-whisper全局命令)|Anki:anki_connect|Anki词汇:anki_manage_vocab
+流程:sop_creation|agent_execute_sop_gate(执行前识别/展开L3 SOP门禁)|AgentBBS:agent_bbs_sop(58800多Agent公告板)|codex_collaborate_tasks|UI设计:ui_design|resume_sop(简历修改)|日计划:daily_task_plan_day|博客格式:yeekox_blog_style_format
 项目学习:project_doc(他人项目笔记模板→Obsidian Note)|项目:AgentDock(Tauri AI工作台/ACP/GA扩展→简历素材先查仓库)
 MEM:memory_management|temp_gc:memory_cleanup|L2:global_mem|L4:L4_raw_sessions|知识库:obsidian_knowledge|脚本:vault_tools/verify_note/diary_append/audit_l1|SOP.py:32个(个人SOP→同名.py)
-人格:sys_prompt.txt(GA主力+旧档统一)|日记:master_chii_journal|压缩:chii_compress_context|重构:sop_refactor
+人格:sys_prompt.txt(GA主力+旧档统一)|日记:master_chii_journal|压缩:chii_compress_context(全局压缩优化)|重构:sop_refactor
 计划:plan|/plan:plan_cmd|验证:verify|文档:project_doc|goal_state|遍历:codebase_traverse_repository|Git:git(origin/main官方;base/origin-main纯PR基线;main稳定;dev个人开发+Chii记忆;pr/*从base切)|贴纸:telegram_send_unified|新闻:news_fetch_daily(today news)
 TG发送:tg_send_file|TG渲染:telegram_send_unified|日历:gcal|信号源:signal_source_fetch|公基:gongji_exam|GitHub:github_contribution
 Boot:boot/|启动:start.ps1|桌面:launcher.ps1|GUI:run_gui.pyw|配置:config/boot_config.json|LLM:llm_model|就绪:system_readiness
-LLM代理:llm_proxy|CC Switch:localhost:15721|New API:Docker:3000|CLIProxyAPI:Docker:8200→8317|GA对接:mixin_config故障转移链
+LLM代理:llm_proxy|CC Switch:localhost:15721|New API:Docker:3000|CLIProxyAPI:Docker:8200→8317|GA对接:mixin_config故障转移链|缓存压缩:llmcore(cache_control基座+user首尾断点)
 
 需时读L2或ls ../memory/查L3
 L0:memory_management|L2:global_mem|L3:../memory/|L4:L4_raw_sessions

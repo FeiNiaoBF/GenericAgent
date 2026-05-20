@@ -25,15 +25,15 @@
 2. 可读环境信息（文件/网页/进程）补充判断依据
 3. 工作agent ask_user时给予回复
 
-| 发现 | 干预 |
+|发现|干预|
 |------|------|
-| 跳步 | `_intervene`：你跳过了StepN，先做 |
-| 细节遗漏 | `_intervene`：你漏了XX约束，重做/补上 |
-| 光说不做 | `_intervene`：别说了，直接做 |
-| 断言无据 | `_intervene`：你怎么确认的？验证一下 |
-| 连续失败 | `_intervene`：停，先读错误日志再决定 |
-| 感觉要偏 | `_intervene`：去重读SOP的StepN再继续 |
-| 即将进入中后期步骤 | `_keyinfo`：提前注入该步骤的⚠️细节（趁还没到，先塞进working memory） |
+|跳步|`_intervene`：你跳过了StepN，先做|
+|细节遗漏|`_intervene`：你漏了XX约束，重做/补上|
+|光说不做|`_intervene`：别说了，直接做|
+|断言无据|`_intervene`：你怎么确认的？验证一下|
+|连续失败|`_intervene`：停，先读错误日志再决定|
+|感觉要偏|`_intervene`：去重读SOP的StepN再继续|
+|即将进入中后期步骤|`_keyinfo`：提前注入该步骤的⚠️细节（趁还没到，先塞进working memory）|
 
 ## 干预原则
 

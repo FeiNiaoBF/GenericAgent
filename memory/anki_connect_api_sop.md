@@ -59,13 +59,13 @@ anki.deck_stats("公基错题")     # 牌组统计
 
 ## 5. 典型坑
 
-| 坑 | 解法 |
+|坑|解法|
 |---|------|
-| CSS推送成功但不生效 | 检查class名匹配 + 有无`<style>`包裹 |
-| 选项不显示 | 确保 `.option-text` 有完整CSS规则 |
-| 卡片不居中 | body flex + .card margin:auto 双重保险 |
-| 卡片大小不统一 | 统一 max-width:600px + width:100% |
-| API返回null | AnkiConnect偶发，重试而非报错 |
+|CSS推送成功但不生效|检查class名匹配 + 有无`<style>`包裹|
+|选项不显示|确保 `.option-text` 有完整CSS规则|
+|卡片不居中|body flex + .card margin:auto 双重保险|
+|卡片大小不统一|统一 max-width:600px + width:100%|
+|API返回null|AnkiConnect偶发，重试而非报错|
 
 ## 🛑 验证门禁
 用utils而非裸HTTP？| 三步闭环？| class名匹配模板？| option-text规则完整？

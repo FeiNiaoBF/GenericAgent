@@ -34,20 +34,21 @@ description: 治理Obsidian全库标签命名空间与收敛规则
 
 ## 4. 避坑（教训）
 - ⚠️ YAML禁用嵌入式`#`值: `source/pocket`否改`source/getpocket`→YAML解析为颜色值
+- ⚠️ 空frontmatter `---\n---` 陷阱: `yaml.safe_load()` 返回 `None` 而非 `{}`, 需额外判 `if fm is None: fm = {}`
 - ⚠️ 引号包裹: 含`.`的tag必须加引号 `"topic/programming/typescript"`
 - ⚠️ 批次替换后复检: 每批替换完立即抽查+回滚方案就绪
 - ⚠️ 换tag不换old_tag文件名: tag变动不涉及文件名/路径变动
 
 ## 5. 工具委托
-- 扫描全库tags: `python ../memory/vault_tools.py inspect --tags`
+- 扫描全库tags: 自写Python脚本(glob+yaml.safe_load)提取tags字段；`vault_tools.py inspect`仅`--help`无`--tags`参数
 - 验证单文件: `python ../memory/verify_note.py "<路径>"`
 - 分类检查: `python ../memory/vault_classifier.py --all`
 
 ## 🛑 终检门禁
-| 检查项 | 状态 |
+|检查项|状态|
 |--------|------|
-| 旧式遗留tag = 0? | |
-| 裸标签 = 0 frontmatter? | |
-| 颜色值已排除? | |
-| 空tags:[]已清理? | |
-| Tag Taxonomy存在且最新? | |
+|旧式遗留tag = 0?|
+|裸标签 = 0 frontmatter?|
+|颜色值已排除?|
+|空tags:[]已清理?|
+|Tag Taxonomy存在且最新?|

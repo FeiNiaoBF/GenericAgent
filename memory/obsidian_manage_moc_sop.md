@@ -10,11 +10,11 @@ description: 管理Obsidian MOC地图笔记与导航结构
 ① 判断MOC层级 → ② 选模板 → ③ 填字段/边界 → ④ 加精选导航/Dataview → ⑤ 同步父级/总览 → 🛑
 
 ## MOC类型
-| 类型 | 用途 | 模板 | 指向 | 必填 |
+|类型|用途|模板|指向|必填|
 |---|---|---|---|---|
-| 顶层MOC | 学科/领域领航 | `01-05Cat·LLM版.md` | 子MOC | 无`moc`字段 |
-| 主题MOC | 主题知识聚合 | `MOC.md` v3.0 | 笔记+Dataview | `moc` |
-| 次级MOC | 学习/子领域 | `MOC.md`精简版 | 子主题/笔记 | `level:sub` + `parent` |
+|顶层MOC|学科/领域领航|`01-05Cat·LLM版.md`|子MOC|无`moc`字段|
+|主题MOC|主题知识聚合|`MOC.md` v3.0|笔记+Dataview|`moc`|
+|次级MOC|学习/子领域|`MOC.md`精简版|子主题/笔记|`level:sub` + `parent`|
 
 决策：学科领域级→顶层MOC | 领域内主题≥3篇→主题MOC | 学习类子领域→次级MOC。
 

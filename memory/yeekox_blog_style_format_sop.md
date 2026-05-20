@@ -10,12 +10,12 @@ description: 按Yeekox博客风格整理文章格式与排版
 ① 确认文章类型(教程/工具/理论/项目)→② 按frontmatter+结构写→③ `status:published`后`obsidian_blog_sync.py`推送 → 🛑 过验证门禁
 
 ## 1. 博客画像
-| 类型 | 占比 | 代表 |
+|类型|占比|代表|
 |------|------|------|
-| 技术教程/笔记 | 60% | cache, gdb, k8s, http, lock, bit, makefile |
-| 短篇笔记 | 15% | redis_timeout, scm |
-| 好奇探索 | 15% | beef, futures |
-| 元博/个人 | 10% | plan_cs |
+|技术教程/笔记|60%|cache, gdb, k8s, http, lock, bit, makefile|
+|短篇笔记|15%|redis_timeout, scm|
+|好奇探索|15%|beef, futures|
+|元博/个人|10%|plan_cs|
 
 核心风格: 对话式开篇("想一个问题")、第一人称、类比思维、短段落、代码+注释混合。
 
@@ -63,11 +63,11 @@ tags: ["tag1", "tag2"]
 
 ## 🛑 验证门禁（执行前/后强制检查）
 
-| 检查项 | 状态 |
+|检查项|状态|
 |--------|------|
-| frontmatter字段完整(layout/title/date/tags)？ | |
-| 类型匹配(教程60%|工具20%|理论15%|项目5%)？ | |
-| status:published→已触发blog_sync？ | |
-| 交叉引用路径有效？ | |
+|frontmatter字段完整(layout/title/date/tags)？|
+|类型匹配(教程60%|工具20%|理论15%|项目5%)？|
+|status:published→已触发blog_sync？|
+|交叉引用路径有效？|
 
 最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

@@ -48,7 +48,6 @@ set GOAL_STATE=temp/goal_xxx.json && start /b python agentmain.py --reflect refl
 - 状态：读 goal_state.json 的 `turns_used` / `status`
 - 详情：看 `temp/model_responses/` 下最近修改的文件尾部
 
-
 ## 本地补充
 > 本SOP已归并到 `task_backend_manage_sop.md` 的 `§4 Goal Mode`，避免后台/自主执行流程双维护。
 请读取并执行：`../memory/task_backend_manage_sop.md` → `§4 Goal Mode`

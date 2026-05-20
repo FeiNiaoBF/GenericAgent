@@ -12,15 +12,15 @@ description: 发现可复用技能、工具与外部资源并登记索引
 
 ## 2. 层级搜索（由近到远禁止跳级）
 
-| L1 本地已安装 | L2 社区(awesome/官方) | L3 GitHub搜索 | L4 Google |
+|L1 本地已安装|L2 社区(awesome/官方)|L3 GitHub搜索|L4 Google|
 |---|---|---|---|
-| npm/pip/PATH/scripts/ | npmjs/pypi/awesome-* | `{q} stars:>1000 pushed:>2024` | web_search_google_sop规则 |
+|npm/pip/PATH/scripts/|npmjs/pypi/awesome-*|`{q} stars:>1000 pushed:>2024`|web_search_google_sop规则|
 
 ## 3. 质量评估 ⛔禁止跳过直接推荐
 
-| ✅通过 | ⚠️谨慎 | ❌不推荐 |
+|✅通过|⚠️谨慎|❌不推荐|
 |---|---|---|
-| ≥1K星/装, 6月内更新, 官方维护, README完整, MIT/Apache | 100-1K, 6-12月, 活跃个人 | <100, >12月无更新, 无文档, 无许可 |
+|≥1K星/装, 6月内更新, 官方维护, README完整, MIT/Apache|100-1K, 6-12月, 活跃个人|<100, >12月无更新, 无文档, 无许可|
 
 评估：读README → 查releases频率 → 查contributors → 查issues前10 → 对比3+候选选最优
 快速验证：Docker/Demo优先试 → 读测试理解用法

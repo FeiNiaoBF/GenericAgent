@@ -49,9 +49,9 @@ description: 创建一个职责单一、可复用、可验证的新SOP
 
 ## 📁 配套脚本
 
-| 脚本 | 用途 | 位置 |
+|脚本|用途|位置|
 |------|------|------|
-| `skill_scraper.py` | 批量抓取skills.sh/GitHub内容 | `../memory/` |
-| `skill_ranker.py` | 自动评分排名 | `../memory/` |
+|`skill_scraper.py`|批量抓取skills.sh/GitHub内容|`../memory/`|
+|`skill_ranker.py`|自动评分排名|`../memory/`|
 
 （脚本见下文）

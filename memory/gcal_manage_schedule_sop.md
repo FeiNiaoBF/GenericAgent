@@ -52,10 +52,10 @@ saveBtn.click();
 - `../memory/gcal_helper.py`: Python自动化 (add_gcal_event支持account_index)
 
 ## 🛑 验证门禁
-| 检查项 | PASS条件 | FAIL处理 | 状态 |
+|检查项|PASS条件|FAIL处理|状态|
 |--------|---------|---------|------|
-| 账号正确 | `web_scan`确认右上角为`pai Yang` (u/1) | 切到u/1重来 | |
-| 日视图已确认 | 新建前`web_scan`扫日视图无冲突 | 调整时间避免冲突 | |
-| 保存后已验证 | 导航回日视图`web_scan`确认日程出现 | 重建事件 | |
+|账号正确|`web_scan`确认右上角为`pai Yang` (u/1)|切到u/1重来|
+|日视图已确认|新建前`web_scan`扫日视图无冲突|调整时间避免冲突|
+|保存后已验证|导航回日视图`web_scan`确认日程出现|重建事件|
 
 最终裁定：`VERDICT: PASS` / `VERDICT: FAIL`

@@ -2,100 +2,66 @@
 name: obsidian_manage_quest
 description: 管理Obsidian任务Quest体系与进度记录
 ---
-# Quest 生命周期管理 SOP (v1.0)
+# Quest 生命周期管理 SOP
 
-> 关联知识库：`obsidian_knowledge_sop.md` → 01.Quests 箱摘要
-> 关联模板：`99.System/Templates/Quest.md`
-> 关联工具：`vault_tools.py`(分类/移动) | `verify_note.py`(验证) | `diary_append.py`(收尾)
-
-## 执行流程
-
-① 新想法 → 写入 `01.Quests/Someday/` 占位
-② 决定执行 → 用模板创建 → 放 `01.Quests/Active/`
-③ 定期推进 → 更新 `progress`+`Status` 节
-④ 完成 → 创建死链 → 移 `01.Quests/Archives/`
-⑤ `vault_tools.py move` + `diary_append.py` 收尾
+## 关联
+- 知识库：`obsidian_knowledge_sop.md` 的 `01.Quests` 箱。
+- 模板：`99.System/Templates/Quest.md`。
+- 工具：`vault_tools.py`(移动/分类)；`verify_note.py`(验证)；`diary_append.py`(收尾)。
 
 ## 生命周期
+- `Someday` → `01.Quests/Someday/`：未来可能执行；不是灵感箱。
+- `Active` → `01.Quests/Active/`：正在推进，有目标与完成标准。
+- `Waiting` → `01.Quests/Waiting/`：等待外部输入/他人。
+- `Done` → `04.Archives/QuestName/`：完成后先留死链 `→ [[04.Archives/QuestName/QuestName]]`，再物理归档。
 
-| 状态 | 路径 | 条件 |
-|------|------|------|
-| **Someday** | `01.Quests/Someday/` | 未来可能执行的项目/计划，暂未决定启动；必须仍具备“可转化为行动”的可能 |
-| **Active** | `01.Quests/Active/` | 正在进行，有明确目标和完成标准 |
-| **Waiting** | `01.Quests/Waiting/` | 阻塞中，等待外部输入/他人 |
-| **Done→Archive** | `01.Quests/Archives/` | 完成，创建死链 `→ [[04.Archives/QuestName/QuestName]]` 后物理移至 `04.Archives/` |
+边界：纯灵感/素材/片段进 `03.Library/Notes/` 或 `03.Library/Sources/`；小说材料进 `03.Library/Notes/Writing/Fiction/`。
 
-> 判定边界：Someday 不是通用灵感箱。纯灵感/素材/片段迁入 `03.Library/Notes/` 或 `03.Library/Sources/`；小说与虚构写作材料独立管理到 `03.Library/Notes/Writing/Fiction/`（目录名用英语）。
-
-## Frontmatter 规范
-
+## Frontmatter
 ```yaml
 ---
 type: quest
-status: active        # active | waiting | someday | done
-priority: ""         # P0/P1/P2/P3 或空
-progress: 0          # 0-100 整数
-deadline: ""         # YYYY-MM-DD 或空
-created: "2026-05-13"
-updated: "2026-05-13"
-domain: ""           # 所属领域
-tags:
-  - quest
-  - active
-aliases:
-  - "Quest名称"
+status: active   # active | waiting | someday | done
+priority: ""    # P0/P1/P2/P3 或空
+progress: 0     # 0-100整数
+deadline: ""    # 不编造日期
+created: "YYYY-MM-DD"
+updated: "YYYY-MM-DD"
+domain: ""
+tags: [quest, active]
+aliases: ["Quest名称"]
 ---
 ```
+- 状态迁移必须同步 `status/tags/updated`。
+- `deadline` 只能用主人给出的日期；缺失时留空或标待定。
 
-- `type: quest` — 固定值，所有 Quest 统一
-- `status` 严格使用 4 种值
-- `deadline` 由主人决策；缺失时保持空值或标记待主人设定，助手只整理结构与提醒，禁止编造日期。
-- `domain` 与知识库的箱体/领域对应
-- `tags` 自动继承 type/status 标签，可追加领域标签
+## 正文骨架
+1. `Mission`：为什么做，完成后改变什么。
+2. `Completion Criteria`：可验证关闭条件；全满足才可Done。
+3. `Dashboard`：进度/优先级/时限/Dataview。
+4. `Status`：当前阶段、坑点、阻塞。
+5. `Action Plan`：按Phase拆任务。
+6. `Milestones`：预期/实际/状态。
+7. `Related`：双链与文件路径。
+8. `Changelog`：关键决策倒序。
 
-## 写作规则
-
-1. **Mission** — 一句话定位：为什么要做？完成后世界有何不同？
-2. **Completion Criteria** — 可验证的关闭条件，全部满足才能关闭
-3. **Dashboard** — 进度/优先级/时限/Dataview聚合查询
-4. **Status** — 当前阶段、遇到什么坑、什么在阻塞
-5. **Action Plan** — 按 Phase 切分，可执行的任务列表
-6. **Milestones** — 关键节点跟踪（预期/实际/状态）
-7. **Related** — 双向链接关联笔记 + 相关文件路径
-8. **Changelog** — 关键决策/状态变更，按时间倒序
-
-## 状态转换规则
-
-- **Someday → Active**：决定启动时，从模板创建新文件，放入 Active/
-- **Active → Waiting**：阻塞时标记，在 Status 节说明等待什么
-- **Active → Done**：Completion Criteria 全部满足
-- **Waiting → Active**：阻塞解除，恢复推进
-- **Done → Archive**：创建死链 `→ [[04.Archives/QuestName/QuestName]]`，物理文件移至 `04.Archives/`
-- 跨状态迁移后同步更新 `updated` 字段
+## 操作流程
+1. 新想法：可行动则建 `Someday`；不可行动转Library。
+2. 决定启动：套模板建文件，移 `Active`。
+3. 推进中：更新 `progress` 与 `Status`。
+4. 阻塞：改 `Waiting` 并写清等待对象/条件。
+5. 完成：确认 `Completion Criteria` 全满足 → `Done` → 死链 → 移 `04.Archives/`。
+6. 收尾：`diary_append.py "Quest <名称> 完成/迁移"`。
 
 ## 质量门禁
+运行 `verify_note.py <path>`：
+- frontmatter字段完整；`status` 合法。
+- `Mission` 与 `Completion Criteria` 非空。
+- 双链正确；依据节若存在须有真实来源。
+- 通过后用 `vault_tools.py move <src> <dest>` 移至正确目录。
 
-运行 `verify_note.py <path>` 验证：
-- [ ] frontmatter 字段完整（type/status/tags/created/updated）
-- [ ] status 值合法（active/waiting/someday/done）
-- [ ] Mission + Completion Criteria 非空
-- [ ] 双链正确，无断裂
-- [ ] 📚依据节（若有）附真实来源
+## 维护规则
+- `Active/` 超过5个时建议优先级排序。
+- 单Quest控制3–10KB；过长拆同名目录。
 
-验证通过后：
-1. `vault_tools.py move <src> <dest>` — 移至正确目录
-2. `diary_append.py "Quest <名称> 完成/迁移"` — 日记收尾
-
-## 目录结构
-
-```
-01.Quests/
-├── Active/          # 进行中
-│   ├── 项目A.md
-│   └── 项目B/
-├── Waiting/         # 等待外部输入
-├── Someday/         # 将来想做
-└── Archives/        # 已完成(软链接至 04.Archives)
-```
-
-> **提示**：Active/ 下超过 5 个活跃 Quest 时建议做优先级排序。每个 Quest 文件大小控制在 3-10KB，过长时拆分子文件至同名目录。
+`VERDICT: PASS` / `VERDICT: FAIL`

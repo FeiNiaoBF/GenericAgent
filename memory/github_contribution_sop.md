@@ -32,14 +32,14 @@ reviewer说改就改→追加commit+测试+push→禁force push(除非要求squa
 要求加测试→加，非可选项
 
 ## 避坑速查
-| 错误 | 正确 |
+|错误|正确|
 |------|------|
-| 一PR改多事 | 拆多个独立PR |
-| 不跟进 | 每天查review状态 |
-| 测试没跑就推 | Step4硬门槛 |
-| commit写"update" | 写具体改了啥 |
-| force push覆盖历史 | 追加commit |
-| PR描述空白 | What/Why/Testing |
+|一PR改多事|拆多个独立PR|
+|不跟进|每天查review状态|
+|测试没跑就推|Step4硬门槛|
+|commit写"update"|写具体改了啥|
+|force push覆盖历史|追加commit|
+|PR描述空白|What/Why/Testing|
 
 ## 跟进状态机
 ```
