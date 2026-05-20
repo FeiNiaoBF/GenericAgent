@@ -28,3 +28,4 @@ L0:memory_management|L2:global_mem|L3:../memory/|L4:L4_raw_sessions
 10. `Git`: 操作前必须`git rev-parse --show-toplevel`确认根；官方/上游默认=origin/main且只读禁push；commit message/body/footer禁emoji。
 11. `编码安全`: Windows Python CLI统一用`memory/_encoding.py::setup_utf8()`；禁多模块反复`TextIOWrapper`包装stdout/stderr；`from __future__`位置先验。
 12. `Markdown`: 标题禁并入编号项，避免`## 1.xxx`；用标题+列表分离。
+13. `Python环境`: 默认使用`uv venv`创建/管理项目虚拟环境。

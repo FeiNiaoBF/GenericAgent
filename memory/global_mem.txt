@@ -209,6 +209,7 @@ obsidian_knowledge_sop(★必读) | 脚本:vault_tools.py verify_note.py diary_a
 |- **2026-05-12 Vault知识库路径修复**: vault_tools.py#L30硬编码`'note': '80.Knowledge'`，Vault实为`05.Knowledge`。写笔记前核对TYPE_TO_DIR映射与Vault真实目录一致。已修复映射+更新SOP+同步L2计数|05.Knowledge子目录: CS/10, Economics/5, History/1, 法律/3
 - **2026-05-12 记忆脚本全面重构**: 23文件统一TextIOWrapper修复→`_encoding.py`(跨平台编码); 删除冗余`memory_hierarchy.py`+`chii_style_migration.py`; 15+新SOP/tools拆分落地(excalidraw_draw.py847行保留/vault_classifier.py409行保留/ankitools已较小); gitignore加白名单(rev-parse防误); commit `1e77c66`(41files/1652ins)|**教训**: .gitignore白名单`!memory/_encoding.py`需配`*`前缀; CLI代理文件(mixin)不存在跳过
 - **2026-05-13 Windows CLI编码经验**: Python CLI/包入口统一在进程早期调用`memory/_encoding.py::setup_utf8()`；禁止多模块反复`io.TextIOWrapper(sys.stdout/stderr.buffer,...)`，否则`--help`/argparse等路径可能触发`ValueError: I/O operation on closed file`；`from __future__`必须紧跟编码声明/模块docstring后；修复后门禁=`py_compile`+`--help`+`--stats`+最小查询+`git diff --check`。
+|- **2026-05-20 Python环境偏好**: 已验证本机`uv 0.11.6`可用；项目默认用`uv venv`创建/管理虚拟环境。
 
 
 |- **2026-05-12 SOP.py脚本创建**: 为32个个人SOP(.md)创建同名`.py`可执行脚本。命名规则「操作对象_行为_被操作对象_sop.py」。每个脚本一个功能(DIY)。存放于`./memory/`。脚本从SOP.md中提取核心参数/逻辑/边界条件，import安全(PATH已含memory)。导入测试32/32✅。待git commit提交
