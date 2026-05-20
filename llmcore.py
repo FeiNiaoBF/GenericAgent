@@ -60,10 +60,7 @@ def compress_history_tags(messages, keep_recent=10, max_len=800, force=False, in
                             if isinstance(sub, dict) and sub.get('type') == 'text': sub['text'] = _trunc_str(sub.get('text'))
                 elif t == 'tool_use' and isinstance(b.get('input'), dict):
                     for k, v in b['input'].items(): b['input'][k] = _trunc_str(v)
-    _after = sum(len(json.dumps(m, ensure_ascii=False)) for m in messages)
-    _saved = _before - _after
-    _pct = (_saved / _before * 100) if _before else 0
-    print(f"[Cut] {_before} -> {_after} saved={_saved} ({_pct:.1f}%) keep_recent={keep_recent} max_len={max_len}")
+    print(f"[Cut] {_before} -> {sum(len(json.dumps(m, ensure_ascii=False)) for m in messages)}")
     return messages
 
 def _sanitize_leading_user_msg(msg):
@@ -300,16 +297,18 @@ def _record_usage(usage, api_mode):
     if not usage: return
     if api_mode == 'responses':
         cached = (usage.get("input_tokens_details") or {}).get("cached_tokens", 0)
-        inp = usage.get("input_tokens", 0)
+        inp = usage.get("input_tokens", 0); out = usage.get("output_tokens", 0)
         miss = max(inp - cached, 0)
         ratio = (cached / inp * 100) if inp else 0
         print(f"[Cache] input={inp} cached={cached} miss={miss} hit={ratio:.1f}%")
+        if out: print(f"[Output] tokens={out}")
     elif api_mode == 'chat_completions':
         cached = (usage.get("prompt_tokens_details") or {}).get("cached_tokens", 0)
-        inp = usage.get("prompt_tokens", 0)
+        inp = usage.get("prompt_tokens", 0); out = usage.get("completion_tokens", 0)
         miss = max(inp - cached, 0)
         ratio = (cached / inp * 100) if inp else 0
         print(f"[Cache] input={inp} cached={cached} miss={miss} hit={ratio:.1f}%")
+        if out: print(f"[Output] tokens={out}")
     elif api_mode == 'messages':
         ci, cr, inp = usage.get("cache_creation_input_tokens", 0), usage.get("cache_read_input_tokens", 0), usage.get("input_tokens", 0)
         cached = ci + cr
@@ -624,27 +623,17 @@ def _fix_messages(messages):
     """修复 messages 符合 Claude API：交替、tool_use/tool_result 配对"""
     if not messages: return messages
     _wrap = lambda c: c if isinstance(c, list) else [{"type": "text", "text": str(c)}]
-    def _tu_ids(m): return [b.get('id') for b in _wrap(m.get('content', [])) if isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('id')]
-    def _tr_ids(m): return {b.get('tool_use_id') for b in _wrap(m.get('content', [])) if isinstance(b, dict) and b.get('type') == 'tool_result'}
-    def _balance_pair(a, u):
-        uses = _tu_ids(a); has = _tr_ids(u); miss = [uid for uid in uses if uid not in has]
-        if miss: u = {**u, 'content': [{"type": "tool_result", "tool_use_id": uid, "content": "(error)"} for uid in miss] + _wrap(u['content'])}
-        orphan = _tr_ids(u) - set(uses)
-        if orphan: u = {**u, 'content': [{"type":"text","text":str(b.get('content',''))} if isinstance(b,dict) and b.get('type')=='tool_result' and b.get('tool_use_id') in orphan else b for b in _wrap(u['content'])]}
-        return u
-    def _drop_orphan_tool_results(u):
-        return {**u, 'content': [{"type":"text","text":str(b.get('content',''))} if isinstance(b,dict) and b.get('type')=='tool_result' else b for b in _wrap(u['content'])]}
     fixed = []
     for m in messages:
-        m = {**m, 'content': _wrap(m.get('content', ''))}
-        if m['role'] == 'user' and (not fixed or fixed[-1]['role'] != 'assistant'):
-            m = _drop_orphan_tool_results(m)
-        if fixed and fixed[-1]['role'] == 'assistant' and m['role'] == 'user': m = _balance_pair(fixed[-1], m)
         if fixed and m['role'] == fixed[-1]['role']:
-            if fixed[-1]['role'] == 'assistant' and (_tu_ids(fixed[-1]) or _tu_ids(m)):
-                fixed.append({'role': 'user', 'content': [{"type": "tool_result", "tool_use_id": uid, "content": "(error)"} for uid in _tu_ids(fixed[-1])]} if _tu_ids(fixed[-1]) else {'role':'user','content':[{'type':'text','text':'...'}]})
-                fixed.append(m); continue
             fixed[-1] = {**fixed[-1], 'content': _wrap(fixed[-1]['content']) + [{"type": "text", "text": "\n"}] + _wrap(m['content'])}; continue
+        if fixed and fixed[-1]['role'] == 'assistant' and m['role'] == 'user':
+            uses = [b.get('id') for b in fixed[-1].get('content', []) if isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('id')]
+            has = {b.get('tool_use_id') for b in _wrap(m['content']) if isinstance(b, dict) and b.get('type') == 'tool_result'}
+            miss = [uid for uid in uses if uid not in has]
+            if miss: m = {**m, 'content': [{"type": "tool_result", "tool_use_id": uid, "content": "(error)"} for uid in miss] + _wrap(m['content'])}
+            orphan = has - set(uses)
+            if orphan: m = {**m, 'content': [{"type":"text","text":str(b.get('content',''))} if isinstance(b,dict) and b.get('type')=='tool_result' and b.get('tool_use_id') in orphan else b for b in _wrap(m['content'])]}
         fixed.append(m)
     while fixed and fixed[0]['role'] != 'user': fixed.pop(0)
     return fixed
@@ -683,18 +672,10 @@ class NativeClaudeSession(BaseSession):
         else: print("[ERROR] No tools provided for this session.")
         payload['system'] = [{"type": "text", "text": "You are Claude Code, Anthropic's official CLI for Claude.", "cache_control": {"type": "ephemeral"}}]
         if self.system:
-            if self.fake_cc_system_prompt:
-                messages[0]["content"].insert(0, {"type": "text", "text": self.system})
-            else:
-                # Append self.system as dynamic tail after cached base
-                payload["system"].append({"type": "text", "text": self.system})
+            if self.fake_cc_system_prompt: messages[0]["content"].insert(0, {"type": "text", "text": self.system})
+            else: payload["system"] = [{"type": "text", "text": self.system}]
         user_idxs = [i for i, m in enumerate(messages) if m['role'] == 'user']
-        # 首 + 尾固定断点：首个 user 跨轮稳定，末尾 user 覆盖当前
-        user_breakpoints = set()
-        if user_idxs:
-            user_breakpoints.add(user_idxs[0])   # stable across turns
-            user_breakpoints.add(user_idxs[-1])  # current context
-        for idx in sorted(user_breakpoints):
+        for idx in user_idxs[-2:]:
             messages[idx] = {**messages[idx], "content": list(messages[idx]["content"])}
             messages[idx]["content"][-1] = dict(messages[idx]["content"][-1], cache_control={"type": "ephemeral"})
         url = auto_make_url(self.api_base, "messages") + '?beta=true'
@@ -938,7 +919,6 @@ class MixinSession:
         for s in self._sessions: s.max_retries = 0
         self._orig_raw_asks = [s.raw_ask for s in self._sessions]
         self._sessions[0].raw_ask = self._raw_ask
-        self.model = getattr(self._sessions[0], 'model', None)
         self._cur_idx, self._switched_at = 0, 0.0
     def __getattr__(self, name): return getattr(self._sessions[0], name)
     _BROADCAST_ATTRS = frozenset({'system', 'tools', 'temperature', 'max_tokens', 'reasoning_effort', 'history'})
@@ -950,6 +930,8 @@ class MixinSession:
         else: object.__setattr__(self, name, value)
     @property
     def primary(self): return self._sessions[0]
+    @property
+    def model(self): return getattr(self._sessions[self._cur_idx], 'model', None)
     def _pick(self):
         if self._cur_idx and time.time() - self._switched_at > self._spring_sec: self._cur_idx = 0
         return self._cur_idx
