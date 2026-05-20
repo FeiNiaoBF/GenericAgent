@@ -60,7 +60,10 @@ def compress_history_tags(messages, keep_recent=10, max_len=800, force=False, in
                             if isinstance(sub, dict) and sub.get('type') == 'text': sub['text'] = _trunc_str(sub.get('text'))
                 elif t == 'tool_use' and isinstance(b.get('input'), dict):
                     for k, v in b['input'].items(): b['input'][k] = _trunc_str(v)
-    print(f"[Cut] {_before} -> {sum(len(json.dumps(m, ensure_ascii=False)) for m in messages)}")
+    _after = sum(len(json.dumps(m, ensure_ascii=False)) for m in messages)
+    _saved = _before - _after
+    _pct = (_saved / _before * 100) if _before else 0
+    print(f"[Cut] {_before} -> {_after} saved={_saved} ({_pct:.1f}%) keep_recent={keep_recent} max_len={max_len}")
     return messages
 
 def _sanitize_leading_user_msg(msg):
@@ -298,14 +301,21 @@ def _record_usage(usage, api_mode):
     if api_mode == 'responses':
         cached = (usage.get("input_tokens_details") or {}).get("cached_tokens", 0)
         inp = usage.get("input_tokens", 0)
-        print(f"[Cache] input={inp} cached={cached}")
+        miss = max(inp - cached, 0)
+        ratio = (cached / inp * 100) if inp else 0
+        print(f"[Cache] input={inp} cached={cached} miss={miss} hit={ratio:.1f}%")
     elif api_mode == 'chat_completions':
         cached = (usage.get("prompt_tokens_details") or {}).get("cached_tokens", 0)
         inp = usage.get("prompt_tokens", 0)
-        print(f"[Cache] input={inp} cached={cached}")
+        miss = max(inp - cached, 0)
+        ratio = (cached / inp * 100) if inp else 0
+        print(f"[Cache] input={inp} cached={cached} miss={miss} hit={ratio:.1f}%")
     elif api_mode == 'messages':
         ci, cr, inp = usage.get("cache_creation_input_tokens", 0), usage.get("cache_read_input_tokens", 0), usage.get("input_tokens", 0)
-        print(f"[Cache] input={inp} creation={ci} read={cr}")
+        cached = ci + cr
+        miss = max(inp - cached, 0)
+        ratio = (cached / inp * 100) if inp else 0
+        print(f"[Cache] input={inp} creation={ci} read={cr} miss={miss} hit={ratio:.1f}%")
     
 def _parse_openai_json(data, api_mode="chat_completions"):
     blocks = []
@@ -673,10 +683,18 @@ class NativeClaudeSession(BaseSession):
         else: print("[ERROR] No tools provided for this session.")
         payload['system'] = [{"type": "text", "text": "You are Claude Code, Anthropic's official CLI for Claude.", "cache_control": {"type": "ephemeral"}}]
         if self.system:
-            if self.fake_cc_system_prompt: messages[0]["content"].insert(0, {"type": "text", "text": self.system})
-            else: payload["system"] = [{"type": "text", "text": self.system}]
+            if self.fake_cc_system_prompt:
+                messages[0]["content"].insert(0, {"type": "text", "text": self.system})
+            else:
+                # Append self.system as dynamic tail after cached base
+                payload["system"].append({"type": "text", "text": self.system})
         user_idxs = [i for i, m in enumerate(messages) if m['role'] == 'user']
-        for idx in user_idxs[-2:]:
+        # 首 + 尾固定断点：首个 user 跨轮稳定，末尾 user 覆盖当前
+        user_breakpoints = set()
+        if user_idxs:
+            user_breakpoints.add(user_idxs[0])   # stable across turns
+            user_breakpoints.add(user_idxs[-1])  # current context
+        for idx in sorted(user_breakpoints):
             messages[idx] = {**messages[idx], "content": list(messages[idx]["content"])}
             messages[idx]["content"][-1] = dict(messages[idx]["content"][-1], cache_control={"type": "ephemeral"})
         url = auto_make_url(self.api_base, "messages") + '?beta=true'

@@ -17,12 +17,14 @@ import json
 import os
 import queue
 import re
+import subprocess
 import sys
 import tempfile
 import threading
 import time
 from dataclasses import dataclass, field
 from itertools import count
+from pathlib import Path
 from typing import Any, Callable, Optional
 
 def _ensure_tui_deps() -> None:
@@ -990,6 +992,7 @@ COMMANDS = [
     ("/clear",    "",                 "清空显示（不动 LLM 历史）"),
     ("/stop",     "",                 "中止当前任务"),
     ("/llm",      "[n]",              "查看 / 切换模型"),
+    ("/goal",     "[objective]",      "Goal Mode：无参数显示说明，有参数启动后台目标 agent"),
     ("/btw",      "<question>",       "side question — 不打断主 agent"),
     ("/continue", "[n|name]",         "列出 / 恢复历史会话"),
     ("/cost",     "[all]",            "显示当前会话 token 用量（all = 所有会话）"),
@@ -1833,7 +1836,7 @@ class GenericAgentTUI(App[None]):
             "new": self._cmd_new, "switch": self._cmd_switch, "close": self._cmd_close,
             "rename": self._cmd_rename,
             "branch": self._cmd_branch, "rewind": self._cmd_rewind, "clear": self._cmd_clear,
-            "stop": self._cmd_stop, "llm": self._cmd_llm, "export": self._cmd_export,
+            "stop": self._cmd_stop, "llm": self._cmd_llm, "goal": self._cmd_goal, "export": self._cmd_export,
             "restore": self._cmd_restore, "btw": self._cmd_btw, "continue": self._cmd_continue,
             "cost": self._cmd_cost,
             "quit": self._cmd_quit, "exit": self._cmd_quit,
@@ -2816,6 +2819,70 @@ class GenericAgentTUI(App[None]):
             return f"已切换到 [{idx}] {name}"
         except Exception as e:
             return f"❌ 切换失败: {e}"
+
+
+    def _cmd_goal(self, args, raw):
+        """Start Goal Mode as a detached background agent.
+
+        Mirrors the repository Goal Mode SOP: persist a GOAL_STATE JSON, then
+        launch agentmain.py with reflect/goal_mode.py so the autonomous worker
+        can coordinate progress through the state file.
+        """
+        objective = " ".join(args).strip()
+        if not objective:
+            self._system(
+                "Goal Mode 用法:\n"
+                "  /goal <objective>\n\n"
+                "作用:\n"
+                "  启动一个后台目标 agent，适合 3 小时以上的长期自主任务。\n\n"
+                "执行机制:\n"
+                "  1. 写入 temp/goal_state.json\n"
+                "  2. 后台运行: python agentmain.py --reflect reflect/goal_mode.py\n"
+                "  3. 可观察: temp/goal_state.json 与 temp/model_responses/\n\n"
+                "停止方式:\n"
+                "  按系统提示中的 PID 精确结束进程，避免误杀其它 Python。"
+            )
+            return
+
+        root = Path(__file__).resolve().parents[1]
+        state_path = root / "temp" / "goal_state.json"
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state = {
+            "objective": objective,
+            "budget_seconds": 10800,
+            "start_time": time.time(),
+            "turns_used": 0,
+            "max_turns": 200,
+            "status": "running",
+            "source": "tuiapp_v2:/goal",
+        }
+        try:
+            state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            self._system(f"❌ /goal 写入状态失败: {e}")
+            return
+
+        cmd = [sys.executable, "agentmain.py", "--reflect", "reflect/goal_mode.py"]
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                cwd=str(root),
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+            )
+        except Exception as e:
+            self._system(f"❌ /goal 启动失败: {e}")
+            return
+
+        self._system(
+            "✅ Goal Mode 已启动\n"
+            f"目标: {objective}\n"
+            f"PID: {proc.pid}\n"
+            f"状态: {state_path}\n"
+            "观察: temp/model_responses/"
+        )
 
     # ---------------- new commands ----------------
     def _cmd_btw(self, args, raw):
